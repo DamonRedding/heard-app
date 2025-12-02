@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Scale, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { VoteType } from "@shared/schema";
 
@@ -85,8 +84,9 @@ export function VoteButtons({
           animatingButton === "condemn" && "animate-vote-pop"
         )}
         data-testid="button-condemn"
+        aria-label="Condemn this behavior"
       >
-        <Scale className="h-4 w-4" />
+        <span className="text-base" role="img" aria-hidden="true">😠</span>
         <span
           className={cn(
             "tabular-nums min-w-[1.5rem] text-center",
@@ -111,8 +111,9 @@ export function VoteButtons({
           animatingButton === "absolve" && "animate-vote-pop"
         )}
         data-testid="button-absolve"
+        aria-label="Absolve this behavior"
       >
-        <Check className="h-4 w-4" />
+        <span className="text-base" role="img" aria-hidden="true">😇</span>
         <span
           className={cn(
             "tabular-nums min-w-[1.5rem] text-center",
