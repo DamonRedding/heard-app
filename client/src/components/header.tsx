@@ -12,10 +12,10 @@ export function Header() {
         <Link href="/" data-testid="link-home">
           <div className="flex items-center gap-3 hover-elevate rounded-md px-2 py-1 cursor-pointer">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">S</span>
+              <span className="text-lg font-bold text-primary-foreground">H</span>
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-lg font-semibold tracking-tight">Sanctuary Voice</h1>
+              <h1 className="text-lg font-semibold tracking-tight">Heard</h1>
               <p className="text-xs text-muted-foreground">Anonymous Church Experiences</p>
             </div>
           </div>

@@ -13,7 +13,7 @@ export default function About() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-semibold">About Sanctuary Voice</h1>
+          <h1 className="text-2xl font-semibold">About Heard</h1>
         </div>
 
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
@@ -25,7 +25,7 @@ export default function About() {
               isolation, or gaslighting. There's no "Glassdoor for churches" — until now.
             </p>
             <p className="text-muted-foreground leading-relaxed mt-4">
-              Sanctuary Voice provides a platform where congregation members can anonymously share 
+              Heard provides a platform where congregation members can anonymously share 
               experiences from their churches and receive community validation or pushback — creating 
               crowdsourced accountability for pastoral leadership and church culture.
             </p>

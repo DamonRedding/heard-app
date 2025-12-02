@@ -1,8 +1,8 @@
-# Sanctuary Voice - Anonymous Church Experiences Platform
+# Heard - Anonymous Church Experiences Platform
 
 ## Overview
 
-Sanctuary Voice is a web application that provides a safe, anonymous platform for congregation members to share experiences from their churches and receive community validation through a voting system. The platform addresses the need for accountability in church leadership by allowing members to report misconduct, manipulation, financial impropriety, or toxic culture without fear of retaliation.
+Heard is a web application that provides a safe, anonymous platform for congregation members to share experiences from their churches and receive community validation through a voting system. The platform addresses the need for accountability in church leadership by allowing members to report misconduct, manipulation, financial impropriety, or toxic culture without fear of retaliation.
 
 The application enables users to:
 - Submit anonymous experiences categorized by type (leadership, financial, culture, misconduct, spiritual abuse, other)
