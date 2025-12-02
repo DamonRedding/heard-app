@@ -195,12 +195,16 @@ function PatternGroup({
   title,
   icon: Icon,
   patterns,
+  typeId,
 }: {
   title: string;
   icon: typeof Church;
   patterns: { name: string; count: number; submissions: AdminSubmission[] }[];
+  typeId: string;
 }) {
-  if (patterns.length === 0) return null;
+  const validPatterns = patterns.filter((p) => p.count >= 2 && p.name && p.name.trim().length > 0);
+  
+  if (validPatterns.length === 0) return null;
 
   return (
     <div className="space-y-3">
@@ -208,24 +212,30 @@ function PatternGroup({
         <Icon className="h-4 w-4" />
         {title}
       </h3>
-      {patterns.map((pattern, idx) => (
+      {validPatterns.map((pattern, idx) => (
         <Collapsible key={idx}>
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
               className="w-full justify-between h-auto py-3 px-4 bg-muted/50 hover:bg-muted"
-              data-testid={`pattern-${title.toLowerCase()}-${idx}`}
+              data-testid={`button-pattern-${typeId}-${idx}`}
             >
               <span className="font-medium">{pattern.name}</span>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary">{pattern.count} reports</Badge>
+                <Badge variant="secondary" data-testid={`badge-pattern-count-${typeId}-${idx}`}>
+                  {pattern.count} reports
+                </Badge>
                 <ChevronDown className="h-4 w-4" />
               </div>
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2 pl-4 space-y-2">
-            {pattern.submissions.map((sub) => (
-              <div key={sub.id} className="p-3 rounded-lg bg-background border text-sm">
+            {pattern.submissions.map((sub, subIdx) => (
+              <div 
+                key={sub.id} 
+                className="p-3 rounded-lg bg-background border text-sm"
+                data-testid={`card-pattern-submission-${typeId}-${idx}-${subIdx}`}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant="outline" className="text-xs">{getCategoryLabel(sub.category)}</Badge>
                   {getStatusBadge(sub.status)}
@@ -427,7 +437,7 @@ export default function Admin() {
               </Card>
             ) : (
               <div className="grid gap-6 lg:grid-cols-3">
-                <Card>
+                <Card data-testid="card-patterns-churches">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Church className="h-5 w-5 text-primary" />
@@ -435,14 +445,14 @@ export default function Admin() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <PatternGroup title="By Church" icon={Church} patterns={patternData?.churchPatterns || []} />
-                    {(!patternData?.churchPatterns || patternData.churchPatterns.length === 0) && (
-                      <p className="text-sm text-muted-foreground">No church patterns detected.</p>
+                    <PatternGroup title="By Church" icon={Church} patterns={patternData?.churchPatterns || []} typeId="church" />
+                    {(!patternData?.churchPatterns || patternData.churchPatterns.filter(p => p.count >= 2).length === 0) && (
+                      <p className="text-sm text-muted-foreground" data-testid="text-no-church-patterns">No church patterns detected.</p>
                     )}
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card data-testid="card-patterns-pastors">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <User className="h-5 w-5 text-primary" />
@@ -450,14 +460,14 @@ export default function Admin() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <PatternGroup title="By Pastor" icon={User} patterns={patternData?.pastorPatterns || []} />
-                    {(!patternData?.pastorPatterns || patternData.pastorPatterns.length === 0) && (
-                      <p className="text-sm text-muted-foreground">No pastor patterns detected.</p>
+                    <PatternGroup title="By Pastor" icon={User} patterns={patternData?.pastorPatterns || []} typeId="pastor" />
+                    {(!patternData?.pastorPatterns || patternData.pastorPatterns.filter(p => p.count >= 2).length === 0) && (
+                      <p className="text-sm text-muted-foreground" data-testid="text-no-pastor-patterns">No pastor patterns detected.</p>
                     )}
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card data-testid="card-patterns-locations">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <MapPin className="h-5 w-5 text-primary" />
@@ -465,9 +475,9 @@ export default function Admin() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <PatternGroup title="By Location" icon={MapPin} patterns={patternData?.locationPatterns || []} />
-                    {(!patternData?.locationPatterns || patternData.locationPatterns.length === 0) && (
-                      <p className="text-sm text-muted-foreground">No location patterns detected.</p>
+                    <PatternGroup title="By Location" icon={MapPin} patterns={patternData?.locationPatterns || []} typeId="location" />
+                    {(!patternData?.locationPatterns || patternData.locationPatterns.filter(p => p.count >= 2).length === 0) && (
+                      <p className="text-sm text-muted-foreground" data-testid="text-no-location-patterns">No location patterns detected.</p>
                     )}
                   </CardContent>
                 </Card>

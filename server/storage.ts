@@ -361,46 +361,45 @@ export class DatabaseStorage implements IStorage {
     const locationMap = new Map<string, Submission[]>();
 
     for (const sub of allSubmissions) {
-      if (sub.churchName) {
+      if (sub.churchName && sub.churchName.trim().length > 0) {
         const key = sub.churchName.toLowerCase().trim();
         if (!churchMap.has(key)) churchMap.set(key, []);
         churchMap.get(key)!.push(sub);
       }
-      if (sub.pastorName) {
+      if (sub.pastorName && sub.pastorName.trim().length > 0) {
         const key = sub.pastorName.toLowerCase().trim();
         if (!pastorMap.has(key)) pastorMap.set(key, []);
         pastorMap.get(key)!.push(sub);
       }
-      if (sub.location) {
+      if (sub.location && sub.location.trim().length > 0) {
         const key = sub.location.toLowerCase().trim();
         if (!locationMap.has(key)) locationMap.set(key, []);
         locationMap.get(key)!.push(sub);
       }
     }
 
-    const toPatternArray = (map: Map<string, Submission[]>) =>
+    const toPatternArray = (
+      map: Map<string, Submission[]>,
+      nameField: "churchName" | "pastorName" | "location"
+    ) =>
       Array.from(map.entries())
-        .map(([name, subs]) => ({
-          name: subs[0].churchName || subs[0].pastorName || subs[0].location || name,
-          count: subs.length,
-          submissions: subs,
-        }))
-        .filter((p) => p.count >= 2)
+        .filter(([key, subs]) => key.length > 0 && subs.length >= 2)
+        .map(([_, subs]) => {
+          const rawName = subs[0][nameField] || "";
+          const trimmedName = typeof rawName === "string" ? rawName.trim() : "";
+          return {
+            name: trimmedName,
+            count: subs.length,
+            submissions: subs,
+          };
+        })
+        .filter((p) => p.name.length > 0)
         .sort((a, b) => b.count - a.count);
 
     return {
-      churchPatterns: toPatternArray(churchMap).map((p) => ({
-        ...p,
-        name: p.submissions[0].churchName || p.name,
-      })),
-      pastorPatterns: toPatternArray(pastorMap).map((p) => ({
-        ...p,
-        name: p.submissions[0].pastorName || p.name,
-      })),
-      locationPatterns: toPatternArray(locationMap).map((p) => ({
-        ...p,
-        name: p.submissions[0].location || p.name,
-      })),
+      churchPatterns: toPatternArray(churchMap, "churchName"),
+      pastorPatterns: toPatternArray(pastorMap, "pastorName"),
+      locationPatterns: toPatternArray(locationMap, "location"),
     };
   }
 }
