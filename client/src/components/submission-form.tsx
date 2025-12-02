@@ -260,22 +260,34 @@ export function SubmissionForm({ onSubmit, isSubmitting = false, isSuccess = fal
               />
             </div>
 
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full"
-              disabled={isSubmitting || charCount < 50}
-              data-testid="button-submit-experience"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                "Share Your Experience"
+            <div className="space-y-2">
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={isSubmitting || charCount < 50}
+                data-testid="button-submit-experience"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Share Your Experience"
+                )}
+              </Button>
+              {charCount < 50 && charCount > 0 && (
+                <p className="text-sm text-muted-foreground text-center">
+                  {50 - charCount} more characters needed to submit
+                </p>
               )}
-            </Button>
+              {charCount === 0 && (
+                <p className="text-sm text-muted-foreground text-center">
+                  Enter at least 50 characters to enable submission
+                </p>
+              )}
+            </div>
           </form>
         </Form>
       </CardContent>
