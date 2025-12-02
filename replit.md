@@ -7,9 +7,12 @@ Sanctuary Voice is a web application that provides a safe, anonymous platform fo
 The application enables users to:
 - Submit anonymous experiences categorized by type (leadership, financial, culture, misconduct, spiritual abuse, other)
 - Vote on submissions (Condemn or Absolve) to provide community validation
-- Browse and filter submissions by category
+- Browse and filter submissions by category, denomination, or search terms
+- Express solidarity with "Me Too" counter without full submissions
+- Participate in anonymous commenting on submissions
 - Flag inappropriate content for moderation
-- Access an admin panel for content moderation
+- Access crisis resources (helplines) on misconduct and abuse-related posts
+- Access an admin panel with pattern detection dashboard for content moderation
 
 ## User Preferences
 
@@ -57,18 +60,23 @@ Preferred communication style: Simple, everyday language.
 - Development mode: Vite integration via `server/vite.ts` for HMR
 
 **API Design**: RESTful endpoints with JSON responses
-- `GET /api/submissions` - Fetch submissions with optional filtering (category, status, pagination)
+- `GET /api/submissions` - Fetch submissions with optional filtering (category, status, search, denomination, pagination)
 - `POST /api/submissions` - Create new anonymous submission
 - `POST /api/votes` - Cast or update vote on submission
 - `DELETE /api/votes/:submissionId` - Remove vote
+- `POST /api/metoos` - Toggle "Me Too" solidarity counter
+- `GET /api/submissions/:id/comments` - Get comments for a submission
+- `POST /api/submissions/:id/comments` - Add anonymous comment to a submission
 - `POST /api/flags` - Report submission for moderation
 - `GET /api/categories/counts` - Get submission counts per category
 - `GET /api/admin/submissions` - Admin-only endpoint for moderation queue
 - `PATCH /api/admin/submissions/:id/status` - Update submission status (admin only)
+- `GET /api/admin/patterns` - Get pattern detection data (grouped by church/pastor/location)
 
 **Rate Limiting**: In-memory rate limit store
 - Submissions: 5 per 24 hours per IP
 - Votes: 50 per 24 hours per IP
+- Comments: 10 per 24 hours per IP
 - IP hashing with SHA-256 for privacy protection
 
 **Authentication**: Simple password-based admin authentication
@@ -98,6 +106,7 @@ Preferred communication style: Simple, everyday language.
 - `timeframe`: Enum (last_month, last_year, one_to_five_years, five_plus_years)
 - `denomination`: Optional text field
 - `condemnCount`, `absolveCount`: Integer counters for votes
+- `meTooCount`: Integer counter for solidarity expressions
 - `flagCount`: Integer counter for moderation flags
 - `status`: Enum (active, under_review, removed)
 - `churchName`, `pastorName`, `location`: Admin-only fields (not displayed publicly)
@@ -108,6 +117,18 @@ Preferred communication style: Simple, everyday language.
 - `voterHash`: SHA-256 hash of IP address
 - `voteType`: Enum (condemn, absolve)
 - Composite unique constraint on (submissionId, voterHash)
+
+**MeToos Table**:
+- `submissionId`: Foreign key to submissions
+- `userHash`: SHA-256 hash of IP address
+- Composite unique constraint on (submissionId, userHash)
+
+**Comments Table**:
+- `id`: UUID primary key
+- `submissionId`: Foreign key to submissions
+- `content`: Text field (5-500 characters)
+- `commenterHash`: SHA-256 hash of IP address (for rate limiting)
+- `createdAt`: Timestamp
 
 **Flags Table**:
 - `submissionId`: Foreign key to submissions
