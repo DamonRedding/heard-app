@@ -113,7 +113,7 @@ export function VoteButtons({
         data-testid="button-absolve"
         aria-label="Absolve this behavior"
       >
-        <span className="text-base" role="img" aria-hidden="true">😇</span>
+        <span className="text-base" role="img" aria-hidden="true">🤷</span>
         <span
           className={cn(
             "tabular-nums min-w-[1.5rem] text-center",
