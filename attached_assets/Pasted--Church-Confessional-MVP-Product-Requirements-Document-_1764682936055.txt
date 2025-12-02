@@ -1,0 +1,502 @@
+# Church Confessional — MVP Product Requirements Document
+
+**Working Title:** Sanctuary Voice (alternatives: Church Witness, The Pew, Congregate)
+**Version:** 0.1 MVP
+**Date:** December 2024
+**Roundtable Contributors:** Product Manager, Product Strategist, UX Designer, Visual Designer, Interaction Designer, Information Architect, Full-Stack Engineer
+
+-----
+
+## 1. Executive Summary
+
+### Product Vision
+
+A platform where congregation members can anonymously share experiences from their churches and receive community validation or pushback—creating crowdsourced accountability for pastoral leadership and church culture.
+
+### Problem Statement
+
+Church members who witness or experience misconduct, manipulation, financial impropriety, or toxic culture often have no safe outlet. Internal reporting risks retaliation, social isolation, or gaslighting. There’s no “Glassdoor for churches.”
+
+### MVP Goal
+
+Launch a functional, anonymous submission and voting platform that validates the concept and gathers initial user feedback within 4-6 weeks.
+
+-----
+
+## 2. Roundtable Discussion
+
+### 🎯 Product Manager — Scope & Priorities
+
+**MVP Must-Haves (P0):**
+
+- Anonymous confession/experience submission
+- Binary community judgment (Condemn / Absolve)
+- Browse/read submissions feed
+- Basic category tagging
+- Content moderation queue
+
+**Post-MVP (P1):**
+
+- Church/denomination tagging (searchable)
+- User accounts (still anonymous posting)
+- “Me too” counter (others with same experience)
+- Resource links for abuse/crisis
+- Commenting (anonymous)
+
+**Out of Scope for MVP:**
+
+- Pastor/church name search
+- Verified church directories
+- Direct messaging
+- Mobile native apps
+
+**Success Metrics:**
+
+- 100 submissions in first 30 days
+- 60% of posts receive 10+ votes
+- <5% moderation removal rate (quality signal)
+
+-----
+
+### 📊 Product Strategist — Positioning & Risk
+
+**Target Users:**
+
+- Current/former church members processing experiences
+- People researching churches before joining
+- Advocates for church accountability
+
+**Competitive Landscape:**
+
+|Platform              |Gap We Fill                           |
+|----------------------|--------------------------------------|
+|Church Clarity        |Policy-focused, not experiential      |
+|Glassdoor             |Workplace only                        |
+|Reddit (r/churchabuse)|Not purpose-built, low discoverability|
+
+**Key Risks & Mitigations:**
+
+|Risk                          |Mitigation                                       |
+|------------------------------|-------------------------------------------------|
+|Defamation liability          |No named individuals in MVP; clear TOS           |
+|Fake/troll posts              |Rate limiting, moderation queue, community voting|
+|Trauma dumping without support|Surface crisis resources on sensitive posts      |
+|Platform misuse (vendettas)   |Community voting surfaces quality; flag system   |
+
+**Go-to-Market (MVP):**
+
+- Soft launch in ex-vangelical/church hurt communities (Twitter/X, Reddit, Threads)
+- No paid marketing initially
+- Gather testimonials for credibility
+
+-----
+
+### 🎨 UX Designer — User Flows
+
+**Primary User Flow: Submit Experience**
+
+```
+Landing Page → "Share Your Experience" CTA → Submission Form → Confirmation → Return to Feed
+```
+
+**Submission Form Fields:**
+
+*Publicly Visible:*
+
+1. What happened? (text, 50-2000 chars)
+1. Category (dropdown: Leadership, Financial, Culture, Misconduct, Spiritual Abuse, Other)
+1. When? (approximate: Last month, Last year, 1-5 years ago, 5+ years ago)
+1. Denomination (optional dropdown)
+
+*Admin-Only (not displayed publicly):*
+5. Church Name (optional text field)
+6. Pastor/Leader Name (optional text field)
+7. City/State (optional, helps identify church)
+
+1. Submit (no account required)
+
+**Form UX Note:** Clearly label admin-only fields with helper text: “This information helps us identify patterns but will NOT be displayed publicly.”
+
+**Primary User Flow: Browse & React**
+
+```
+Landing/Feed → Scan Cards → Read Full Post → Vote (Condemn/Absolve) → Continue Browsing
+```
+
+**Secondary Flows:**
+
+- Filter by category
+- Sort by recent/most validated
+- Flag inappropriate content
+
+**Key UX Principles:**
+
+- Zero friction to read (no login wall)
+- Minimal friction to submit (no account for MVP)
+- Trust through simplicity and restraint
+- No dark patterns
+
+-----
+
+### 🖼 Visual Designer — Design Language
+
+**Brand Tone:**
+
+- Safe, not sterile
+- Honest, not angry
+- Community, not isolated
+- Modern, not churchy
+
+**Color Palette:**
+
+|Role       |Color       |Hex    |
+|-----------|------------|-------|
+|Primary    |Deep Teal   |#0D5C63|
+|Secondary  |Warm Sand   |#F5F1E8|
+|Accent     |Muted Gold  |#C9A227|
+|Danger/Flag|Soft Red    |#C44536|
+|Condemn    |Judgment Red|#9B2C2C|
+|Absolve    |Mercy Green |#276749|
+
+**Typography:**
+
+- Headings: Inter (weight 600)
+- Body: Inter (weight 400)
+- Submissions: Georgia or serif for readability/warmth
+
+**Visual Elements:**
+
+- Soft shadows, rounded corners (12px)
+- Generous whitespace
+- No religious iconography (inclusive)
+- Abstract “light” motifs subtly used
+
+**Card Component (Confession) — Public View:**
+
+```
+┌─────────────────────────────────────┐
+│ [Category Tag]          [Timeframe] │
+│                                     │
+│ "Experience text preview that      │
+│ truncates after three lines..."     │
+│                                     │
+│ ┌─────────┐  ┌─────────┐   [Flag]  │
+│ │⚖ 42    │  │✓ 7      │           │
+│ │Condemn  │  │Absolve  │           │
+│ └─────────┘  └─────────┘           │
+└─────────────────────────────────────┘
+```
+
+**Card Component (Confession) — Admin View:**
+
+```
+┌─────────────────────────────────────┐
+│ [Category Tag]          [Timeframe] │
+│                                     │
+│ 🔒 ADMIN-ONLY INFO:                │
+│ Church: First Baptist of Springfield│
+│ Pastor: Rev. John Smith             │
+│ Location: Springfield, IL           │
+│                                     │
+│ "Full experience text displayed..." │
+│                                     │
+│ ⚖ 42 Condemn  |  ✓ 7 Absolve       │
+│ 🚩 2 Flags                          │
+│                                     │
+│ [Approve] [Remove] [Pattern Watch]  │
+└─────────────────────────────────────┘
+```
+
+-----
+
+### ⚡ Interaction Designer — Micro-interactions
+
+**Voting Interaction:**
+
+- Two clear judgment options: **Condemn** / **Absolve**
+- Condemn = “This behavior was wrong”
+- Absolve = “This behavior was justified or acceptable”
+- Tap/click to vote
+- Button fills with color + subtle scale animation (1.05x, 150ms ease-out)
+- Vote count increments with number tick animation
+- User can change vote (toggle behavior)
+- Voting state persists via localStorage (no login)
+
+**Submission Flow:**
+
+- Character counter on textarea (live)
+- Submit button disabled until minimum met
+- On submit: button → spinner → checkmark → redirect
+- Success toast: “Your voice matters. Thank you.”
+
+**Content Loading:**
+
+- Skeleton cards while loading
+- Infinite scroll with “Load more” fallback
+- Pull-to-refresh on mobile
+
+**Flag Flow:**
+
+- Flag icon → confirmation modal → “Thank you, we’ll review” → icon changes state
+
+**Empty States:**
+
+- No posts in category: “No experiences shared yet. Be the first.”
+- Error state: “Something went wrong. Please try again.”
+
+-----
+
+### 🗂 Information Architect — Structure & Taxonomy
+
+**Site Map (MVP):**
+
+```
+Home (Feed)
+├── Browse All
+├── Filter by Category
+│   ├── Leadership
+│   ├── Financial
+│   ├── Culture
+│   ├── Misconduct
+│   ├── Spiritual Abuse
+│   └── Other
+├── Submit Experience
+├── About / Why This Exists
+├── Terms of Service
+└── Content Policy
+```
+
+**Data Model:**
+
+**Submission Object:**
+
+```javascript
+{
+  id: uuid,
+  content: string,
+  category: enum,
+  denomination: string | null,
+  timeframe: enum,
+  created_at: timestamp,
+  condemn_count: integer,
+  absolve_count: integer,
+  flags: integer,
+  status: enum (active, under_review, removed),
+  
+  // Admin-only fields (never exposed via public API)
+  church_name: string | null,
+  pastor_name: string | null,
+  location: string | null
+}
+```
+
+**Vote Object:**
+
+```javascript
+{
+  id: uuid,
+  submission_id: uuid,
+  vote_type: enum (condemn, absolve),
+  voter_hash: string, // hashed IP or localStorage ID
+  created_at: timestamp
+}
+```
+
+**Flag Object:**
+
+```javascript
+{
+  id: uuid,
+  submission_id: uuid,
+  reason: enum (spam, fake, harmful, other),
+  created_at: timestamp
+}
+```
+
+**Content Taxonomy (Categories):**
+
+|Category       |Description                                            |
+|---------------|-------------------------------------------------------|
+|Leadership     |Pastoral abuse of power, authoritarianism              |
+|Financial      |Tithing pressure, misuse of funds, lack of transparency|
+|Culture        |Cliques, exclusion, judgment, gossip                   |
+|Misconduct     |Sexual, ethical, or criminal behavior                  |
+|Spiritual Abuse|Manipulation using scripture, shaming, control         |
+|Other          |Doesn’t fit above                                      |
+
+-----
+
+### 🛠 Full-Stack Engineer — Technical Specification
+
+**Replit Stack Recommendation:**
+
+|Layer          |Technology        |Rationale                          |
+|---------------|------------------|-----------------------------------|
+|Frontend       |React + Vite      |Fast, modern, good Replit support  |
+|Styling        |Tailwind CSS      |Rapid UI development, utility-first|
+|Backend        |Node.js + Express |Simple, JS throughout              |
+|Database       |Replit PostgreSQL |Persistent, relational, free tier  |
+|Auth (Post-MVP)|Replit Auth       |Built-in, low friction             |
+|Hosting        |Replit Deployments|Automatic, no DevOps               |
+
+**API Endpoints (MVP):**
+
+*Public:*
+
+```
+GET    /api/submissions         # List (paginated, filterable) — excludes admin fields
+GET    /api/submissions/:id     # Single submission — excludes admin fields
+POST   /api/submissions         # Create new (accepts admin-only fields)
+POST   /api/submissions/:id/vote    # Cast vote
+POST   /api/submissions/:id/flag    # Flag content
+GET    /api/categories          # List categories
+```
+
+*Admin (protected):*
+
+```
+GET    /api/admin/submissions   # Full list INCLUDING church/pastor/location
+GET    /api/admin/submissions/:id   # Single with all fields
+GET    /api/admin/patterns      # Group by church_name or pastor_name (future)
+PATCH  /api/admin/submissions/:id   # Update status (approve/remove)
+```
+
+**Key Technical Decisions:**
+
+1. **Anonymity Approach:**
+- No accounts required for MVP
+- Rate limit by IP (5 submissions/day, 50 votes/day)
+- Store hashed IP for vote deduplication (not raw IP)
+- localStorage token for client-side vote state
+1. **Moderation:**
+- Auto-flag threshold: 3+ flags → under_review
+- Admin dashboard (/admin) protected by env variable password
+- Admin view shows: full submission + church name + pastor name + location
+- Admin can: approve, remove, or mark as “pattern watch”
+- Admin can filter/search by church name or pastor name to identify repeat reports
+1. **Performance:**
+- Paginate feed (20 posts per load)
+- Index database on category, created_at, status
+- Cache category counts
+1. **Security:**
+- Input sanitization (DOMPurify for content)
+- Rate limiting (express-rate-limit)
+- No PII stored
+- HTTPS via Replit default
+
+**Folder Structure:**
+
+```
+/church-confessional
+├── /client
+│   ├── /src
+│   │   ├── /components
+│   │   │   ├── SubmissionCard.jsx
+│   │   │   ├── SubmissionForm.jsx
+│   │   │   ├── VoteButtons.jsx
+│   │   │   ├── CategoryFilter.jsx
+│   │   │   └── FlagModal.jsx
+│   │   ├── /pages
+│   │   │   ├── Home.jsx
+│   │   │   ├── Submit.jsx
+│   │   │   └── About.jsx
+│   │   ├── /hooks
+│   │   │   └── useVote.js
+│   │   ├── /utils
+│   │   │   └── api.js
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   └── index.html
+├── /server
+│   ├── /routes
+│   │   ├── submissions.js
+│   │   └── admin.js
+│   ├── /models
+│   │   └── schema.sql
+│   ├── /middleware
+│   │   └── rateLimit.js
+│   ├── db.js
+│   └── index.js
+├── .env
+├── package.json
+└── README.md
+```
+
+**Environment Variables:**
+
+```
+DATABASE_URL=postgresql://...
+ADMIN_PASSWORD=secure_random_string
+NODE_ENV=production
+```
+
+-----
+
+## 3. MVP Feature Checklist
+
+|Feature                        |Priority|Complexity|Status|
+|-------------------------------|--------|----------|------|
+|Submission form                |P0      |Low       |⬜     |
+|Feed display                   |P0      |Low       |⬜     |
+|Category filtering             |P0      |Low       |⬜     |
+|Condemn/Absolve voting         |P0      |Medium    |⬜     |
+|Vote persistence (localStorage)|P0      |Low       |⬜     |
+|Flag content                   |P0      |Low       |⬜     |
+|Admin-only church/pastor fields|P0      |Low       |⬜     |
+|Admin moderation queue         |P0      |Medium    |⬜     |
+|Admin search by church/pastor  |P0      |Medium    |⬜     |
+|Rate limiting                  |P0      |Low       |⬜     |
+|About page                     |P0      |Low       |⬜     |
+|Terms/Content Policy           |P0      |Low       |⬜     |
+|Responsive design              |P0      |Medium    |⬜     |
+|Sort by recent/most condemned  |P1      |Low       |⬜     |
+|Pagination/infinite scroll     |P1      |Medium    |⬜     |
+|Crisis resources banner        |P1      |Low       |⬜     |
+
+-----
+
+## 4. Timeline Estimate
+
+|Phase              |Duration |Deliverables                       |
+|-------------------|---------|-----------------------------------|
+|Setup & DB Schema  |Day 1-2  |Replit project, PostgreSQL, schema |
+|Backend API        |Day 3-5  |All endpoints functional           |
+|Frontend Core      |Day 6-10 |Feed, submission form, voting      |
+|Styling & Polish   |Day 11-14|Tailwind implementation, responsive|
+|Admin & Moderation |Day 15-17|Admin queue, flag handling         |
+|Testing & Bug Fixes|Day 18-21|QA, edge cases                     |
+|Soft Launch        |Day 22+  |Deploy, gather feedback            |
+
+**Total: ~3-4 weeks for solo developer**
+
+-----
+
+## 5. Open Questions for Stakeholder
+
+1. **Naming:** Final product name?
+1. **Denomination list:** Comprehensive or start with top 20?
+1. **Positive experiences:** Include or focus only on accountability?
+1. **Crisis resources:** Which organizations to link?
+1. **Admin access:** Who moderates? Just you or team?
+1. **Pattern threshold:** How many reports on same church/pastor before action?
+
+-----
+
+## 6. Next Steps
+
+1. ✅ PRD review and approval
+1. ⬜ Finalize product name
+1. ⬜ Set up Replit project with PostgreSQL
+1. ⬜ Create database schema
+1. ⬜ Build API endpoints
+1. ⬜ Build frontend components
+1. ⬜ Implement voting system
+1. ⬜ Style with Tailwind
+1. ⬜ Create admin moderation flow
+1. ⬜ Write Terms of Service / Content Policy
+1. ⬜ QA testing
+1. ⬜ Deploy and soft launch
+
+-----
+
+*Document prepared by roundtable simulation. Ready for iteration based on feedback.*
