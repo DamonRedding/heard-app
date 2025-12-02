@@ -1,15 +1,20 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { VoteButtons } from "@/components/vote-buttons";
 import { FlagModal } from "@/components/flag-modal";
+import { CommentsSection } from "@/components/comments-section";
 import { CATEGORIES, TIMEFRAMES, type Submission, type VoteType, type FlagReason } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { Users, Heart, Phone, ExternalLink } from "lucide-react";
 
 interface SubmissionCardProps {
   submission: Submission;
   onVote: (submissionId: string, voteType: VoteType) => void;
   onFlag: (submissionId: string, reason: FlagReason) => Promise<void>;
+  onMeToo: (submissionId: string) => void;
   isVoting?: boolean;
+  isMeTooing?: boolean;
   expanded?: boolean;
 }
 
@@ -38,11 +43,71 @@ function getCategoryColor(category: string): string {
   }
 }
 
+const CRISIS_RESOURCES = [
+  {
+    name: "RAINN National Sexual Assault Hotline",
+    phone: "1-800-656-4673",
+    url: "https://www.rainn.org",
+  },
+  {
+    name: "National Domestic Violence Hotline",
+    phone: "1-800-799-7233",
+    url: "https://www.thehotline.org",
+  },
+  {
+    name: "Crisis Text Line",
+    phone: "Text HOME to 741741",
+    url: "https://www.crisistextline.org",
+  },
+];
+
+function CrisisResourcesBanner() {
+  return (
+    <div className="bg-accent/30 border border-accent-border rounded-lg p-4 mb-4" data-testid="crisis-resources-banner">
+      <div className="flex items-start gap-3">
+        <Heart className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+        <div className="space-y-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">You're Not Alone</p>
+            <p className="text-sm text-muted-foreground">
+              If you or someone you know has experienced abuse, help is available.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {CRISIS_RESOURCES.map((resource) => (
+              <div key={resource.name} className="flex items-center gap-2 text-sm">
+                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="font-medium">{resource.name}:</span>
+                <span className="text-muted-foreground">{resource.phone}</span>
+                <a
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                  data-testid={`link-resource-${resource.name.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function shouldShowCrisisResources(category: string): boolean {
+  return category === "misconduct" || category === "spiritual_abuse";
+}
+
 export function SubmissionCard({
   submission,
   onVote,
   onFlag,
+  onMeToo,
   isVoting = false,
+  isMeTooing = false,
   expanded = false,
 }: SubmissionCardProps) {
   const contentPreview = expanded
@@ -73,6 +138,7 @@ export function SubmissionCard({
       </CardHeader>
 
       <CardContent className="pb-4">
+        {shouldShowCrisisResources(submission.category) && <CrisisResourcesBanner />}
         <p
           className="font-serif text-base leading-relaxed whitespace-pre-wrap"
           data-testid={`text-content-${submission.id}`}
@@ -86,18 +152,39 @@ export function SubmissionCard({
         )}
       </CardContent>
 
-      <CardFooter className="flex items-center justify-between gap-4 pt-0 flex-wrap">
-        <VoteButtons
-          submissionId={submission.id}
-          condemnCount={submission.condemnCount}
-          absolveCount={submission.absolveCount}
-          onVote={(voteType) => onVote(submission.id, voteType)}
-          isVoting={isVoting}
-        />
-        <FlagModal
-          submissionId={submission.id}
-          onFlag={(reason) => onFlag(submission.id, reason)}
-        />
+      <CardFooter className="flex flex-col gap-4 pt-0">
+        <div className="flex items-center justify-between w-full gap-4 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
+            <VoteButtons
+              submissionId={submission.id}
+              condemnCount={submission.condemnCount}
+              absolveCount={submission.absolveCount}
+              onVote={(voteType) => onVote(submission.id, voteType)}
+              isVoting={isVoting}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground hover:text-primary"
+              onClick={() => onMeToo(submission.id)}
+              disabled={isMeTooing}
+              data-testid={`button-metoo-${submission.id}`}
+            >
+              <Users className="h-4 w-4" />
+              <span>Me Too</span>
+              {submission.meTooCount > 0 && (
+                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0" data-testid={`text-metoo-count-${submission.id}`}>
+                  {submission.meTooCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
+          <FlagModal
+            submissionId={submission.id}
+            onFlag={(reason) => onFlag(submission.id, reason)}
+          />
+        </div>
+        <CommentsSection submissionId={submission.id} />
       </CardFooter>
     </Card>
   );

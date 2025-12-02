@@ -2,12 +2,15 @@ import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SubmissionCard, SubmissionCardSkeleton } from "@/components/submission-card";
 import { CategoryFilter } from "@/components/category-filter";
-import { PenLine, RefreshCw, Loader2 } from "lucide-react";
+import { PenLine, RefreshCw, Loader2, Search, X } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Submission, Category, VoteType, FlagReason } from "@shared/schema";
+import { DENOMINATIONS } from "@shared/schema";
 
 interface SubmissionsResponse {
   submissions: Submission[];
@@ -19,20 +22,37 @@ interface CategoryCountsResponse {
   counts: Record<string, number>;
 }
 
-function buildSubmissionsUrl(category: Category | null, page: number): string {
+function buildSubmissionsUrl(
+  category: Category | null, 
+  page: number, 
+  search: string,
+  denomination: string | null
+): string {
   const params = new URLSearchParams();
   if (category) params.set("category", category);
+  if (search) params.set("search", search);
+  if (denomination) params.set("denomination", denomination);
   params.set("page", page.toString());
   return `/api/submissions?${params.toString()}`;
 }
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedDenomination, setSelectedDenomination] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
   const { toast } = useToast();
 
-  const submissionsUrl = buildSubmissionsUrl(selectedCategory, page);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const submissionsUrl = buildSubmissionsUrl(selectedCategory, page, debouncedSearch, selectedDenomination);
 
   const { data, isLoading, isFetching, refetch } = useQuery<SubmissionsResponse>({
     queryKey: [submissionsUrl],
@@ -59,7 +79,18 @@ export default function Home() {
   useEffect(() => {
     setPage(1);
     setAllSubmissions([]);
-  }, [selectedCategory]);
+  }, [selectedCategory, selectedDenomination, debouncedSearch]);
+
+  const clearFilters = () => {
+    setSelectedCategory(null);
+    setSelectedDenomination(null);
+    setSearchQuery("");
+    setDebouncedSearch("");
+    setPage(1);
+    setAllSubmissions([]);
+  };
+
+  const hasFilters = selectedCategory || selectedDenomination || debouncedSearch;
 
   const voteMutation = useMutation({
     mutationFn: async ({ submissionId, voteType }: { submissionId: string; voteType: VoteType }) => {
@@ -79,6 +110,35 @@ export default function Home() {
       toast({
         title: "Vote failed",
         description: "Unable to record your vote. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const meTooMutation = useMutation({
+    mutationFn: async ({ submissionId }: { submissionId: string }) => {
+      const response = await apiRequest("POST", `/api/submissions/${submissionId}/metoo`);
+      return response.json();
+    },
+    onSuccess: (responseData) => {
+      setAllSubmissions((prev) =>
+        prev.map((s) =>
+          s.id === responseData.id
+            ? { ...s, meTooCount: responseData.meTooCount }
+            : s
+        )
+      );
+      if (responseData.action === "added") {
+        toast({
+          title: "Me Too added",
+          description: "Your shared experience has been recorded.",
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Failed",
+        description: "Unable to record your reaction. Please try again.",
         variant: "destructive",
       });
     },
@@ -121,6 +181,13 @@ export default function Home() {
     [flagMutation]
   );
 
+  const handleMeToo = useCallback(
+    (submissionId: string) => {
+      meTooMutation.mutate({ submissionId });
+    },
+    [meTooMutation]
+  );
+
   const handleLoadMore = () => {
     setPage((prev) => prev + 1);
   };
@@ -147,24 +214,67 @@ export default function Home() {
       </section>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold">Recent Submissions</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => refetch()}
-              disabled={isFetching}
-              data-testid="button-refresh"
+        <div className="space-y-4 mb-8">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search experiences, churches, or locations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+                data-testid="input-search"
+              />
+            </div>
+            <Select
+              value={selectedDenomination || "all"}
+              onValueChange={(value) => setSelectedDenomination(value === "all" ? null : value)}
             >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            </Button>
+              <SelectTrigger className="w-full md:w-[200px]" data-testid="select-denomination-filter">
+                <SelectValue placeholder="All Denominations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Denominations</SelectItem>
+                {DENOMINATIONS.map((d) => (
+                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <CategoryFilter
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            categoryCounts={countsData?.counts}
-          />
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-semibold">
+                {hasFilters ? "Filtered Results" : "Recent Submissions"}
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                data-testid="button-refresh"
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              </Button>
+              {hasFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="text-muted-foreground"
+                  data-testid="button-clear-filters"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
+            <CategoryFilter
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              categoryCounts={countsData?.counts}
+            />
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -190,7 +300,9 @@ export default function Home() {
                   submission={submission}
                   onVote={handleVote}
                   onFlag={handleFlag}
+                  onMeToo={handleMeToo}
                   isVoting={voteMutation.isPending}
+                  isMeTooing={meTooMutation.isPending}
                 />
               ))}
 

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   ArrowLeft,
   Lock,
@@ -19,6 +20,8 @@ import {
   MapPin,
   Church,
   User,
+  TrendingUp,
+  ChevronDown,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +37,12 @@ interface AdminSubmission extends Submission {
 interface AdminSubmissionsResponse {
   submissions: AdminSubmission[];
   total: number;
+}
+
+interface PatternData {
+  churchPatterns: { name: string; count: number; submissions: AdminSubmission[] }[];
+  pastorPatterns: { name: string; count: number; submissions: AdminSubmission[] }[];
+  locationPatterns: { name: string; count: number; submissions: AdminSubmission[] }[];
 }
 
 function getCategoryLabel(value: string): string {
@@ -182,16 +191,70 @@ function AdminSubmissionCard({
   );
 }
 
+function PatternGroup({
+  title,
+  icon: Icon,
+  patterns,
+}: {
+  title: string;
+  icon: typeof Church;
+  patterns: { name: string; count: number; submissions: AdminSubmission[] }[];
+}) {
+  if (patterns.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-4 w-4" />
+        {title}
+      </h3>
+      {patterns.map((pattern, idx) => (
+        <Collapsible key={idx}>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-between h-auto py-3 px-4 bg-muted/50 hover:bg-muted"
+              data-testid={`pattern-${title.toLowerCase()}-${idx}`}
+            >
+              <span className="font-medium">{pattern.name}</span>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{pattern.count} reports</Badge>
+                <ChevronDown className="h-4 w-4" />
+              </div>
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2 pl-4 space-y-2">
+            {pattern.submissions.map((sub) => (
+              <div key={sub.id} className="p-3 rounded-lg bg-background border text-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline" className="text-xs">{getCategoryLabel(sub.category)}</Badge>
+                  {getStatusBadge(sub.status)}
+                </div>
+                <p className="line-clamp-2 text-muted-foreground">{sub.content}</p>
+              </div>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+      ))}
+    </div>
+  );
+}
+
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "flagged" | "review">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "flagged" | "review" | "patterns">("all");
   const { toast } = useToast();
 
   const { data, isLoading } = useQuery<AdminSubmissionsResponse>({
     queryKey: ["/api/admin/submissions"],
     enabled: isAuthenticated,
+  });
+
+  const { data: patternData, isLoading: isLoadingPatterns } = useQuery<PatternData>({
+    queryKey: ["/api/admin/patterns"],
+    enabled: isAuthenticated && activeTab === "patterns",
   });
 
   const updateStatusMutation = useMutation({
@@ -337,26 +400,101 @@ export default function Admin() {
             <TabsTrigger value="review" data-testid="tab-review">
               Under Review ({reviewSubmissions.length})
             </TabsTrigger>
+            <TabsTrigger value="patterns" data-testid="tab-patterns">
+              <TrendingUp className="h-4 w-4 mr-1" />
+              Patterns
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value={activeTab} className="space-y-4">
-            {isLoading ? (
+          <TabsContent value="patterns" className="space-y-6">
+            {isLoadingPatterns ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : displaySubmissions.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No submissions in this category.</p>
-              </div>
+            ) : !patternData || (
+              patternData.churchPatterns.length === 0 && 
+              patternData.pastorPatterns.length === 0 && 
+              patternData.locationPatterns.length === 0
+            ) ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium mb-2">No Patterns Detected Yet</p>
+                  <p className="text-muted-foreground">
+                    Patterns appear when 2+ submissions share the same church, pastor, or location.
+                  </p>
+                </CardContent>
+              </Card>
             ) : (
-              displaySubmissions.map((submission) => (
-                <AdminSubmissionCard
-                  key={submission.id}
-                  submission={submission}
-                  onUpdateStatus={handleUpdateStatus}
-                  isUpdating={updateStatusMutation.isPending}
-                />
-              ))
+              <div className="grid gap-6 lg:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Church className="h-5 w-5 text-primary" />
+                      Churches
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <PatternGroup title="By Church" icon={Church} patterns={patternData?.churchPatterns || []} />
+                    {(!patternData?.churchPatterns || patternData.churchPatterns.length === 0) && (
+                      <p className="text-sm text-muted-foreground">No church patterns detected.</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <User className="h-5 w-5 text-primary" />
+                      Pastors
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <PatternGroup title="By Pastor" icon={User} patterns={patternData?.pastorPatterns || []} />
+                    {(!patternData?.pastorPatterns || patternData.pastorPatterns.length === 0) && (
+                      <p className="text-sm text-muted-foreground">No pastor patterns detected.</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      Locations
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <PatternGroup title="By Location" icon={MapPin} patterns={patternData?.locationPatterns || []} />
+                    {(!patternData?.locationPatterns || patternData.locationPatterns.length === 0) && (
+                      <p className="text-sm text-muted-foreground">No location patterns detected.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value={activeTab} className="space-y-4">
+            {activeTab !== "patterns" && (
+              isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : displaySubmissions.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No submissions in this category.</p>
+                </div>
+              ) : (
+                displaySubmissions.map((submission) => (
+                  <AdminSubmissionCard
+                    key={submission.id}
+                    submission={submission}
+                    onUpdateStatus={handleUpdateStatus}
+                    isUpdating={updateStatusMutation.isPending}
+                  />
+                ))
+              )
             )}
           </TabsContent>
         </Tabs>

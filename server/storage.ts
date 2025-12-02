@@ -2,22 +2,30 @@ import {
   submissions,
   votes,
   flags,
+  meToos,
+  comments,
   type Submission,
   type InsertSubmission,
   type Vote,
   type InsertVote,
   type Flag,
   type InsertFlag,
+  type MeToo,
+  type InsertMeToo,
+  type Comment,
+  type InsertComment,
   type Category,
   type Status,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, desc, sql, count, or, ilike } from "drizzle-orm";
 
 export interface IStorage {
   getSubmissions(options?: {
     category?: Category;
     status?: Status;
+    search?: string;
+    denomination?: string;
     page?: number;
     limit?: number;
   }): Promise<{ submissions: Submission[]; total: number; hasMore: boolean }>;
@@ -48,12 +56,32 @@ export interface IStorage {
     page?: number;
     limit?: number;
   }): Promise<{ submissions: Submission[]; total: number }>;
+
+  getMeToo(submissionId: string, userHash: string): Promise<MeToo | undefined>;
+
+  createMeToo(meToo: InsertMeToo): Promise<MeToo>;
+
+  deleteMeToo(submissionId: string, userHash: string): Promise<void>;
+
+  updateMeTooCount(submissionId: string): Promise<void>;
+
+  getComments(submissionId: string): Promise<Comment[]>;
+
+  createComment(comment: InsertComment): Promise<Comment>;
+
+  getPatternData(): Promise<{
+    churchPatterns: { name: string; count: number; submissions: Submission[] }[];
+    pastorPatterns: { name: string; count: number; submissions: Submission[] }[];
+    locationPatterns: { name: string; count: number; submissions: Submission[] }[];
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
   async getSubmissions(options?: {
     category?: Category;
     status?: Status;
+    search?: string;
+    denomination?: string;
     page?: number;
     limit?: number;
   }): Promise<{ submissions: Submission[]; total: number; hasMore: boolean }> {
@@ -61,9 +89,23 @@ export class DatabaseStorage implements IStorage {
     const limit = options?.limit || 20;
     const offset = (page - 1) * limit;
 
-    const conditions = [eq(submissions.status, "active")];
+    const conditions: ReturnType<typeof eq>[] = [eq(submissions.status, "active")];
     if (options?.category) {
       conditions.push(eq(submissions.category, options.category));
+    }
+    if (options?.denomination) {
+      conditions.push(eq(submissions.denomination, options.denomination));
+    }
+    if (options?.search) {
+      const searchPattern = `%${options.search}%`;
+      conditions.push(
+        or(
+          ilike(submissions.content, searchPattern),
+          ilike(submissions.churchName, searchPattern),
+          ilike(submissions.pastorName, searchPattern),
+          ilike(submissions.location, searchPattern)
+        )!
+      );
     }
 
     const [result, countResult] = await Promise.all([
@@ -76,6 +118,7 @@ export class DatabaseStorage implements IStorage {
           timeframe: submissions.timeframe,
           condemnCount: submissions.condemnCount,
           absolveCount: submissions.absolveCount,
+          meTooCount: submissions.meTooCount,
           flagCount: submissions.flagCount,
           status: submissions.status,
           churchName: sql<null>`NULL`.as('churchName'),
@@ -114,6 +157,7 @@ export class DatabaseStorage implements IStorage {
         timeframe: submissions.timeframe,
         condemnCount: submissions.condemnCount,
         absolveCount: submissions.absolveCount,
+        meTooCount: submissions.meTooCount,
         flagCount: submissions.flagCount,
         status: submissions.status,
         churchName: sql<null>`NULL`.as('churchName'),
@@ -255,6 +299,108 @@ export class DatabaseStorage implements IStorage {
     return {
       submissions: result,
       total: countResult[0]?.count || 0,
+    };
+  }
+
+  async getMeToo(submissionId: string, userHash: string): Promise<MeToo | undefined> {
+    const [result] = await db
+      .select()
+      .from(meToos)
+      .where(and(eq(meToos.submissionId, submissionId), eq(meToos.userHash, userHash)));
+    return result;
+  }
+
+  async createMeToo(meToo: InsertMeToo): Promise<MeToo> {
+    const [result] = await db.insert(meToos).values(meToo).returning();
+    return result;
+  }
+
+  async deleteMeToo(submissionId: string, userHash: string): Promise<void> {
+    await db
+      .delete(meToos)
+      .where(and(eq(meToos.submissionId, submissionId), eq(meToos.userHash, userHash)));
+  }
+
+  async updateMeTooCount(submissionId: string): Promise<void> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(meToos)
+      .where(eq(meToos.submissionId, submissionId));
+
+    await db
+      .update(submissions)
+      .set({ meTooCount: result?.count || 0 })
+      .where(eq(submissions.id, submissionId));
+  }
+
+  async getComments(submissionId: string): Promise<Comment[]> {
+    return db
+      .select()
+      .from(comments)
+      .where(eq(comments.submissionId, submissionId))
+      .orderBy(desc(comments.createdAt));
+  }
+
+  async createComment(comment: InsertComment): Promise<Comment> {
+    const [result] = await db.insert(comments).values(comment).returning();
+    return result;
+  }
+
+  async getPatternData(): Promise<{
+    churchPatterns: { name: string; count: number; submissions: Submission[] }[];
+    pastorPatterns: { name: string; count: number; submissions: Submission[] }[];
+    locationPatterns: { name: string; count: number; submissions: Submission[] }[];
+  }> {
+    const allSubmissions = await db
+      .select()
+      .from(submissions)
+      .orderBy(desc(submissions.createdAt));
+
+    const churchMap = new Map<string, Submission[]>();
+    const pastorMap = new Map<string, Submission[]>();
+    const locationMap = new Map<string, Submission[]>();
+
+    for (const sub of allSubmissions) {
+      if (sub.churchName) {
+        const key = sub.churchName.toLowerCase().trim();
+        if (!churchMap.has(key)) churchMap.set(key, []);
+        churchMap.get(key)!.push(sub);
+      }
+      if (sub.pastorName) {
+        const key = sub.pastorName.toLowerCase().trim();
+        if (!pastorMap.has(key)) pastorMap.set(key, []);
+        pastorMap.get(key)!.push(sub);
+      }
+      if (sub.location) {
+        const key = sub.location.toLowerCase().trim();
+        if (!locationMap.has(key)) locationMap.set(key, []);
+        locationMap.get(key)!.push(sub);
+      }
+    }
+
+    const toPatternArray = (map: Map<string, Submission[]>) =>
+      Array.from(map.entries())
+        .map(([name, subs]) => ({
+          name: subs[0].churchName || subs[0].pastorName || subs[0].location || name,
+          count: subs.length,
+          submissions: subs,
+        }))
+        .filter((p) => p.count >= 2)
+        .sort((a, b) => b.count - a.count);
+
+    return {
+      churchPatterns: toPatternArray(churchMap).map((p) => ({
+        ...p,
+        name: p.submissions[0].churchName || p.name,
+      })),
+      pastorPatterns: toPatternArray(pastorMap).map((p) => ({
+        ...p,
+        name: p.submissions[0].pastorName || p.name,
+      })),
+      locationPatterns: toPatternArray(locationMap).map((p) => ({
+        ...p,
+        name: p.submissions[0].location || p.name,
+      })),
     };
   }
 }

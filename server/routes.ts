@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSubmissionSchema, type Category, type VoteType, type FlagReason, type Status } from "@shared/schema";
+import { insertSubmissionSchema, insertCommentSchema, type Category, type VoteType, type FlagReason, type Status } from "@shared/schema";
 import { z } from "zod";
 import { createHash } from "crypto";
 
@@ -54,11 +54,15 @@ export async function registerRoutes(
   app.get("/api/submissions", async (req: Request, res: Response) => {
     try {
       const category = req.query.category as Category | undefined;
+      const search = req.query.search as string | undefined;
+      const denomination = req.query.denomination as string | undefined;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
 
       const result = await storage.getSubmissions({
         category,
+        search,
+        denomination,
         page,
         limit,
       });
@@ -168,6 +172,97 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error voting:", error);
       res.status(500).json({ error: "Failed to record vote" });
+    }
+  });
+
+  app.post("/api/submissions/:id/metoo", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const clientIP = getClientIP(req);
+      const userHash = hashIP(clientIP);
+
+      const submission = await storage.getSubmission(id);
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+
+      const existingMeToo = await storage.getMeToo(id, userHash);
+      let action: "added" | "removed" = "added";
+
+      if (existingMeToo) {
+        await storage.deleteMeToo(id, userHash);
+        action = "removed";
+      } else {
+        await storage.createMeToo({
+          submissionId: id,
+          userHash,
+        });
+        action = "added";
+      }
+
+      await storage.updateMeTooCount(id);
+
+      const updated = await storage.getSubmission(id);
+      res.json({ ...updated, action });
+    } catch (error) {
+      console.error("Error toggling me too:", error);
+      res.status(500).json({ error: "Failed to record reaction" });
+    }
+  });
+
+  app.get("/api/submissions/:id/comments", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const submission = await storage.getSubmission(id);
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+
+      const commentList = await storage.getComments(id);
+      res.json({ comments: commentList });
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      res.status(500).json({ error: "Failed to fetch comments" });
+    }
+  });
+
+  app.post("/api/submissions/:id/comments", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { content } = req.body as { content: string };
+
+      const clientIP = getClientIP(req);
+      const authorHash = hashIP(clientIP);
+
+      const submission = await storage.getSubmission(id);
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+
+      const parsed = insertCommentSchema.omit({ authorHash: true }).safeParse({
+        submissionId: id,
+        content,
+      });
+
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid comment data",
+          details: parsed.error.errors,
+        });
+      }
+
+      const comment = await storage.createComment({
+        submissionId: id,
+        content,
+        authorHash,
+      });
+
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      res.status(500).json({ error: "Failed to create comment" });
     }
   });
 
@@ -281,6 +376,16 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating submission status:", error);
       res.status(500).json({ error: "Failed to update submission" });
+    }
+  });
+
+  app.get("/api/admin/patterns", async (req: Request, res: Response) => {
+    try {
+      const patterns = await storage.getPatternData();
+      res.json(patterns);
+    } catch (error) {
+      console.error("Error fetching pattern data:", error);
+      res.status(500).json({ error: "Failed to fetch pattern data" });
     }
   });
 
