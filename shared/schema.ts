@@ -199,13 +199,14 @@ export const TIMEFRAMES: { value: Timeframe; label: string }[] = [
 export const DENOMINATIONS = [
   "Baptist",
   "Catholic",
+  "Church of God in Christ (COGIC)",
   "Episcopal",
+  "Evangelical",
   "Lutheran",
   "Methodist",
   "Non-denominational",
+  "Orthodox",
   "Pentecostal",
   "Presbyterian",
-  "Evangelical",
-  "Orthodox",
   "Other",
 ];
