@@ -347,7 +347,8 @@ export default function Admin() {
   }
 
   const allSubmissions = data?.submissions || [];
-  const flaggedSubmissions = allSubmissions.filter((s) => s.flagCount >= 3);
+  const flaggedSubmissions = allSubmissions.filter((s) => s.flagCount > 0);
+  const highFlagSubmissions = allSubmissions.filter((s) => s.flagCount >= 3);
   const reviewSubmissions = allSubmissions.filter((s) => s.status === "under_review");
 
   const displaySubmissions = 
@@ -385,7 +386,9 @@ export default function Admin() {
                 <Flag className="h-5 w-5 text-flag" />
                 <div className="text-2xl font-bold">{flaggedSubmissions.length}</div>
               </div>
-              <p className="text-sm text-muted-foreground">Flagged (3+ reports)</p>
+              <p className="text-sm text-muted-foreground">
+                Flagged ({highFlagSubmissions.length} with 3+ reports)
+              </p>
             </CardContent>
           </Card>
           <Card className={reviewSubmissions.length > 0 ? "border-gold/50" : ""}>

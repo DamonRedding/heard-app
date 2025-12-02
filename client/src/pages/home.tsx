@@ -147,6 +147,10 @@ export default function Home() {
   const flagMutation = useMutation({
     mutationFn: async ({ submissionId, reason }: { submissionId: string; reason: FlagReason }) => {
       const response = await apiRequest("POST", `/api/submissions/${submissionId}/flag`, { reason });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to flag submission");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -158,10 +162,13 @@ export default function Home() {
         description: "Thank you for helping keep our community safe.",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      const isAlreadyFlagged = error.message.includes("already flagged");
       toast({
-        title: "Report failed",
-        description: "Unable to submit your report. Please try again.",
+        title: isAlreadyFlagged ? "Already reported" : "Report failed",
+        description: isAlreadyFlagged 
+          ? "You have already reported this submission." 
+          : "Unable to submit your report. Please try again.",
         variant: "destructive",
       });
     },
