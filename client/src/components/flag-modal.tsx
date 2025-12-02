@@ -11,14 +11,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Flag, Loader2 } from "lucide-react";
 import type { FlagReason } from "@shared/schema";
 
 const FLAG_REASONS: { value: FlagReason; label: string; description: string }[] = [
   { value: "spam", label: "Spam", description: "Promotional or unrelated content" },
-  { value: "fake", label: "Fake", description: "Fabricated or misleading story" },
-  { value: "harmful", label: "Harmful", description: "Dangerous or threatening content" },
-  { value: "other", label: "Other", description: "Another reason not listed" },
+  { value: "fake", label: "Misinformation", description: "Fabricated or misleading story" },
+  { value: "harmful", label: "Harmful / Abusive", description: "Dangerous, threatening, or abusive content" },
+  { value: "other", label: "Other", description: "Another concern not listed above" },
 ];
 
 interface FlagModalProps {
@@ -48,15 +53,23 @@ export function FlagModal({ submissionId, onFlag, isFlagged = false }: FlagModal
 
   if (hasSubmitted) {
     return (
-      <Button
-        variant="ghost"
-        size="icon"
-        disabled
-        className="text-flag opacity-60"
-        data-testid={`button-flagged-${submissionId}`}
-      >
-        <Flag className="h-4 w-4 fill-current" />
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled
+            className="gap-1.5 text-flag opacity-60"
+            data-testid={`button-flagged-${submissionId}`}
+          >
+            <Flag className="h-4 w-4 fill-current" />
+            <span className="hidden sm:inline">Reported</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>You've reported this post</p>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
@@ -65,18 +78,20 @@ export function FlagModal({ submissionId, onFlag, isFlagged = false }: FlagModal
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-flag"
+          size="sm"
+          className="gap-1.5 text-muted-foreground hover:text-flag"
           data-testid={`button-flag-${submissionId}`}
+          title="Report inappropriate content"
         >
           <Flag className="h-4 w-4" />
+          <span className="hidden sm:inline">Report</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Report this submission</DialogTitle>
+          <DialogTitle>Report this post</DialogTitle>
           <DialogDescription>
-            Help us maintain a safe community by reporting content that violates our guidelines.
+            Tell us why you're reporting this. All reports are private and reviewed by our team.
           </DialogDescription>
         </DialogHeader>
 
@@ -105,29 +120,34 @@ export function FlagModal({ submissionId, onFlag, isFlagged = false }: FlagModal
           ))}
         </RadioGroup>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            data-testid="button-submit-flag"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              "Submit Report"
-            )}
-          </Button>
+        <DialogFooter className="flex-col gap-3 sm:flex-row">
+          <p className="text-xs text-muted-foreground text-center sm:text-left sm:flex-1">
+            False reports may be reviewed.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              data-testid="button-submit-flag"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Report"
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
