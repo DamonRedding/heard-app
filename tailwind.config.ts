@@ -9,9 +9,9 @@ export default {
         lg: ".5625rem", /* 9px */
         md: ".375rem", /* 6px */
         sm: ".1875rem", /* 3px */
+        xl: ".75rem", /* 12px - PRD specified */
       },
       colors: {
-        // Flat / base colors (regular buttons)
         background: "hsl(var(--background) / <alpha-value>)",
         foreground: "hsl(var(--foreground) / <alpha-value>)",
         border: "hsl(var(--border) / <alpha-value>)",
@@ -52,6 +52,22 @@ export default {
           border: "var(--destructive-border)",
         },
         ring: "hsl(var(--ring) / <alpha-value>)",
+        condemn: {
+          DEFAULT: "hsl(var(--condemn) / <alpha-value>)",
+          foreground: "hsl(var(--condemn-foreground) / <alpha-value>)",
+        },
+        absolve: {
+          DEFAULT: "hsl(var(--absolve) / <alpha-value>)",
+          foreground: "hsl(var(--absolve-foreground) / <alpha-value>)",
+        },
+        gold: {
+          DEFAULT: "hsl(var(--gold) / <alpha-value>)",
+          foreground: "hsl(var(--gold-foreground) / <alpha-value>)",
+        },
+        flag: {
+          DEFAULT: "hsl(var(--flag) / <alpha-value>)",
+          foreground: "hsl(var(--flag-foreground) / <alpha-value>)",
+        },
         chart: {
           "1": "hsl(var(--chart-1) / <alpha-value>)",
           "2": "hsl(var(--chart-2) / <alpha-value>)",
@@ -100,6 +116,20 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "vote-pop": "vote-pop 0.15s ease-out",
+        "count-tick": "count-tick 0.3s ease-out",
+      },
+      keyframes: {
+        "vote-pop": {
+          "0%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.05)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "count-tick": {
+          "0%": { transform: "translateY(0)", opacity: "1" },
+          "50%": { transform: "translateY(-4px)", opacity: "0.8" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
       },
     },
   },
