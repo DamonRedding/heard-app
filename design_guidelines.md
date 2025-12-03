@@ -18,8 +18,8 @@
 - **Primary**: Deep Teal `#0D5C63` (trust and stability)
 - **Secondary**: Warm Sand `#F5F1E8` (backgrounds)
 - **Accent**: Muted Gold `#C9A227` (highlights)
-- **Condemn Vote**: Judgment Red `#9B2C2C`
-- **Absolve Vote**: Mercy Green `#276749`
+- **Upvote**: Soft Green `#4CAF7A` (understanding, support)
+- **Downvote**: Warm Coral `#E8774D` (gentle disapproval)
 - **Flag/Warning**: Soft Red `#C44536`
 
 ## Typography
@@ -43,14 +43,17 @@
 - Rounded corners with soft shadows
 - Category badge in top corner
 - Content in serif font for readability
-- Vote buttons (Condemn/Absolve) side-by-side
+- Vote buttons (Upvote/Downvote) with thumbs icons
+- Emoji reactions picker (Facebook-style)
 - Me Too counter for solidarity expressions
 
 ### Vote System
-- **Condemn**: Red background with scale icon
-- **Absolve**: Green background with check icon
+- **Upvote (Thumbs Up)**: Green tint for supportive/understanding responses
+- **Downvote (Thumbs Down)**: Warm coral for gentle disagreement
+- **Emoji Reactions**: Facebook-style picker with heart, care, haha, wow, sad, angry reactions
 - Optimistic updates for immediate feedback
-- LocalStorage for vote persistence
+- LocalStorage for vote and reaction persistence
+- Softer language: Icons replace aggressive terminology
 
 ### Category Filter
 - Horizontal pill navigation

@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VoteButtons } from "@/components/vote-buttons";
+import { EmojiReactions } from "@/components/emoji-reactions";
 import { FlagModal } from "@/components/flag-modal";
 import { CommentsSection } from "@/components/comments-section";
 import { CATEGORIES, TIMEFRAMES, type Submission, type VoteType, type FlagReason } from "@shared/schema";
@@ -14,9 +15,12 @@ interface SubmissionCardProps {
   onVote: (submissionId: string, voteType: VoteType) => void;
   onFlag: (submissionId: string, reason: FlagReason) => Promise<void>;
   onMeToo: (submissionId: string) => void;
+  onReact?: (submissionId: string, reactionType: string) => void;
   isVoting?: boolean;
   isMeTooing?: boolean;
+  isReacting?: boolean;
   defaultExpanded?: boolean;
+  reactions?: Record<string, number>;
 }
 
 const TRUNCATE_LENGTH = 200;
@@ -109,9 +113,12 @@ export function SubmissionCard({
   onVote,
   onFlag,
   onMeToo,
+  onReact,
   isVoting = false,
   isMeTooing = false,
+  isReacting = false,
   defaultExpanded = false,
+  reactions = {},
 }: SubmissionCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   
@@ -201,7 +208,7 @@ export function SubmissionCard({
 
       <CardFooter className="flex flex-col gap-4 pt-0">
         <div className="flex items-center justify-between w-full gap-4 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <VoteButtons
               submissionId={submission.id}
               condemnCount={submission.condemnCount}
@@ -209,6 +216,14 @@ export function SubmissionCard({
               onVote={(voteType) => onVote(submission.id, voteType)}
               isVoting={isVoting}
             />
+            <div className="h-5 w-px bg-border mx-1" />
+            <EmojiReactions
+              submissionId={submission.id}
+              reactions={reactions}
+              onReact={(reactionType) => onReact?.(submission.id, reactionType)}
+              isReacting={isReacting}
+            />
+            <div className="h-5 w-px bg-border mx-1" />
             <Button
               variant="ghost"
               size="sm"
@@ -218,7 +233,7 @@ export function SubmissionCard({
               data-testid={`button-metoo-${submission.id}`}
             >
               <Users className="h-4 w-4" />
-              <span>Me Too</span>
+              <span className="hidden sm:inline">Me Too</span>
               {submission.meTooCount > 0 && (
                 <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0" data-testid={`text-metoo-count-${submission.id}`}>
                   {submission.meTooCount}

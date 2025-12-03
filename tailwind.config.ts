@@ -60,6 +60,14 @@ export default {
           DEFAULT: "hsl(var(--absolve) / <alpha-value>)",
           foreground: "hsl(var(--absolve-foreground) / <alpha-value>)",
         },
+        upvote: {
+          DEFAULT: "hsl(var(--upvote) / <alpha-value>)",
+          foreground: "hsl(var(--upvote-foreground) / <alpha-value>)",
+        },
+        downvote: {
+          DEFAULT: "hsl(var(--downvote) / <alpha-value>)",
+          foreground: "hsl(var(--downvote-foreground) / <alpha-value>)",
+        },
         gold: {
           DEFAULT: "hsl(var(--gold) / <alpha-value>)",
           foreground: "hsl(var(--gold-foreground) / <alpha-value>)",
@@ -118,6 +126,7 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "vote-pop": "vote-pop 0.15s ease-out",
         "count-tick": "count-tick 0.3s ease-out",
+        "reaction-pop": "reaction-pop 0.3s ease-out",
       },
       keyframes: {
         "vote-pop": {
@@ -129,6 +138,11 @@ export default {
           "0%": { transform: "translateY(0)", opacity: "1" },
           "50%": { transform: "translateY(-4px)", opacity: "0.8" },
           "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        "reaction-pop": {
+          "0%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.3)" },
+          "100%": { transform: "scale(1)" },
         },
       },
     },

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
 import type { VoteType } from "@shared/schema";
 
 interface VoteButtonsProps {
@@ -66,63 +67,69 @@ export function VoteButtons({
     onVote(voteType);
   };
 
-  const displayCondemnCount = condemnCount;
-  const displayAbsolveCount = absolveCount;
+  const displayDownvoteCount = condemnCount;
+  const displayUpvoteCount = absolveCount;
 
   return (
-    <div className="flex items-center gap-3" data-testid="vote-buttons">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => handleVote("condemn")}
-        disabled={isVoting}
-        className={cn(
-          "gap-2 transition-all border",
-          currentVote === "condemn" 
-            ? "bg-condemn text-condemn-foreground border-condemn" 
-            : "hover:bg-condemn/10 hover:text-condemn hover:border-condemn/50",
-          animatingButton === "condemn" && "animate-vote-pop"
-        )}
-        data-testid="button-condemn"
-        aria-label="Condemn this behavior"
-      >
-        <span className="text-base" role="img" aria-hidden="true">😠</span>
-        <span
-          className={cn(
-            "tabular-nums min-w-[1.5rem] text-center",
-            animatingCount === "condemn" && "animate-count-tick"
-          )}
-        >
-          {displayCondemnCount}
-        </span>
-        <span className="hidden sm:inline">Condemn</span>
-      </Button>
-
+    <div className="flex items-center gap-2" data-testid={`vote-buttons-${submissionId}`}>
       <Button
         variant="outline"
         size="sm"
         onClick={() => handleVote("absolve")}
         disabled={isVoting}
         className={cn(
-          "gap-2 transition-all border",
+          "gap-1.5 transition-all border",
           currentVote === "absolve" 
-            ? "bg-absolve text-absolve-foreground border-absolve" 
-            : "hover:bg-absolve/10 hover:text-absolve hover:border-absolve/50",
+            ? "bg-upvote text-upvote-foreground border-upvote" 
+            : "hover:bg-upvote/10 hover:text-upvote hover:border-upvote/50",
           animatingButton === "absolve" && "animate-vote-pop"
         )}
-        data-testid="button-absolve"
-        aria-label="Absolve this behavior"
+        data-testid={`button-upvote-${submissionId}`}
+        aria-label="I understand this experience"
       >
-        <span className="text-base" role="img" aria-hidden="true">🤷</span>
+        <ThumbsUp className={cn(
+          "h-4 w-4",
+          currentVote === "absolve" && "fill-current"
+        )} />
         <span
           className={cn(
-            "tabular-nums min-w-[1.5rem] text-center",
+            "tabular-nums min-w-[1rem] text-center",
             animatingCount === "absolve" && "animate-count-tick"
           )}
+          data-testid={`text-upvote-count-${submissionId}`}
         >
-          {displayAbsolveCount}
+          {displayUpvoteCount}
         </span>
-        <span className="hidden sm:inline">Absolve</span>
+      </Button>
+
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleVote("condemn")}
+        disabled={isVoting}
+        className={cn(
+          "gap-1.5 transition-all border",
+          currentVote === "condemn" 
+            ? "bg-downvote text-downvote-foreground border-downvote" 
+            : "hover:bg-downvote/10 hover:text-downvote hover:border-downvote/50",
+          animatingButton === "condemn" && "animate-vote-pop"
+        )}
+        data-testid={`button-downvote-${submissionId}`}
+        aria-label="This is not okay"
+      >
+        <ThumbsDown className={cn(
+          "h-4 w-4",
+          currentVote === "condemn" && "fill-current"
+        )} />
+        <span
+          className={cn(
+            "tabular-nums min-w-[1rem] text-center",
+            animatingCount === "condemn" && "animate-count-tick"
+          )}
+          data-testid={`text-downvote-count-${submissionId}`}
+        >
+          {displayDownvoteCount}
+        </span>
       </Button>
     </div>
   );

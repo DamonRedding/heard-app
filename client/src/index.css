@@ -4,7 +4,7 @@
 
 /* LIGHT MODE - Heard Design System */
 /* Primary: Deep Teal #0D5C63, Secondary: Warm Sand #F5F1E8, Accent: Muted Gold #C9A227 */
-/* Condemn: Judgment Red #9B2C2C, Absolve: Mercy Green #276749, Flag: Soft Red #C44536 */
+/* Upvote: Soft Green #4CAF7A, Downvote: Warm Coral #E8774D, Flag: Soft Red #C44536 */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
@@ -44,6 +44,10 @@
   --condemn-foreground: 0 0% 100%;
   --absolve: 152 45% 28%;
   --absolve-foreground: 0 0% 100%;
+  --upvote: 152 50% 38%;
+  --upvote-foreground: 0 0% 100%;
+  --downvote: 15 80% 55%;
+  --downvote-foreground: 0 0% 100%;
   --gold: 46 68% 47%;
   --gold-foreground: 185 80% 10%;
   --flag: 6 57% 49%;
@@ -136,6 +140,10 @@
   --condemn-foreground: 0 0% 100%;
   --absolve: 152 40% 35%;
   --absolve-foreground: 0 0% 100%;
+  --upvote: 152 45% 45%;
+  --upvote-foreground: 0 0% 100%;
+  --downvote: 15 75% 50%;
+  --downvote-foreground: 0 0% 100%;
   --gold: 46 60% 52%;
   --gold-foreground: 185 80% 8%;
   --flag: 6 60% 42%;
