@@ -233,7 +233,7 @@ export function SubmissionCard({
               data-testid={`button-metoo-${submission.id}`}
             >
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Me Too</span>
+              <span>Me Too</span>
               {submission.meTooCount > 0 && (
                 <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0" data-testid={`text-metoo-count-${submission.id}`}>
                   {submission.meTooCount}
