@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { FlagModal } from "@/components/flag-modal";
 import { CommentsSection } from "@/components/comments-section";
 import { CATEGORIES, TIMEFRAMES, type Submission, type VoteType, type FlagReason } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { Users, Heart, Phone, ExternalLink } from "lucide-react";
+import { Users, Heart, Phone, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 
 interface SubmissionCardProps {
   submission: Submission;
@@ -15,8 +16,10 @@ interface SubmissionCardProps {
   onMeToo: (submissionId: string) => void;
   isVoting?: boolean;
   isMeTooing?: boolean;
-  expanded?: boolean;
+  defaultExpanded?: boolean;
 }
+
+const TRUNCATE_LENGTH = 200;
 
 function getCategoryLabel(value: string): string {
   return CATEGORIES.find((c) => c.value === value)?.label || value;
@@ -108,20 +111,24 @@ export function SubmissionCard({
   onMeToo,
   isVoting = false,
   isMeTooing = false,
-  expanded = false,
+  defaultExpanded = false,
 }: SubmissionCardProps) {
-  const contentPreview = expanded
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  
+  const isTruncated = submission.content.length > TRUNCATE_LENGTH;
+  const contentPreview = isExpanded || !isTruncated
     ? submission.content
-    : submission.content.length > 200
-    ? submission.content.slice(0, 200) + "..."
-    : submission.content;
+    : submission.content.slice(0, TRUNCATE_LENGTH) + "...";
+
+  const handleToggleExpand = () => {
+    if (isTruncated) {
+      setIsExpanded(!isExpanded);
+    }
+  };
 
   return (
     <Card
-      className={cn(
-        "transition-shadow hover:shadow-lg",
-        !expanded && "cursor-pointer"
-      )}
+      className="transition-shadow hover:shadow-lg"
       data-testid={`submission-card-${submission.id}`}
     >
       <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3 space-y-0">
@@ -139,12 +146,52 @@ export function SubmissionCard({
 
       <CardContent className="pb-4">
         {shouldShowCrisisResources(submission.category) && <CrisisResourcesBanner />}
-        <p
-          className="font-serif text-base leading-relaxed whitespace-pre-wrap"
-          data-testid={`text-content-${submission.id}`}
+        <div 
+          className={cn(
+            "cursor-pointer",
+            isTruncated && "hover:bg-accent/5 rounded-md transition-colors -mx-2 px-2 -my-1 py-1"
+          )}
+          onClick={handleToggleExpand}
+          role={isTruncated ? "button" : undefined}
+          tabIndex={isTruncated ? 0 : undefined}
+          onKeyDown={(e) => {
+            if (isTruncated && (e.key === "Enter" || e.key === " ")) {
+              e.preventDefault();
+              handleToggleExpand();
+            }
+          }}
+          data-testid={`content-area-${submission.id}`}
         >
-          {contentPreview}
-        </p>
+          <p
+            className="font-serif text-base leading-relaxed whitespace-pre-wrap"
+            data-testid={`text-content-${submission.id}`}
+          >
+            {contentPreview}
+          </p>
+          {isTruncated && (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleExpand();
+              }}
+              data-testid={`button-toggle-expand-${submission.id}`}
+            >
+              {isExpanded ? (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  Show less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4" />
+                  Read more
+                </>
+              )}
+            </button>
+          )}
+        </div>
         {submission.denomination && (
           <p className="mt-3 text-sm text-muted-foreground">
             Denomination: <span className="font-medium">{submission.denomination}</span>
