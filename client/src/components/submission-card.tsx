@@ -70,37 +70,44 @@ const CRISIS_RESOURCES = [
 ];
 
 function CrisisResourcesBanner() {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
   return (
-    <div className="bg-accent/30 border border-accent-border rounded-lg p-4 mb-4" data-testid="crisis-resources-banner">
-      <div className="flex items-start gap-3">
-        <Heart className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-        <div className="space-y-3">
-          <div>
-            <p className="text-sm font-medium text-foreground">You're Not Alone</p>
-            <p className="text-sm text-muted-foreground">
-              If you or someone you know has experienced abuse, help is available.
-            </p>
-          </div>
-          <div className="space-y-2">
-            {CRISIS_RESOURCES.map((resource) => (
-              <div key={resource.name} className="flex items-center gap-2 text-sm">
-                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="font-medium">{resource.name}:</span>
-                <span className="text-muted-foreground">{resource.phone}</span>
-                <a
-                  href={resource.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-primary hover:underline"
-                  data-testid={`link-resource-${resource.name.toLowerCase().replace(/\s+/g, "-")}`}
-                >
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-            ))}
-          </div>
+    <div className="mb-4" data-testid="crisis-resources-banner">
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        data-testid="button-toggle-crisis-resources"
+      >
+        <Heart className="h-3 w-3" />
+        <span>Need support? Help is available</span>
+        {isExpanded ? (
+          <ChevronUp className="h-3 w-3" />
+        ) : (
+          <ChevronDown className="h-3 w-3" />
+        )}
+      </button>
+      
+      {isExpanded && (
+        <div className="mt-2 pl-4 border-l-2 border-muted space-y-1.5">
+          {CRISIS_RESOURCES.map((resource) => (
+            <div key={resource.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>{resource.name}:</span>
+              <span className="font-medium text-foreground">{resource.phone}</span>
+              <a
+                href={resource.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-primary hover:underline"
+                data-testid={`link-resource-${resource.name.toLowerCase().replace(/\s+/g, "-")}`}
+              >
+                <ExternalLink className="h-2.5 w-2.5" />
+              </a>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -139,7 +146,7 @@ export function SubmissionCard({
       className="transition-shadow hover:shadow-lg"
       data-testid={`submission-card-${submission.id}`}
     >
-      <CardHeader className="flex flex-col gap-3 pb-3 space-y-0">
+      <CardHeader className="flex flex-col gap-2 pb-3 space-y-0">
         <div className="flex flex-row items-center justify-between gap-4 flex-wrap">
           <Badge
             variant="outline"
@@ -148,21 +155,23 @@ export function SubmissionCard({
           >
             {getCategoryLabel(submission.category)}
           </Badge>
-          <span 
-            className="text-xs text-muted-foreground flex items-center gap-1.5"
-            data-testid={`text-submitted-${submission.id}`}
-          >
-            <Clock className="h-3 w-3" />
-            Submitted {formatDistanceToNow(new Date(submission.createdAt), { addSuffix: true })}
-          </span>
-        </div>
-        <div 
-          className="flex items-center gap-1.5 text-sm text-foreground bg-accent/30 border border-accent-border rounded-md px-2.5 py-1.5 w-fit"
-          data-testid={`text-timeframe-${submission.id}`}
-        >
-          <Calendar className="h-3.5 w-3.5 text-primary" />
-          <span className="font-medium">Incident occurred:</span>
-          <span>{getTimeframeLabel(submission.timeframe)}</span>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span 
+              className="flex items-center gap-1"
+              data-testid={`text-timeframe-${submission.id}`}
+            >
+              <Calendar className="h-3 w-3" />
+              <span>Occurred {getTimeframeLabel(submission.timeframe).toLowerCase()}</span>
+            </span>
+            <span className="text-muted-foreground/40">|</span>
+            <span 
+              className="flex items-center gap-1"
+              data-testid={`text-submitted-${submission.id}`}
+            >
+              <Clock className="h-3 w-3" />
+              <span>Submitted {formatDistanceToNow(new Date(submission.createdAt), { addSuffix: true })}</span>
+            </span>
+          </div>
         </div>
       </CardHeader>
 
@@ -270,12 +279,11 @@ export function SubmissionCard({
 export function SubmissionCardSkeleton() {
   return (
     <Card className="animate-pulse">
-      <CardHeader className="flex flex-col gap-3 pb-3 space-y-0">
+      <CardHeader className="flex flex-col gap-2 pb-3 space-y-0">
         <div className="flex flex-row items-center justify-between gap-4">
           <div className="h-6 w-24 rounded-full bg-muted" />
-          <div className="h-4 w-32 rounded bg-muted" />
+          <div className="h-3 w-48 rounded bg-muted" />
         </div>
-        <div className="h-7 w-44 rounded-md bg-muted" />
       </CardHeader>
       <CardContent className="pb-4 space-y-2">
         <div className="h-4 w-full rounded bg-muted" />
