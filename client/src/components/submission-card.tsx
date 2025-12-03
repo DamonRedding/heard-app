@@ -8,7 +8,8 @@ import { FlagModal } from "@/components/flag-modal";
 import { CommentsSection } from "@/components/comments-section";
 import { CATEGORIES, TIMEFRAMES, type Submission, type VoteType, type FlagReason } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { Users, Heart, Phone, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Users, Heart, Phone, ExternalLink, ChevronDown, ChevronUp, Calendar, Clock } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface SubmissionCardProps {
   submission: Submission;
@@ -138,17 +139,31 @@ export function SubmissionCard({
       className="transition-shadow hover:shadow-lg"
       data-testid={`submission-card-${submission.id}`}
     >
-      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3 space-y-0">
-        <Badge
-          variant="outline"
-          className={cn("font-medium", getCategoryColor(submission.category))}
-          data-testid={`badge-category-${submission.id}`}
+      <CardHeader className="flex flex-col gap-3 pb-3 space-y-0">
+        <div className="flex flex-row items-center justify-between gap-4 flex-wrap">
+          <Badge
+            variant="outline"
+            className={cn("font-medium", getCategoryColor(submission.category))}
+            data-testid={`badge-category-${submission.id}`}
+          >
+            {getCategoryLabel(submission.category)}
+          </Badge>
+          <span 
+            className="text-xs text-muted-foreground flex items-center gap-1.5"
+            data-testid={`text-submitted-${submission.id}`}
+          >
+            <Clock className="h-3 w-3" />
+            Submitted {formatDistanceToNow(new Date(submission.createdAt), { addSuffix: true })}
+          </span>
+        </div>
+        <div 
+          className="flex items-center gap-1.5 text-sm text-foreground bg-accent/30 border border-accent-border rounded-md px-2.5 py-1.5 w-fit"
+          data-testid={`text-timeframe-${submission.id}`}
         >
-          {getCategoryLabel(submission.category)}
-        </Badge>
-        <span className="text-sm text-muted-foreground" data-testid={`text-timeframe-${submission.id}`}>
-          {getTimeframeLabel(submission.timeframe)}
-        </span>
+          <Calendar className="h-3.5 w-3.5 text-primary" />
+          <span className="font-medium">Incident occurred:</span>
+          <span>{getTimeframeLabel(submission.timeframe)}</span>
+        </div>
       </CardHeader>
 
       <CardContent className="pb-4">
@@ -255,9 +270,12 @@ export function SubmissionCard({
 export function SubmissionCardSkeleton() {
   return (
     <Card className="animate-pulse">
-      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3 space-y-0">
-        <div className="h-6 w-24 rounded-full bg-muted" />
-        <div className="h-4 w-20 rounded bg-muted" />
+      <CardHeader className="flex flex-col gap-3 pb-3 space-y-0">
+        <div className="flex flex-row items-center justify-between gap-4">
+          <div className="h-6 w-24 rounded-full bg-muted" />
+          <div className="h-4 w-32 rounded bg-muted" />
+        </div>
+        <div className="h-7 w-44 rounded-md bg-muted" />
       </CardHeader>
       <CardContent className="pb-4 space-y-2">
         <div className="h-4 w-full rounded bg-muted" />
