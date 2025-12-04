@@ -63,6 +63,10 @@ export default function Home() {
   });
 
   useEffect(() => {
+    setPage(1);
+  }, [selectedCategory, selectedDenomination, debouncedSearch]);
+
+  useEffect(() => {
     if (data?.submissions) {
       if (page === 1) {
         setAllSubmissions(data.submissions);
@@ -76,18 +80,12 @@ export default function Home() {
     }
   }, [data, page]);
 
-  useEffect(() => {
-    setPage(1);
-    setAllSubmissions([]);
-  }, [selectedCategory, selectedDenomination, debouncedSearch]);
-
   const clearFilters = () => {
     setSelectedCategory(null);
     setSelectedDenomination(null);
     setSearchQuery("");
     setDebouncedSearch("");
     setPage(1);
-    setAllSubmissions([]);
   };
 
   const hasFilters = selectedCategory || selectedDenomination || debouncedSearch;
