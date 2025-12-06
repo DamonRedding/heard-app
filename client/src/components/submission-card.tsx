@@ -200,7 +200,7 @@ export function SubmissionCard({
           data-testid={`content-area-${submission.id}`}
         >
           <p
-            className="font-serif text-base leading-relaxed whitespace-pre-wrap"
+            className="font-serif text-base leading-relaxed whitespace-pre-wrap break-words"
             data-testid={`text-content-${submission.id}`}
           >
             {contentPreview}
