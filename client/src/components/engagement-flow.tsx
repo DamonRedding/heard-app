@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Users, MessageCircle, ThumbsUp, ThumbsDown, ArrowRight, Mail, BookOpen, Loader2 } from "lucide-react";
+import { CheckCircle2, Users, MessageCircle, ThumbsUp, ThumbsDown, ArrowRight, ArrowLeft, Mail, BookOpen, Loader2, Calendar, Check } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -42,28 +42,30 @@ function getCategoryLabel(value: string): string {
 
 function RelatedPostCard({ 
   submission, 
-  onVote 
+  onVote,
+  isEngaged 
 }: { 
   submission: Submission; 
   onVote: (id: string) => void;
+  isEngaged: boolean;
 }) {
-  const [hasVoted, setHasVoted] = useState(false);
-
-  const handleVote = () => {
-    if (!hasVoted) {
-      onVote(submission.id);
-      setHasVoted(true);
-    }
-  };
-
   const categoryLabel = getCategoryLabel(submission.category);
   const timeAgo = formatDistanceToNow(new Date(submission.createdAt), { addSuffix: false });
   const contentPreview = submission.content.length > 120 
     ? `"${submission.content.slice(0, 120)}..."` 
     : `"${submission.content}"`;
 
+  const handleVote = () => {
+    if (!isEngaged) {
+      onVote(submission.id);
+    }
+  };
+
   return (
-    <Card className="hover-elevate" data-testid={`related-post-${submission.id}`}>
+    <Card 
+      className={`transition-opacity duration-300 ${isEngaged ? 'opacity-60' : 'hover-elevate'}`} 
+      data-testid={`related-post-${submission.id}`}
+    >
       <CardContent className="p-4 space-y-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-sm">
@@ -75,7 +77,10 @@ function RelatedPostCard({
               </>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">{timeAgo} ago</p>
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            {timeAgo} ago
+          </p>
         </div>
 
         <p className="font-serif text-sm leading-relaxed" data-testid={`related-content-${submission.id}`}>
@@ -85,11 +90,11 @@ function RelatedPostCard({
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <ThumbsUp className="h-3.5 w-3.5" />
-            {submission.condemnCount}
+            {submission.absolveCount}
           </span>
           <span className="flex items-center gap-1">
             <ThumbsDown className="h-3.5 w-3.5" />
-            {submission.absolveCount}
+            {submission.condemnCount}
           </span>
           <span className="flex items-center gap-1">
             <MessageCircle className="h-3.5 w-3.5" />
@@ -99,24 +104,47 @@ function RelatedPostCard({
 
         <Button 
           size="lg"
-          variant={hasVoted ? "secondary" : "default"}
+          variant={isEngaged ? "secondary" : "default"}
           onClick={handleVote}
-          disabled={hasVoted}
-          className="w-full gap-2 h-11"
+          disabled={isEngaged}
+          className={`w-full gap-2 h-11 ${isEngaged ? 'bg-absolve/20 text-absolve border-absolve/30 hover:bg-absolve/20' : ''}`}
           data-testid={`button-hear-${submission.id}`}
         >
-          <ThumbsUp className={`h-4 w-4 ${hasVoted ? 'fill-current' : ''}`} />
-          {hasVoted ? "Heard" : "I Hear You"}
+          {isEngaged ? (
+            <>
+              <Check className="h-4 w-4" />
+              Heard!
+            </>
+          ) : (
+            <>
+              <ThumbsUp className="h-4 w-4" />
+              I Hear You
+            </>
+          )}
         </Button>
       </CardContent>
     </Card>
   );
 }
 
+function getEngagementMessage(count: number): { text: string; emoji: string } {
+  if (count === 0) {
+    return { text: "Read stories and show support", emoji: "" };
+  } else if (count === 1) {
+    return { text: `Engaged with ${count} story`, emoji: "Nice work!" };
+  } else if (count === 2) {
+    return { text: `Engaged with ${count} stories`, emoji: "Keep going!" };
+  } else {
+    return { text: `Engaged with ${count} stories`, emoji: "You're amazing!" };
+  }
+}
+
 export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFlowProps) {
   const [step, setStep] = useState(1);
-  const [engagedCount, setEngagedCount] = useState(0);
+  const [engagedIds, setEngagedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+
+  const engagedCount = engagedIds.size;
 
   const { data: stats, isLoading: statsLoading } = useQuery<CommunityStats>({
     queryKey: ["/api/community/stats"],
@@ -139,20 +167,23 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
     enabled: step >= 2,
   });
 
-  const supportedIds = useState<Set<string>>(new Set())[0];
-  
   const voteMutation = useMutation({
     mutationFn: async (submissionId: string) => {
-      if (supportedIds.has(submissionId)) {
-        return Promise.resolve(null);
-      }
-      supportedIds.add(submissionId);
       return apiRequest("POST", `/api/submissions/${submissionId}/metoo`, {});
     },
     onSuccess: (_, submissionId) => {
-      setEngagedCount(prev => prev + 1);
+      setEngagedIds(prev => new Set([...prev, submissionId]));
       queryClient.invalidateQueries({ 
         queryKey: ["/api/submissions/related", submittedSubmission.category, submittedSubmission.denomination] 
+      });
+      toast({
+        description: (
+          <span className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-absolve" />
+            They'll see your support!
+          </span>
+        ),
+        duration: 2000,
       });
     },
   });
@@ -194,7 +225,9 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
   });
 
   const handleVote = (submissionId: string) => {
-    voteMutation.mutate(submissionId);
+    if (!engagedIds.has(submissionId)) {
+      voteMutation.mutate(submissionId);
+    }
   };
 
   const handleEmailSubmit = async (data: EmailFormValues) => {
@@ -258,11 +291,35 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
   if (step === 2) {
     const relatedPosts = relatedData?.submissions || [];
     const hasRelatedPosts = relatedPosts.length > 0;
+    const remainingPosts = relatedPosts.filter(p => !engagedIds.has(p.id)).length;
+    const engagementMsg = getEngagementMessage(engagedCount);
 
     return (
-      <Card data-testid="engagement-step-2">
-        <CardContent className="p-6 space-y-5">
-          <div className="space-y-4">
+      <div className="flex flex-col h-[calc(100vh-120px)] max-h-[800px] min-h-[600px]" data-testid="engagement-step-2">
+        <div className="sticky top-0 z-50 bg-background border-b px-4 py-3 flex items-center justify-between h-[50px]">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="gap-1.5" 
+            onClick={() => setStep(1)}
+            data-testid="button-back-step-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <span className="text-sm text-muted-foreground font-medium">Step 2 of 3</span>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setStep(3)}
+            data-testid="button-skip-step-2"
+          >
+            Skip
+          </Button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+          <div className="space-y-3">
             <h2 className="text-xl font-semibold leading-tight">
               While you're here, others need to hear from you too.
             </h2>
@@ -274,7 +331,7 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
           </div>
 
           {relatedLoading ? (
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+            <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <Card key={i} className="animate-pulse">
                   <CardContent className="p-4 space-y-3">
@@ -288,61 +345,70 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
               ))}
             </div>
           ) : hasRelatedPosts ? (
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1" data-testid="related-posts-list">
-              {relatedPosts.map((post) => (
-                <RelatedPostCard 
-                  key={post.id} 
-                  submission={post} 
-                  onVote={handleVote}
-                />
-              ))}
-            </div>
+            <>
+              <div className="space-y-3" data-testid="related-posts-list">
+                {relatedPosts.map((post) => (
+                  <RelatedPostCard 
+                    key={post.id} 
+                    submission={post} 
+                    onVote={handleVote}
+                    isEngaged={engagedIds.has(post.id)}
+                  />
+                ))}
+              </div>
+
+              {remainingPosts > 0 && relatedPosts.length > 3 && (
+                <p className="text-sm text-muted-foreground text-center">
+                  [Scroll for {remainingPosts} more {remainingPosts === 1 ? 'story' : 'stories'}...]
+                </p>
+              )}
+            </>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <p>No similar stories found yet. You're helping build this community!</p>
             </div>
           )}
 
-          {engagedCount > 0 && (
-            <div className="text-center py-2 text-sm text-absolve font-medium" data-testid="text-engaged-count">
-              You've shown support to {engagedCount} {engagedCount === 1 ? 'story' : 'stories'}
-            </div>
-          )}
-
-          <p className="text-sm text-muted-foreground text-center italic">
+          <p className="text-sm text-muted-foreground text-center italic pt-2">
             "They shared their pain just like you did. Show them they're heard."
           </p>
 
-          <div className="space-y-2">
-            <Button 
-              className="w-full"
-              onClick={() => setStep(3)}
-              data-testid="button-continue-step-2"
-            >
-              Continue
-            </Button>
-            <div className="flex gap-2">
-              <Button 
-                variant="ghost" 
-                className="flex-1"
-                onClick={() => setStep(3)}
-                data-testid="button-skip-step-2"
-              >
-                Skip
-              </Button>
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                asChild
-              >
-                <a href="/" data-testid="button-see-more">
-                  See More Stories
-                </a>
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          <Button 
+            variant="outline"
+            className="w-full h-11"
+            asChild
+          >
+            <a href="/" data-testid="button-see-more">
+              See More Stories
+            </a>
+          </Button>
+        </div>
+
+        <div className="sticky bottom-0 z-50 bg-background border-t px-4 py-4 space-y-3">
+          <p 
+            className={`text-sm text-center flex items-center justify-center gap-2 ${engagedCount > 0 ? 'text-absolve font-medium' : 'text-muted-foreground'}`}
+            data-testid="text-engagement-status"
+          >
+            {engagementMsg.text}
+            {engagedCount > 0 && (
+              <>
+                <span>•</span>
+                <span>{engagementMsg.emoji}</span>
+                <Check className="h-4 w-4" />
+              </>
+            )}
+          </p>
+          
+          <Button 
+            className={`w-full h-11 ${engagedCount > 0 ? 'animate-pulse-subtle' : ''}`}
+            variant={engagedCount > 0 ? "default" : "outline"}
+            onClick={() => setStep(3)}
+            data-testid="button-continue-step-2"
+          >
+            Continue
+          </Button>
+        </div>
+      </div>
     );
   }
 
