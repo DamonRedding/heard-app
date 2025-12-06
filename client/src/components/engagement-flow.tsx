@@ -313,14 +313,34 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
             "They shared their pain just like you did. Show them they're heard."
           </p>
 
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => setStep(3)}
-            data-testid="button-see-more"
-          >
-            See More Stories
-          </Button>
+          <div className="space-y-2">
+            <Button 
+              className="w-full"
+              onClick={() => setStep(3)}
+              data-testid="button-continue-step-2"
+            >
+              Continue
+            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                className="flex-1"
+                onClick={() => setStep(3)}
+                data-testid="button-skip-step-2"
+              >
+                Skip
+              </Button>
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                asChild
+              >
+                <a href="/" data-testid="button-see-more">
+                  See More Stories
+                </a>
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );

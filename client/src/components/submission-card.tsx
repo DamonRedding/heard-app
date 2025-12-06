@@ -22,6 +22,7 @@ interface SubmissionCardProps {
   isReacting?: boolean;
   defaultExpanded?: boolean;
   reactions?: Record<string, number>;
+  isHighlighted?: boolean;
 }
 
 const TRUNCATE_LENGTH = 200;
@@ -127,6 +128,7 @@ export function SubmissionCard({
   isReacting = false,
   defaultExpanded = false,
   reactions = {},
+  isHighlighted = false,
 }: SubmissionCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   
@@ -143,8 +145,12 @@ export function SubmissionCard({
 
   return (
     <Card
-      className="transition-shadow hover:shadow-lg"
+      className={cn(
+        "transition-shadow hover:shadow-lg",
+        isHighlighted && "ring-2 ring-absolve ring-offset-4 ring-offset-background"
+      )}
       data-testid={`submission-card-${submission.id}`}
+      data-highlighted={isHighlighted ? "true" : undefined}
     >
       <CardHeader className="flex flex-col gap-2 pb-3 space-y-0">
         <div className="flex flex-row items-center justify-between gap-4 flex-wrap">

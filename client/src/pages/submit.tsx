@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter";
 import { SubmissionForm } from "@/components/submission-form";
 import { EngagementFlow } from "@/components/engagement-flow";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Home } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { InsertSubmission, Submission } from "@shared/schema";
@@ -12,7 +12,6 @@ import type { InsertSubmission, Submission } from "@shared/schema";
 export default function Submit() {
   const [submittedSubmission, setSubmittedSubmission] = useState<Submission | null>(null);
   const [showEngagementFlow, setShowEngagementFlow] = useState(false);
-  const [flowCompleted, setFlowCompleted] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -43,8 +42,11 @@ export default function Submit() {
   };
 
   const handleEngagementComplete = () => {
-    setFlowCompleted(true);
-    setShowEngagementFlow(false);
+    if (submittedSubmission) {
+      setLocation(`/?highlight=${submittedSubmission.id}&welcome=true`);
+    } else {
+      setLocation("/");
+    }
   };
 
   if (showEngagementFlow && submittedSubmission) {
@@ -55,39 +57,6 @@ export default function Submit() {
             submittedSubmission={submittedSubmission}
             onComplete={handleEngagementComplete}
           />
-        </div>
-      </div>
-    );
-  }
-
-  if (flowCompleted) {
-    return (
-      <div className="min-h-screen">
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
-          <div className="text-center py-12 space-y-6">
-            <h2 className="text-2xl font-semibold">Thank you for being part of our community</h2>
-            <p className="text-muted-foreground">
-              Your story is now part of the healing. Together, we're building accountability.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-              <Link href="/">
-                <Button variant="default" className="gap-2" data-testid="button-view-feed">
-                  <Home className="h-4 w-4" />
-                  View the Feed
-                </Button>
-              </Link>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSubmittedSubmission(null);
-                  setFlowCompleted(false);
-                }}
-                data-testid="button-share-another"
-              >
-                Share Another Story
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
     );

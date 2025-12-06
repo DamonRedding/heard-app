@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SubmissionCard, SubmissionCardSkeleton } from "@/components/submission-card";
 import { CategoryFilter } from "@/components/category-filter";
-import { PenLine, RefreshCw, Loader2, Search, X } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { PenLine, RefreshCw, Loader2, Search, X, CheckCircle2, Sparkles } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Submission, Category, VoteType, FlagReason } from "@shared/schema";
@@ -43,7 +44,27 @@ export default function Home() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const [highlightedSubmissionId, setHighlightedSubmissionId] = useState<string | null>(null);
   const { toast } = useToast();
+  const searchParams = useSearch();
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    const highlight = params.get("highlight");
+    const welcome = params.get("welcome");
+    
+    if (highlight) {
+      setHighlightedSubmissionId(highlight);
+    }
+    if (welcome === "true") {
+      setShowWelcomeBanner(true);
+    }
+    
+    if (highlight || welcome) {
+      window.history.replaceState({}, "", "/");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -218,6 +239,36 @@ export default function Home() {
         </div>
       </section>
 
+      {showWelcomeBanner && (
+        <div className="container mx-auto px-4 pt-6">
+          <Card className="border-absolve/30 bg-absolve/5" data-testid="welcome-banner">
+            <CardContent className="flex items-start sm:items-center gap-4 p-4">
+              <div className="flex-shrink-0">
+                <CheckCircle2 className="h-8 w-8 text-absolve" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h3 className="font-semibold flex items-center gap-2">
+                  Your story is now live
+                  <Sparkles className="h-4 w-4 text-accent" />
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Thank you for your courage. Your experience is highlighted below and is now part of our community.
+                </p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setShowWelcomeBanner(false)}
+                className="flex-shrink-0"
+                data-testid="button-dismiss-banner"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-4 mb-8">
           <div className="flex flex-col md:flex-row gap-4">
@@ -308,6 +359,7 @@ export default function Home() {
                   onMeToo={handleMeToo}
                   isVoting={voteMutation.isPending}
                   isMeTooing={meTooMutation.isPending}
+                  isHighlighted={highlightedSubmissionId === submission.id}
                 />
               ))}
 
