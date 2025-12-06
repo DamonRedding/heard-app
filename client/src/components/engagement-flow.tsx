@@ -240,8 +240,9 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
 
   if (step === 1) {
     return (
-      <Card className="border-absolve/30 bg-absolve/5" data-testid="engagement-step-1">
-        <CardContent className="flex flex-col items-center justify-center py-12 text-center space-y-6">
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-8">
+        <Card className="border-absolve/30 bg-absolve/5 w-full max-w-2xl" data-testid="engagement-step-1">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center space-y-6">
           <CheckCircle2 className="h-16 w-16 text-absolve" />
           <div className="space-y-2">
             <h3 className="text-xl font-semibold">Your story has been shared anonymously</h3>
@@ -284,7 +285,8 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
             <ArrowRight className="h-4 w-4" />
           </Button>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     );
   }
 
@@ -295,8 +297,8 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
     const engagementMsg = getEngagementMessage(engagedCount);
 
     return (
-      <div className="flex flex-col h-[calc(100vh-120px)] max-h-[800px] min-h-[600px]" data-testid="engagement-step-2">
-        <div className="sticky top-0 z-50 bg-background border-b px-4 py-3 flex items-center justify-between h-[50px]">
+      <div className="flex flex-col h-[calc(100vh-64px)] max-w-2xl mx-auto" data-testid="engagement-step-2">
+        <div className="bg-background border-b px-4 py-3 flex items-center justify-between h-[50px] shrink-0">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -384,7 +386,7 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
           </Button>
         </div>
 
-        <div className="sticky bottom-0 z-50 bg-background border-t px-4 py-4 space-y-3">
+        <div className="bg-background border-t px-4 py-4 space-y-3 shrink-0">
           <p 
             className={`text-sm text-center flex items-center justify-center gap-2 ${engagedCount > 0 ? 'text-absolve font-medium' : 'text-muted-foreground'}`}
             data-testid="text-engagement-status"
@@ -414,8 +416,9 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
 
   if (step === 3) {
     return (
-      <Card data-testid="engagement-step-3">
-        <CardHeader className="text-center pb-2">
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-8">
+        <Card className="w-full max-w-2xl" data-testid="engagement-step-3">
+          <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
             <Mail className="h-12 w-12 text-primary" />
           </div>
@@ -522,7 +525,8 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
             </form>
           </Form>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     );
   }
 

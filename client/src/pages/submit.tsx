@@ -51,14 +51,10 @@ export default function Submit() {
 
   if (showEngagementFlow && submittedSubmission) {
     return (
-      <div className="min-h-screen">
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
-          <EngagementFlow 
-            submittedSubmission={submittedSubmission}
-            onComplete={handleEngagementComplete}
-          />
-        </div>
-      </div>
+      <EngagementFlow 
+        submittedSubmission={submittedSubmission}
+        onComplete={handleEngagementComplete}
+      />
     );
   }
 
