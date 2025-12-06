@@ -1,0 +1,58 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "tavily": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.tavily.com/mcp/?tavilyApiKey=${TAVILY_API_KEY}"
+      ],
+      "env": {
+        "TAVILY_API_KEY": "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"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ]
+    },
+    "magic": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@21st-dev/magic"
+      ],
+      "env": {
+        "TWENTYFIRST_API_KEY": "dc90c2a32a6548930368ccd70f9868773096a80d948d5a469835a783fa7d3a89"
+      }
+    },
+    "morphllm-fast-apply": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@morph-llm/morph-fast-apply",
+        "/home/runner/workspace"
+      ],
+      "env": {
+        "MORPH_API_KEY": "",
+        "ALL_TOOLS": "true"
+      }
+    }
+  }
+}

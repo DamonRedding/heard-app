@@ -1,0 +1,107 @@
+### Problem Statement
+
+**If ChurchHeard could only fix ONE thing, what should it be?**
+
+**Answer:** Build a post-submission engagement loop that converts one-time submitters into active community members.
+
+### Why This is THE ONE Thing
+
+**Impact Score:** 10/10
+- Directly addresses root cause (retention failure)
+- Activates existing 32 submitters (proven interested users)
+- Creates engagement needed for social proof
+- Unlocks all other improvements (can't curate feed without engagement to show)
+
+**Effort Score:** 4/10
+- Post-submission flow (3 screens)
+- Email system (3 templates)
+- Matching algorithm (category + denomination)
+- ~50 hours total development
+
+**Impact/Effort Ratio:** 2.5 (Highest priority)
+
+**Dependency Analysis:**
+- ✅ Can be built immediately (no prerequisites)
+- ✅ Unblocks everything else (feed curation, social proof, community growth)
+- ✅ Addresses root cause (not symptoms)
+
+### The Solution Architecture
+
+**3-Part System:**
+
+```
+Part 1: Post-Submission Flow (Immediate)
+    ↓
+Part 2: Email Triggers (24-48 hours + ongoing)
+    ↓
+Part 3: Weekly Retention (Long-term)
+```
+
+---
+
+### Part 1: Post-Submission Engagement Flow
+
+**Trigger Moment:** Immediately after user clicks "Submit" on their story
+
+**Screen 1: Confirmation + Community Context**
+
+```
+╔══════════════════════════════════════════╗
+║  ✅ Your story has been shared          ║
+║     anonymously                          ║
+║                                          ║
+║  "Thank you for your courage.            ║
+║   You're not alone."                     ║
+║                                          ║
+║  📊 156 others have shared their         ║
+║     church experiences here              ║
+║                                          ║
+║  💬 847 people found support this month  ║
+║                                          ║
+║           [Continue]                     ║
+╚══════════════════════════════════════════╝
+```
+
+**Behavioral Psychology:**
+- ✅ Immediate validation ("You're not alone")
+- ✅ Social proof (156 others, 847 found support)
+- ✅ Establishes community context
+- ✅ Sets expectation that others are here
+
+---
+
+**Screen 2: Reciprocity + Related Posts**
+
+```
+╔══════════════════════════════════════════╗
+║  While you're here, others need to       ║
+║  hear from you too.                      ║
+║                                          ║
+║  📖 Read stories from people like you:   ║
+║                                          ║
+║  ┌────────────────────────────────────┐ ║
+║  │ Leadership | Baptist                │ ║
+║  │                                     │ ║
+║  │ "I was an associate pastor for 5   │ ║
+║  │  years. When I raised concerns..." │ ║
+║  │                                     │ ║
+║  │ 👍 6  💬 1  📅 2 days ago           │ ║
+║  │                                     │ ║
+║  │        [👍 I Hear You]              │ ║
+║  └────────────────────────────────────┘ ║
+║                                          ║
+║  [2 more similar post cards...]         ║
+║                                          ║
+║  "They shared their pain just like you  ║
+║   did. Show them they're heard."        ║
+║                                          ║
+║           [See More Stories]             ║
+╚══════════════════════════════════════════╝
+```
+
+**Behavioral Psychology:**
+- ✅ Reciprocity principle (you shared, now support others)
+- ✅ Peak emotional moment (user just shared trauma, in giving mindset)
+- ✅ Related content (same category, denomination)
+- ✅ Low friction (large "I Hear You" buttons visible)
+- ✅ Social proof per post (existing engagement shown)
