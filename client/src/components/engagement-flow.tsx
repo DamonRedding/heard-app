@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Users, MessageCircle, ThumbsUp, ArrowRight, Mail, Home, Calendar, Heart, Loader2 } from "lucide-react";
+import { CheckCircle2, Users, MessageCircle, ThumbsUp, ThumbsDown, ArrowRight, Mail, BookOpen, Loader2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -48,7 +48,6 @@ function RelatedPostCard({
   onVote: (id: string) => void;
 }) {
   const [hasVoted, setHasVoted] = useState(false);
-  const totalEngagement = submission.condemnCount + submission.absolveCount + submission.meTooCount;
 
   const handleVote = () => {
     if (!hasVoted) {
@@ -57,45 +56,58 @@ function RelatedPostCard({
     }
   };
 
+  const categoryLabel = getCategoryLabel(submission.category);
+  const timeAgo = formatDistanceToNow(new Date(submission.createdAt), { addSuffix: false });
+  const contentPreview = submission.content.length > 120 
+    ? `"${submission.content.slice(0, 120)}..."` 
+    : `"${submission.content}"`;
+
   return (
     <Card className="hover-elevate" data-testid={`related-post-${submission.id}`}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <Badge variant="outline" className="text-xs">
-            {getCategoryLabel(submission.category)}
-          </Badge>
-          {submission.denomination && (
-            <span className="text-xs text-muted-foreground">{submission.denomination}</span>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="font-serif text-sm leading-relaxed line-clamp-3" data-testid={`related-content-${submission.id}`}>
-          "{submission.content.slice(0, 150)}..."
-        </p>
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <ThumbsUp className="h-3 w-3" />
-              {totalEngagement}
-            </span>
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {formatDistanceToNow(new Date(submission.createdAt), { addSuffix: true })}
-            </span>
+      <CardContent className="p-4 space-y-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-medium">{categoryLabel}</span>
+            {submission.denomination && (
+              <>
+                <span className="text-muted-foreground">|</span>
+                <span className="text-muted-foreground">{submission.denomination}</span>
+              </>
+            )}
           </div>
-          <Button 
-            size="sm"
-            variant={hasVoted ? "secondary" : "default"}
-            onClick={handleVote}
-            disabled={hasVoted}
-            className="gap-1.5"
-            data-testid={`button-hear-${submission.id}`}
-          >
-            <Heart className={`h-3.5 w-3.5 ${hasVoted ? 'fill-current' : ''}`} />
-            {hasVoted ? "Heard" : "I Hear You"}
-          </Button>
+          <p className="text-xs text-muted-foreground">{timeAgo} ago</p>
         </div>
+
+        <p className="font-serif text-sm leading-relaxed" data-testid={`related-content-${submission.id}`}>
+          {contentPreview}
+        </p>
+
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <ThumbsUp className="h-3.5 w-3.5" />
+            {submission.condemnCount}
+          </span>
+          <span className="flex items-center gap-1">
+            <ThumbsDown className="h-3.5 w-3.5" />
+            {submission.absolveCount}
+          </span>
+          <span className="flex items-center gap-1">
+            <MessageCircle className="h-3.5 w-3.5" />
+            {submission.meTooCount}
+          </span>
+        </div>
+
+        <Button 
+          size="lg"
+          variant={hasVoted ? "secondary" : "default"}
+          onClick={handleVote}
+          disabled={hasVoted}
+          className="w-full gap-2 h-11"
+          data-testid={`button-hear-${submission.id}`}
+        >
+          <ThumbsUp className={`h-4 w-4 ${hasVoted ? 'fill-current' : ''}`} />
+          {hasVoted ? "Heard" : "I Hear You"}
+        </Button>
       </CardContent>
     </Card>
   );
@@ -249,30 +261,34 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
 
     return (
       <Card data-testid="engagement-step-2">
-        <CardHeader className="text-center pb-2">
-          <CardTitle className="text-xl">While you're here, others need to hear from you too</CardTitle>
-          <p className="text-sm text-muted-foreground mt-2">
-            Read stories from people like you. They shared their pain just like you did. Show them they're heard.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-6 space-y-5">
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold leading-tight">
+              While you're here, others need to hear from you too.
+            </h2>
+            
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <BookOpen className="h-4 w-4" />
+              <span className="text-sm">Stories from people like you:</span>
+            </div>
+          </div>
+
           {relatedLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
               {[1, 2, 3].map((i) => (
                 <Card key={i} className="animate-pulse">
-                  <CardHeader className="pb-2">
-                    <Skeleton className="h-5 w-24" />
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-8 w-28" />
+                  <CardContent className="p-4 space-y-3">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-11 w-full" />
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : hasRelatedPosts ? (
-            <div className="space-y-3" data-testid="related-posts-list">
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1" data-testid="related-posts-list">
               {relatedPosts.map((post) => (
                 <RelatedPostCard 
                   key={post.id} 
@@ -293,26 +309,18 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button 
-              variant="outline" 
-              className="flex-1 gap-2"
-              onClick={() => setStep(3)}
-              data-testid="button-see-more"
-            >
-              {hasRelatedPosts ? "See More Stories" : "Continue"}
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button 
-              size="default" 
-              className="flex-1 gap-2"
-              onClick={() => setStep(3)}
-              data-testid="button-continue-step-2"
-            >
-              Continue
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <p className="text-sm text-muted-foreground text-center italic">
+            "They shared their pain just like you did. Show them they're heard."
+          </p>
+
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => setStep(3)}
+            data-testid="button-see-more"
+          >
+            See More Stories
+          </Button>
         </CardContent>
       </Card>
     );

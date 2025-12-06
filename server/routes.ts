@@ -74,6 +74,27 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/submissions/related", async (req: Request, res: Response) => {
+    try {
+      const category = req.query.category as Category | undefined;
+      const denomination = req.query.denomination as string | undefined;
+      const excludeId = req.query.excludeId as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 5;
+
+      const relatedPosts = await storage.getRelatedPosts({
+        category,
+        denomination,
+        excludeId,
+        limit,
+      });
+
+      res.json({ submissions: relatedPosts });
+    } catch (error) {
+      console.error("Error fetching related posts:", error);
+      res.status(500).json({ error: "Failed to fetch related posts" });
+    }
+  });
+
   app.get("/api/submissions/:id", async (req: Request, res: Response) => {
     try {
       const submission = await storage.getSubmission(req.params.id);
@@ -396,27 +417,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching community stats:", error);
       res.status(500).json({ error: "Failed to fetch community stats" });
-    }
-  });
-
-  app.get("/api/submissions/related", async (req: Request, res: Response) => {
-    try {
-      const category = req.query.category as Category | undefined;
-      const denomination = req.query.denomination as string | undefined;
-      const excludeId = req.query.excludeId as string | undefined;
-      const limit = parseInt(req.query.limit as string) || 5;
-
-      const relatedPosts = await storage.getRelatedPosts({
-        category,
-        denomination,
-        excludeId,
-        limit,
-      });
-
-      res.json({ submissions: relatedPosts });
-    } catch (error) {
-      console.error("Error fetching related posts:", error);
-      res.status(500).json({ error: "Failed to fetch related posts" });
     }
   });
 
