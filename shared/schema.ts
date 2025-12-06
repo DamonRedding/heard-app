@@ -38,6 +38,12 @@ export const flagReasonEnum = pgEnum("flag_reason", [
   "other"
 ]);
 
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "engagement",
+  "weekly_digest",
+  "both"
+]);
+
 export const submissions = pgTable("submissions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   content: text("content").notNull(),
@@ -125,6 +131,26 @@ export const commentsRelations = relations(comments, ({ one }) => ({
   }),
 }));
 
+export const emailSubscribers = pgTable("email_subscribers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  submissionId: varchar("submission_id").references(() => submissions.id, { onDelete: "set null" }),
+  notifyOnEngagement: integer("notify_on_engagement").notNull().default(1),
+  weeklyDigest: integer("weekly_digest").notNull().default(0),
+  category: categoryEnum("category"),
+  denomination: text("denomination"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueEmail: uniqueIndex("email_subscribers_email_idx").on(table.email),
+}));
+
+export const emailSubscribersRelations = relations(emailSubscribers, ({ one }) => ({
+  submission: one(submissions, {
+    fields: [emailSubscribers.submissionId],
+    references: [submissions.id],
+  }),
+}));
+
 export const insertSubmissionSchema = createInsertSchema(submissions).omit({
   id: true,
   condemnCount: true,
@@ -159,6 +185,13 @@ export const insertCommentSchema = createInsertSchema(comments).omit({
   content: z.string().min(1, "Comment cannot be empty").max(500, "Comment must be less than 500 characters"),
 });
 
+export const insertEmailSubscriberSchema = createInsertSchema(emailSubscribers).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  email: z.string().email("Please enter a valid email address"),
+});
+
 export type InsertSubmission = z.infer<typeof insertSubmissionSchema>;
 export type Submission = typeof submissions.$inferSelect;
 
@@ -173,6 +206,9 @@ export type MeToo = typeof meToos.$inferSelect;
 
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type Comment = typeof comments.$inferSelect;
+
+export type InsertEmailSubscriber = z.infer<typeof insertEmailSubscriberSchema>;
+export type EmailSubscriber = typeof emailSubscribers.$inferSelect;
 
 export type Category = "leadership" | "financial" | "culture" | "misconduct" | "spiritual_abuse" | "other";
 export type Timeframe = "last_month" | "last_year" | "one_to_five_years" | "five_plus_years";

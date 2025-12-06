@@ -4,6 +4,7 @@ import {
   flags,
   meToos,
   comments,
+  emailSubscribers,
   type Submission,
   type InsertSubmission,
   type Vote,
@@ -14,6 +15,8 @@ import {
   type InsertMeToo,
   type Comment,
   type InsertComment,
+  type EmailSubscriber,
+  type InsertEmailSubscriber,
   type Category,
   type Status,
 } from "@shared/schema";
@@ -74,6 +77,23 @@ export interface IStorage {
     pastorPatterns: { name: string; count: number; submissions: Submission[] }[];
     locationPatterns: { name: string; count: number; submissions: Submission[] }[];
   }>;
+
+  createEmailSubscriber(subscriber: InsertEmailSubscriber): Promise<EmailSubscriber>;
+
+  getEmailSubscriberByEmail(email: string): Promise<EmailSubscriber | undefined>;
+
+  getCommunityStats(): Promise<{
+    totalSubmissions: number;
+    totalEngagements: number;
+    recentEngagementsThisMonth: number;
+  }>;
+
+  getRelatedPosts(options: {
+    category?: Category;
+    denomination?: string;
+    excludeId?: string;
+    limit?: number;
+  }): Promise<Submission[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -401,6 +421,147 @@ export class DatabaseStorage implements IStorage {
       pastorPatterns: toPatternArray(pastorMap, "pastorName"),
       locationPatterns: toPatternArray(locationMap, "location"),
     };
+  }
+
+  async createEmailSubscriber(subscriber: InsertEmailSubscriber): Promise<EmailSubscriber> {
+    const [result] = await db.insert(emailSubscribers).values(subscriber).returning();
+    return result;
+  }
+
+  async getEmailSubscriberByEmail(email: string): Promise<EmailSubscriber | undefined> {
+    const [result] = await db
+      .select()
+      .from(emailSubscribers)
+      .where(eq(emailSubscribers.email, email));
+    return result;
+  }
+
+  async getCommunityStats(): Promise<{
+    totalSubmissions: number;
+    totalEngagements: number;
+    recentEngagementsThisMonth: number;
+  }> {
+    const [submissionCount] = await db
+      .select({ count: count() })
+      .from(submissions)
+      .where(eq(submissions.status, "active"));
+
+    const allSubmissions = await db
+      .select({
+        condemnCount: submissions.condemnCount,
+        absolveCount: submissions.absolveCount,
+        meTooCount: submissions.meTooCount,
+      })
+      .from(submissions)
+      .where(eq(submissions.status, "active"));
+
+    let totalEngagements = 0;
+    for (const sub of allSubmissions) {
+      totalEngagements += (sub.condemnCount || 0) + (sub.absolveCount || 0) + (sub.meTooCount || 0);
+    }
+
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    const [recentVotes] = await db
+      .select({ count: count() })
+      .from(votes)
+      .where(sql`${votes.createdAt} >= ${oneMonthAgo}`);
+
+    const [recentMeToos] = await db
+      .select({ count: count() })
+      .from(meToos)
+      .where(sql`${meToos.createdAt} >= ${oneMonthAgo}`);
+
+    const recentEngagementsThisMonth = (recentVotes?.count || 0) + (recentMeToos?.count || 0);
+
+    return {
+      totalSubmissions: submissionCount?.count || 0,
+      totalEngagements,
+      recentEngagementsThisMonth,
+    };
+  }
+
+  async getRelatedPosts(options: {
+    category?: Category;
+    denomination?: string;
+    excludeId?: string;
+    limit?: number;
+  }): Promise<Submission[]> {
+    const limit = options?.limit || 5;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const conditions: ReturnType<typeof eq>[] = [eq(submissions.status, "active")];
+    
+    if (options.category) {
+      conditions.push(eq(submissions.category, options.category));
+    }
+    if (options.denomination) {
+      conditions.push(eq(submissions.denomination, options.denomination));
+    }
+
+    let results = await db
+      .select({
+        id: submissions.id,
+        content: submissions.content,
+        category: submissions.category,
+        denomination: submissions.denomination,
+        timeframe: submissions.timeframe,
+        condemnCount: submissions.condemnCount,
+        absolveCount: submissions.absolveCount,
+        meTooCount: submissions.meTooCount,
+        flagCount: submissions.flagCount,
+        status: submissions.status,
+        churchName: sql<null>`NULL`.as('churchName'),
+        pastorName: sql<null>`NULL`.as('pastorName'),
+        location: sql<null>`NULL`.as('location'),
+        createdAt: submissions.createdAt,
+      })
+      .from(submissions)
+      .where(and(...conditions, sql`${submissions.createdAt} >= ${sevenDaysAgo}`))
+      .orderBy(desc(sql`${submissions.condemnCount} + ${submissions.absolveCount} + ${submissions.meTooCount}`))
+      .limit(limit + 1);
+
+    if (options.excludeId) {
+      results = results.filter(r => r.id !== options.excludeId);
+    }
+
+    if (results.length < limit) {
+      const existingIds = new Set(results.map(r => r.id));
+      if (options.excludeId) existingIds.add(options.excludeId);
+
+      const moreResults = await db
+        .select({
+          id: submissions.id,
+          content: submissions.content,
+          category: submissions.category,
+          denomination: submissions.denomination,
+          timeframe: submissions.timeframe,
+          condemnCount: submissions.condemnCount,
+          absolveCount: submissions.absolveCount,
+          meTooCount: submissions.meTooCount,
+          flagCount: submissions.flagCount,
+          status: submissions.status,
+          churchName: sql<null>`NULL`.as('churchName'),
+          pastorName: sql<null>`NULL`.as('pastorName'),
+          location: sql<null>`NULL`.as('location'),
+          createdAt: submissions.createdAt,
+        })
+        .from(submissions)
+        .where(and(...conditions))
+        .orderBy(desc(sql`${submissions.condemnCount} + ${submissions.absolveCount} + ${submissions.meTooCount}`))
+        .limit(limit * 2);
+
+      for (const r of moreResults) {
+        if (!existingIds.has(r.id) && results.length < limit) {
+          results.push(r);
+          existingIds.add(r.id);
+        }
+      }
+    }
+
+    return results.slice(0, limit) as Submission[];
   }
 }
 

@@ -1,0 +1,436 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Link } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CheckCircle2, Users, MessageCircle, ThumbsUp, ArrowRight, Mail, Home, Calendar, Heart, Loader2 } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
+import { CATEGORIES, type Submission, type Category } from "@shared/schema";
+
+interface EngagementFlowProps {
+  submittedSubmission: Submission;
+  onComplete: () => void;
+}
+
+interface CommunityStats {
+  totalSubmissions: number;
+  totalEngagements: number;
+  recentEngagementsThisMonth: number;
+}
+
+const emailFormSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  notifyOnEngagement: z.boolean(),
+  weeklyDigest: z.boolean(),
+});
+
+type EmailFormValues = z.infer<typeof emailFormSchema>;
+
+function getCategoryLabel(value: string): string {
+  return CATEGORIES.find((c) => c.value === value)?.label || value;
+}
+
+function RelatedPostCard({ 
+  submission, 
+  onVote 
+}: { 
+  submission: Submission; 
+  onVote: (id: string) => void;
+}) {
+  const [hasVoted, setHasVoted] = useState(false);
+  const totalEngagement = submission.condemnCount + submission.absolveCount + submission.meTooCount;
+
+  const handleVote = () => {
+    if (!hasVoted) {
+      onVote(submission.id);
+      setHasVoted(true);
+    }
+  };
+
+  return (
+    <Card className="hover-elevate" data-testid={`related-post-${submission.id}`}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <Badge variant="outline" className="text-xs">
+            {getCategoryLabel(submission.category)}
+          </Badge>
+          {submission.denomination && (
+            <span className="text-xs text-muted-foreground">{submission.denomination}</span>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="font-serif text-sm leading-relaxed line-clamp-3" data-testid={`related-content-${submission.id}`}>
+          "{submission.content.slice(0, 150)}..."
+        </p>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <ThumbsUp className="h-3 w-3" />
+              {totalEngagement}
+            </span>
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {formatDistanceToNow(new Date(submission.createdAt), { addSuffix: true })}
+            </span>
+          </div>
+          <Button 
+            size="sm"
+            variant={hasVoted ? "secondary" : "default"}
+            onClick={handleVote}
+            disabled={hasVoted}
+            className="gap-1.5"
+            data-testid={`button-hear-${submission.id}`}
+          >
+            <Heart className={`h-3.5 w-3.5 ${hasVoted ? 'fill-current' : ''}`} />
+            {hasVoted ? "Heard" : "I Hear You"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFlowProps) {
+  const [step, setStep] = useState(1);
+  const [engagedCount, setEngagedCount] = useState(0);
+  const { toast } = useToast();
+
+  const { data: stats, isLoading: statsLoading } = useQuery<CommunityStats>({
+    queryKey: ["/api/community/stats"],
+  });
+
+  const { data: relatedData, isLoading: relatedLoading } = useQuery<{ submissions: Submission[] }>({
+    queryKey: ["/api/submissions/related", submittedSubmission.category, submittedSubmission.denomination],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        category: submittedSubmission.category,
+        excludeId: submittedSubmission.id,
+        limit: "5",
+      });
+      if (submittedSubmission.denomination) {
+        params.set("denomination", submittedSubmission.denomination);
+      }
+      const response = await fetch(`/api/submissions/related?${params}`);
+      return response.json();
+    },
+    enabled: step >= 2,
+  });
+
+  const supportedIds = useState<Set<string>>(new Set())[0];
+  
+  const voteMutation = useMutation({
+    mutationFn: async (submissionId: string) => {
+      if (supportedIds.has(submissionId)) {
+        return Promise.resolve(null);
+      }
+      supportedIds.add(submissionId);
+      return apiRequest("POST", `/api/submissions/${submissionId}/metoo`, {});
+    },
+    onSuccess: (_, submissionId) => {
+      setEngagedCount(prev => prev + 1);
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/submissions/related", submittedSubmission.category, submittedSubmission.denomination] 
+      });
+    },
+  });
+
+  const emailForm = useForm<EmailFormValues>({
+    resolver: zodResolver(emailFormSchema),
+    defaultValues: {
+      email: "",
+      notifyOnEngagement: true,
+      weeklyDigest: false,
+    },
+  });
+
+  const emailMutation = useMutation({
+    mutationFn: async (data: EmailFormValues) => {
+      return apiRequest("POST", "/api/email-subscribers", {
+        email: data.email,
+        submissionId: submittedSubmission.id,
+        notifyOnEngagement: data.notifyOnEngagement ? 1 : 0,
+        weeklyDigest: data.weeklyDigest ? 1 : 0,
+        category: submittedSubmission.category,
+        denomination: submittedSubmission.denomination,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Subscribed",
+        description: "We'll keep you updated when your story resonates with others.",
+      });
+      onComplete();
+    },
+    onError: () => {
+      toast({
+        title: "Something went wrong",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleVote = (submissionId: string) => {
+    voteMutation.mutate(submissionId);
+  };
+
+  const handleEmailSubmit = async (data: EmailFormValues) => {
+    await emailMutation.mutateAsync(data);
+  };
+
+  const handleSkipEmail = () => {
+    onComplete();
+  };
+
+  if (step === 1) {
+    return (
+      <Card className="border-absolve/30 bg-absolve/5" data-testid="engagement-step-1">
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center space-y-6">
+          <CheckCircle2 className="h-16 w-16 text-absolve" />
+          <div className="space-y-2">
+            <h3 className="text-xl font-semibold">Your story has been shared anonymously</h3>
+            <p className="text-muted-foreground max-w-md">
+              Thank you for your courage. You're not alone.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 text-sm">
+            {statsLoading ? (
+              <>
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-6 w-48" />
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full border">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span data-testid="text-total-submissions">
+                    <strong>{stats?.totalSubmissions || 0}</strong> others have shared their church experiences
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full border">
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                  <span data-testid="text-monthly-engagements">
+                    <strong>{stats?.recentEngagementsThisMonth || 0}</strong> people found support this month
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
+          <Button 
+            size="lg" 
+            className="mt-4 gap-2" 
+            onClick={() => setStep(2)}
+            data-testid="button-continue-step-1"
+          >
+            Continue
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (step === 2) {
+    const relatedPosts = relatedData?.submissions || [];
+    const hasRelatedPosts = relatedPosts.length > 0;
+
+    return (
+      <Card data-testid="engagement-step-2">
+        <CardHeader className="text-center pb-2">
+          <CardTitle className="text-xl">While you're here, others need to hear from you too</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Read stories from people like you. They shared their pain just like you did. Show them they're heard.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {relatedLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader className="pb-2">
+                    <Skeleton className="h-5 w-24" />
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-8 w-28" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : hasRelatedPosts ? (
+            <div className="space-y-3" data-testid="related-posts-list">
+              {relatedPosts.map((post) => (
+                <RelatedPostCard 
+                  key={post.id} 
+                  submission={post} 
+                  onVote={handleVote}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No similar stories found yet. You're helping build this community!</p>
+            </div>
+          )}
+
+          {engagedCount > 0 && (
+            <div className="text-center py-2 text-sm text-absolve font-medium" data-testid="text-engaged-count">
+              You've shown support to {engagedCount} {engagedCount === 1 ? 'story' : 'stories'}
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <Button 
+              variant="outline" 
+              className="flex-1 gap-2"
+              onClick={() => setStep(3)}
+              data-testid="button-see-more"
+            >
+              {hasRelatedPosts ? "See More Stories" : "Continue"}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            <Button 
+              size="default" 
+              className="flex-1 gap-2"
+              onClick={() => setStep(3)}
+              data-testid="button-continue-step-2"
+            >
+              Continue
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (step === 3) {
+    return (
+      <Card data-testid="engagement-step-3">
+        <CardHeader className="text-center pb-2">
+          <div className="flex justify-center mb-4">
+            <Mail className="h-12 w-12 text-primary" />
+          </div>
+          <CardTitle className="text-xl">We'll let you know when your story resonates with others</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Get notified when someone shows support for your story (optional).
+          </p>
+        </CardHeader>
+        <CardContent>
+          <Form {...emailForm}>
+            <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
+              <FormField
+                control={emailForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email address</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="your@email.com" 
+                        type="email"
+                        {...field} 
+                        data-testid="input-email"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-3 pt-2">
+                <FormField
+                  control={emailForm.control}
+                  name="notifyOnEngagement"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="checkbox-notify-engagement"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="cursor-pointer">
+                          Notify me when someone engages with my story
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={emailForm.control}
+                  name="weeklyDigest"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="checkbox-weekly-digest"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="cursor-pointer">
+                          Weekly digest of new stories I might relate to
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={handleSkipEmail}
+                  data-testid="button-maybe-later"
+                >
+                  Maybe Later
+                </Button>
+                <Button 
+                  type="submit"
+                  className="flex-1 gap-2"
+                  disabled={emailMutation.isPending}
+                  data-testid="button-get-updates"
+                >
+                  {emailMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Subscribing...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4" />
+                      Get Updates
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return null;
+}

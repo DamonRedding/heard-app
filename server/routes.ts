@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSubmissionSchema, insertCommentSchema, type Category, type VoteType, type FlagReason, type Status } from "@shared/schema";
+import { insertSubmissionSchema, insertCommentSchema, insertEmailSubscriberSchema, type Category, type VoteType, type FlagReason, type Status } from "@shared/schema";
 import { z } from "zod";
 import { createHash } from "crypto";
 
@@ -386,6 +386,60 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching pattern data:", error);
       res.status(500).json({ error: "Failed to fetch pattern data" });
+    }
+  });
+
+  app.get("/api/community/stats", async (req: Request, res: Response) => {
+    try {
+      const stats = await storage.getCommunityStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching community stats:", error);
+      res.status(500).json({ error: "Failed to fetch community stats" });
+    }
+  });
+
+  app.get("/api/submissions/related", async (req: Request, res: Response) => {
+    try {
+      const category = req.query.category as Category | undefined;
+      const denomination = req.query.denomination as string | undefined;
+      const excludeId = req.query.excludeId as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 5;
+
+      const relatedPosts = await storage.getRelatedPosts({
+        category,
+        denomination,
+        excludeId,
+        limit,
+      });
+
+      res.json({ submissions: relatedPosts });
+    } catch (error) {
+      console.error("Error fetching related posts:", error);
+      res.status(500).json({ error: "Failed to fetch related posts" });
+    }
+  });
+
+  app.post("/api/email-subscribers", async (req: Request, res: Response) => {
+    try {
+      const parsed = insertEmailSubscriberSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid subscriber data",
+          details: parsed.error.errors,
+        });
+      }
+
+      const existingSubscriber = await storage.getEmailSubscriberByEmail(parsed.data.email);
+      if (existingSubscriber) {
+        return res.json({ success: true, message: "Already subscribed", subscriber: existingSubscriber });
+      }
+
+      const subscriber = await storage.createEmailSubscriber(parsed.data);
+      res.status(201).json({ success: true, subscriber });
+    } catch (error) {
+      console.error("Error creating email subscriber:", error);
+      res.status(500).json({ error: "Failed to create subscription" });
     }
   });
 
