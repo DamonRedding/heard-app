@@ -492,6 +492,25 @@ export class DatabaseStorage implements IStorage {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    const selectFields = {
+      id: submissions.id,
+      content: submissions.content,
+      category: submissions.category,
+      denomination: submissions.denomination,
+      timeframe: submissions.timeframe,
+      condemnCount: submissions.condemnCount,
+      absolveCount: submissions.absolveCount,
+      meTooCount: submissions.meTooCount,
+      flagCount: submissions.flagCount,
+      status: submissions.status,
+      churchName: sql<null>`NULL`.as('churchName'),
+      pastorName: sql<null>`NULL`.as('pastorName'),
+      location: sql<null>`NULL`.as('location'),
+      createdAt: submissions.createdAt,
+    };
+
+    const engagementOrder = desc(sql`${submissions.condemnCount} + ${submissions.absolveCount} + ${submissions.meTooCount}`);
+
     const conditions: ReturnType<typeof eq>[] = [eq(submissions.status, "active")];
     
     if (options.category) {
@@ -502,25 +521,10 @@ export class DatabaseStorage implements IStorage {
     }
 
     let results = await db
-      .select({
-        id: submissions.id,
-        content: submissions.content,
-        category: submissions.category,
-        denomination: submissions.denomination,
-        timeframe: submissions.timeframe,
-        condemnCount: submissions.condemnCount,
-        absolveCount: submissions.absolveCount,
-        meTooCount: submissions.meTooCount,
-        flagCount: submissions.flagCount,
-        status: submissions.status,
-        churchName: sql<null>`NULL`.as('churchName'),
-        pastorName: sql<null>`NULL`.as('pastorName'),
-        location: sql<null>`NULL`.as('location'),
-        createdAt: submissions.createdAt,
-      })
+      .select(selectFields)
       .from(submissions)
       .where(and(...conditions, sql`${submissions.createdAt} >= ${sevenDaysAgo}`))
-      .orderBy(desc(sql`${submissions.condemnCount} + ${submissions.absolveCount} + ${submissions.meTooCount}`))
+      .orderBy(engagementOrder)
       .limit(limit + 1);
 
     if (options.excludeId) {
@@ -532,28 +536,32 @@ export class DatabaseStorage implements IStorage {
       if (options.excludeId) existingIds.add(options.excludeId);
 
       const moreResults = await db
-        .select({
-          id: submissions.id,
-          content: submissions.content,
-          category: submissions.category,
-          denomination: submissions.denomination,
-          timeframe: submissions.timeframe,
-          condemnCount: submissions.condemnCount,
-          absolveCount: submissions.absolveCount,
-          meTooCount: submissions.meTooCount,
-          flagCount: submissions.flagCount,
-          status: submissions.status,
-          churchName: sql<null>`NULL`.as('churchName'),
-          pastorName: sql<null>`NULL`.as('pastorName'),
-          location: sql<null>`NULL`.as('location'),
-          createdAt: submissions.createdAt,
-        })
+        .select(selectFields)
         .from(submissions)
         .where(and(...conditions))
-        .orderBy(desc(sql`${submissions.condemnCount} + ${submissions.absolveCount} + ${submissions.meTooCount}`))
+        .orderBy(engagementOrder)
         .limit(limit * 2);
 
       for (const r of moreResults) {
+        if (!existingIds.has(r.id) && results.length < limit) {
+          results.push(r);
+          existingIds.add(r.id);
+        }
+      }
+    }
+
+    if (results.length < limit) {
+      const existingIds = new Set(results.map(r => r.id));
+      if (options.excludeId) existingIds.add(options.excludeId);
+
+      const anyPosts = await db
+        .select(selectFields)
+        .from(submissions)
+        .where(eq(submissions.status, "active"))
+        .orderBy(engagementOrder)
+        .limit(limit * 2);
+
+      for (const r of anyPosts) {
         if (!existingIds.has(r.id) && results.length < limit) {
           results.push(r);
           existingIds.add(r.id);
