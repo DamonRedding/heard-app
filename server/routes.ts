@@ -422,9 +422,11 @@ export async function registerRoutes(
   });
 
   app.post("/api/email-subscribers", async (req: Request, res: Response) => {
+    console.log("POST /api/email-subscribers received:", JSON.stringify(req.body));
     try {
       const parsed = insertEmailSubscriberSchema.safeParse(req.body);
       if (!parsed.success) {
+        console.log("Validation failed:", parsed.error.errors);
         return res.status(400).json({
           error: "Invalid subscriber data",
           details: parsed.error.errors,
@@ -433,12 +435,21 @@ export async function registerRoutes(
 
       const existingSubscriber = await storage.getEmailSubscriberByEmail(parsed.data.email);
       if (existingSubscriber) {
+        console.log("Already subscribed:", parsed.data.email);
         return res.json({ success: true, message: "Already subscribed", subscriber: existingSubscriber });
       }
 
       const subscriber = await storage.createEmailSubscriber(parsed.data);
+      console.log("Created subscriber:", subscriber.id, subscriber.email);
       
-      sendWelcomeEmail(parsed.data.email).catch((err) => {
+      console.log("Sending welcome email to:", parsed.data.email);
+      sendWelcomeEmail(parsed.data.email).then((result) => {
+        if (result.success) {
+          console.log("Welcome email sent successfully to:", parsed.data.email);
+        } else {
+          console.error("Welcome email failed:", result.error);
+        }
+      }).catch((err) => {
         console.error("Failed to send welcome email:", err);
       });
       
