@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertSubmissionSchema, insertCommentSchema, insertEmailSubscriberSchema, type Category, type VoteType, type FlagReason, type Status } from "@shared/schema";
 import { z } from "zod";
 import { createHash } from "crypto";
+import { sendWelcomeEmail } from "./email";
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "sanctuary2024";
 
@@ -436,6 +437,11 @@ export async function registerRoutes(
       }
 
       const subscriber = await storage.createEmailSubscriber(parsed.data);
+      
+      sendWelcomeEmail(parsed.data.email).catch((err) => {
+        console.error("Failed to send welcome email:", err);
+      });
+      
       res.status(201).json({ success: true, subscriber });
     } catch (error) {
       console.error("Error creating email subscriber:", error);
