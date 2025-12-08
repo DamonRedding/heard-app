@@ -23,6 +23,10 @@ interface CategoryCountsResponse {
   counts: Record<string, number>;
 }
 
+interface BulkReactionsResponse {
+  reactions: Record<string, Record<string, number>>;
+}
+
 function buildSubmissionsUrl(
   category: Category | null, 
   page: number, 
@@ -46,6 +50,7 @@ export default function Home() {
   const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [highlightedSubmissionId, setHighlightedSubmissionId] = useState<string | null>(null);
+  const [reactionsMap, setReactionsMap] = useState<Record<string, Record<string, number>>>({});
   const { toast } = useToast();
   const searchParams = useSearch();
 
@@ -97,6 +102,18 @@ export default function Home() {
           const existing = prev.filter((s) => !newIds.has(s.id));
           return [...existing, ...data.submissions];
         });
+      }
+
+      const submissionIds = data.submissions.map((s) => s.id);
+      if (submissionIds.length > 0) {
+        apiRequest("POST", "/api/reactions/bulk", { submissionIds })
+          .then((res) => res.json())
+          .then((bulkData: BulkReactionsResponse) => {
+            setReactionsMap((prev) => ({ ...prev, ...bulkData.reactions }));
+          })
+          .catch((err) => {
+            console.error("Error fetching reactions:", err);
+          });
       }
     }
   }, [data, page]);
@@ -193,6 +210,26 @@ export default function Home() {
     },
   });
 
+  const reactMutation = useMutation({
+    mutationFn: async ({ submissionId, reactionType }: { submissionId: string; reactionType: string }) => {
+      const response = await apiRequest("POST", `/api/submissions/${submissionId}/react`, { reactionType });
+      return response.json();
+    },
+    onSuccess: (responseData, { submissionId }) => {
+      setReactionsMap((prev) => ({
+        ...prev,
+        [submissionId]: responseData.reactions,
+      }));
+    },
+    onError: () => {
+      toast({
+        title: "Reaction failed",
+        description: "Unable to record your reaction. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleVote = useCallback(
     (submissionId: string, voteType: VoteType) => {
       voteMutation.mutate({ submissionId, voteType });
@@ -212,6 +249,13 @@ export default function Home() {
       meTooMutation.mutate({ submissionId });
     },
     [meTooMutation]
+  );
+
+  const handleReact = useCallback(
+    (submissionId: string, reactionType: string) => {
+      reactMutation.mutate({ submissionId, reactionType });
+    },
+    [reactMutation]
   );
 
   const handleLoadMore = () => {
@@ -357,8 +401,11 @@ export default function Home() {
                   onVote={handleVote}
                   onFlag={handleFlag}
                   onMeToo={handleMeToo}
+                  onReact={handleReact}
                   isVoting={voteMutation.isPending}
                   isMeTooing={meTooMutation.isPending}
+                  isReacting={reactMutation.isPending}
+                  reactions={reactionsMap[submission.id] || {}}
                   isHighlighted={highlightedSubmissionId === submission.id}
                 />
               ))}

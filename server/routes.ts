@@ -1,10 +1,12 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSubmissionSchema, insertCommentSchema, insertEmailSubscriberSchema, type Category, type VoteType, type FlagReason, type Status } from "@shared/schema";
+import { insertSubmissionSchema, insertCommentSchema, insertEmailSubscriberSchema, type Category, type VoteType, type FlagReason, type Status, type ReactionType } from "@shared/schema";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { sendWelcomeEmail } from "./email";
+
+const VALID_REACTIONS: ReactionType[] = ["heart", "care", "haha", "wow", "sad", "angry"];
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "sanctuary2024";
 
@@ -322,6 +324,87 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error flagging:", error);
       res.status(500).json({ error: "Failed to flag submission" });
+    }
+  });
+
+  app.get("/api/submissions/:id/reactions", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const submission = await storage.getSubmission(id);
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+
+      const counts = await storage.getReactionCounts(id);
+      res.json({ reactions: counts });
+    } catch (error) {
+      console.error("Error fetching reactions:", error);
+      res.status(500).json({ error: "Failed to fetch reactions" });
+    }
+  });
+
+  app.post("/api/submissions/:id/react", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { reactionType } = req.body as { reactionType: ReactionType };
+
+      if (!VALID_REACTIONS.includes(reactionType)) {
+        return res.status(400).json({ error: "Invalid reaction type" });
+      }
+
+      const clientIP = getClientIP(req);
+      const userHash = hashIP(clientIP);
+
+      const submission = await storage.getSubmission(id);
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+
+      const existingReaction = await storage.getReaction(id, userHash, reactionType);
+      let action: "added" | "removed" = "added";
+
+      if (existingReaction) {
+        await storage.deleteReaction(id, userHash, reactionType);
+        action = "removed";
+      } else {
+        await storage.createReaction({
+          submissionId: id,
+          reactionType,
+          userHash,
+        });
+        action = "added";
+      }
+
+      const counts = await storage.getReactionCounts(id);
+      res.json({ reactions: counts, action, reactionType });
+    } catch (error) {
+      console.error("Error reacting:", error);
+      res.status(500).json({ error: "Failed to record reaction" });
+    }
+  });
+
+  app.post("/api/reactions/bulk", async (req: Request, res: Response) => {
+    try {
+      const { submissionIds } = req.body as { submissionIds: string[] };
+
+      if (!Array.isArray(submissionIds)) {
+        return res.status(400).json({ error: "submissionIds must be an array" });
+      }
+
+      if (submissionIds.length === 0) {
+        return res.json({ reactions: {} });
+      }
+
+      if (submissionIds.length > 100) {
+        return res.status(400).json({ error: "Maximum 100 submission IDs allowed" });
+      }
+
+      const counts = await storage.getReactionCountsForSubmissions(submissionIds);
+      res.json({ reactions: counts });
+    } catch (error) {
+      console.error("Error fetching bulk reactions:", error);
+      res.status(500).json({ error: "Failed to fetch reactions" });
     }
   });
 

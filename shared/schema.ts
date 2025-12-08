@@ -31,6 +31,15 @@ export const voteTypeEnum = pgEnum("vote_type", [
   "absolve"
 ]);
 
+export const reactionTypeEnum = pgEnum("reaction_type", [
+  "heart",
+  "care",
+  "haha",
+  "wow",
+  "sad",
+  "angry"
+]);
+
 export const flagReasonEnum = pgEnum("flag_reason", [
   "spam",
   "fake",
@@ -96,11 +105,22 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const reactions = pgTable("reactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  submissionId: varchar("submission_id").notNull().references(() => submissions.id, { onDelete: "cascade" }),
+  reactionType: reactionTypeEnum("reaction_type").notNull(),
+  userHash: text("user_hash").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueReaction: uniqueIndex("reactions_submission_user_type_idx").on(table.submissionId, table.userHash, table.reactionType),
+}));
+
 export const submissionsRelations = relations(submissions, ({ many }) => ({
   votes: many(votes),
   flags: many(flags),
   meToos: many(meToos),
   comments: many(comments),
+  reactions: many(reactions),
 }));
 
 export const votesRelations = relations(votes, ({ one }) => ({
@@ -127,6 +147,13 @@ export const meToosRelations = relations(meToos, ({ one }) => ({
 export const commentsRelations = relations(comments, ({ one }) => ({
   submission: one(submissions, {
     fields: [comments.submissionId],
+    references: [submissions.id],
+  }),
+}));
+
+export const reactionsRelations = relations(reactions, ({ one }) => ({
+  submission: one(submissions, {
+    fields: [reactions.submissionId],
     references: [submissions.id],
   }),
 }));
@@ -185,6 +212,11 @@ export const insertCommentSchema = createInsertSchema(comments).omit({
   content: z.string().min(1, "Comment cannot be empty").max(500, "Comment must be less than 500 characters"),
 });
 
+export const insertReactionSchema = createInsertSchema(reactions).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertEmailSubscriberSchema = createInsertSchema(emailSubscribers).omit({
   id: true,
   createdAt: true,
@@ -207,6 +239,9 @@ export type MeToo = typeof meToos.$inferSelect;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type Comment = typeof comments.$inferSelect;
 
+export type InsertReaction = z.infer<typeof insertReactionSchema>;
+export type Reaction = typeof reactions.$inferSelect;
+
 export type InsertEmailSubscriber = z.infer<typeof insertEmailSubscriberSchema>;
 export type EmailSubscriber = typeof emailSubscribers.$inferSelect;
 
@@ -215,6 +250,7 @@ export type Timeframe = "last_month" | "last_year" | "one_to_five_years" | "five
 export type VoteType = "condemn" | "absolve";
 export type FlagReason = "spam" | "fake" | "harmful" | "other";
 export type Status = "active" | "under_review" | "removed";
+export type ReactionType = "heart" | "care" | "haha" | "wow" | "sad" | "angry";
 
 export const CATEGORIES: { value: Category; label: string; description: string }[] = [
   { value: "leadership", label: "Leadership", description: "Pastoral abuse of power, authoritarianism" },

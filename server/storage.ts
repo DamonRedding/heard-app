@@ -4,6 +4,7 @@ import {
   flags,
   meToos,
   comments,
+  reactions,
   emailSubscribers,
   type Submission,
   type InsertSubmission,
@@ -15,13 +16,16 @@ import {
   type InsertMeToo,
   type Comment,
   type InsertComment,
+  type Reaction,
+  type InsertReaction,
   type EmailSubscriber,
   type InsertEmailSubscriber,
   type Category,
   type Status,
+  type ReactionType,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, count, or, ilike } from "drizzle-orm";
+import { eq, and, desc, sql, count, or, ilike, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getSubmissions(options?: {
@@ -94,6 +98,18 @@ export interface IStorage {
     excludeId?: string;
     limit?: number;
   }): Promise<Submission[]>;
+
+  getReaction(submissionId: string, userHash: string, reactionType: ReactionType): Promise<Reaction | undefined>;
+
+  getUserReactions(submissionId: string, userHash: string): Promise<Reaction[]>;
+
+  createReaction(reaction: InsertReaction): Promise<Reaction>;
+
+  deleteReaction(submissionId: string, userHash: string, reactionType: ReactionType): Promise<void>;
+
+  getReactionCounts(submissionId: string): Promise<Record<string, number>>;
+
+  getReactionCountsForSubmissions(submissionIds: string[]): Promise<Record<string, Record<string, number>>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -570,6 +586,91 @@ export class DatabaseStorage implements IStorage {
     }
 
     return results.slice(0, limit) as Submission[];
+  }
+
+  async getReaction(submissionId: string, userHash: string, reactionType: ReactionType): Promise<Reaction | undefined> {
+    const [result] = await db
+      .select()
+      .from(reactions)
+      .where(
+        and(
+          eq(reactions.submissionId, submissionId),
+          eq(reactions.userHash, userHash),
+          eq(reactions.reactionType, reactionType)
+        )
+      );
+    return result;
+  }
+
+  async getUserReactions(submissionId: string, userHash: string): Promise<Reaction[]> {
+    return db
+      .select()
+      .from(reactions)
+      .where(
+        and(
+          eq(reactions.submissionId, submissionId),
+          eq(reactions.userHash, userHash)
+        )
+      );
+  }
+
+  async createReaction(reaction: InsertReaction): Promise<Reaction> {
+    const [result] = await db.insert(reactions).values(reaction).returning();
+    return result;
+  }
+
+  async deleteReaction(submissionId: string, userHash: string, reactionType: ReactionType): Promise<void> {
+    await db
+      .delete(reactions)
+      .where(
+        and(
+          eq(reactions.submissionId, submissionId),
+          eq(reactions.userHash, userHash),
+          eq(reactions.reactionType, reactionType)
+        )
+      );
+  }
+
+  async getReactionCounts(submissionId: string): Promise<Record<string, number>> {
+    const result = await db
+      .select({
+        reactionType: reactions.reactionType,
+        count: count(),
+      })
+      .from(reactions)
+      .where(eq(reactions.submissionId, submissionId))
+      .groupBy(reactions.reactionType);
+
+    const counts: Record<string, number> = {};
+    for (const row of result) {
+      counts[row.reactionType] = row.count;
+    }
+    return counts;
+  }
+
+  async getReactionCountsForSubmissions(submissionIds: string[]): Promise<Record<string, Record<string, number>>> {
+    if (submissionIds.length === 0) {
+      return {};
+    }
+
+    const result = await db
+      .select({
+        submissionId: reactions.submissionId,
+        reactionType: reactions.reactionType,
+        count: count(),
+      })
+      .from(reactions)
+      .where(inArray(reactions.submissionId, submissionIds))
+      .groupBy(reactions.submissionId, reactions.reactionType);
+
+    const countsMap: Record<string, Record<string, number>> = {};
+    for (const row of result) {
+      if (!countsMap[row.submissionId]) {
+        countsMap[row.submissionId] = {};
+      }
+      countsMap[row.submissionId][row.reactionType] = row.count;
+    }
+    return countsMap;
   }
 }
 
