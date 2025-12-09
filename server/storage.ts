@@ -74,6 +74,8 @@ export interface IStorage {
 
   getComments(submissionId: string): Promise<Comment[]>;
 
+  getComment(id: string): Promise<Comment | undefined>;
+
   createComment(comment: InsertComment): Promise<Comment>;
 
   getPatternData(): Promise<{
@@ -374,7 +376,15 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(comments)
       .where(eq(comments.submissionId, submissionId))
-      .orderBy(desc(comments.createdAt));
+      .orderBy(comments.createdAt);
+  }
+
+  async getComment(id: string): Promise<Comment | undefined> {
+    const [result] = await db
+      .select()
+      .from(comments)
+      .where(eq(comments.id, id));
+    return result;
   }
 
   async createComment(comment: InsertComment): Promise<Comment> {

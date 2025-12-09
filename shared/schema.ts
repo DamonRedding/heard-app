@@ -100,6 +100,7 @@ export const meToos = pgTable("me_toos", {
 export const comments = pgTable("comments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   submissionId: varchar("submission_id").notNull().references(() => submissions.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id"),
   content: text("content").notNull(),
   authorHash: text("author_hash").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -144,10 +145,18 @@ export const meToosRelations = relations(meToos, ({ one }) => ({
   }),
 }));
 
-export const commentsRelations = relations(comments, ({ one }) => ({
+export const commentsRelations = relations(comments, ({ one, many }) => ({
   submission: one(submissions, {
     fields: [comments.submissionId],
     references: [submissions.id],
+  }),
+  parent: one(comments, {
+    fields: [comments.parentId],
+    references: [comments.id],
+    relationName: "commentReplies",
+  }),
+  replies: many(comments, {
+    relationName: "commentReplies",
   }),
 }));
 
@@ -210,6 +219,7 @@ export const insertCommentSchema = createInsertSchema(comments).omit({
   createdAt: true,
 }).extend({
   content: z.string().min(1, "Comment cannot be empty").max(500, "Comment must be less than 500 characters"),
+  parentId: z.string().nullable().optional(),
 });
 
 export const insertReactionSchema = createInsertSchema(reactions).omit({

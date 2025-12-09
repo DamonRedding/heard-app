@@ -255,7 +255,7 @@ export async function registerRoutes(
   app.post("/api/submissions/:id/comments", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { content } = req.body as { content: string };
+      const { content, parentId } = req.body as { content: string; parentId?: string };
 
       const clientIP = getClientIP(req);
       const authorHash = hashIP(clientIP);
@@ -265,9 +265,23 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Submission not found" });
       }
 
+      if (parentId) {
+        const parentComment = await storage.getComment(parentId);
+        if (!parentComment) {
+          return res.status(404).json({ error: "Parent comment not found" });
+        }
+        if (parentComment.submissionId !== id) {
+          return res.status(400).json({ error: "Parent comment belongs to different submission" });
+        }
+        if (parentComment.parentId) {
+          return res.status(400).json({ error: "Cannot reply to a reply (max 2 levels)" });
+        }
+      }
+
       const parsed = insertCommentSchema.omit({ authorHash: true }).safeParse({
         submissionId: id,
         content,
+        parentId: parentId || null,
       });
 
       if (!parsed.success) {
@@ -281,6 +295,7 @@ export async function registerRoutes(
         submissionId: id,
         content,
         authorHash,
+        parentId: parentId || null,
       });
 
       res.status(201).json(comment);
