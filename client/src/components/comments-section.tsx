@@ -3,7 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { MessageCircle, ChevronDown, Send, Loader2, Reply, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MessageCircle, ChevronDown, Send, Loader2, Reply, X, ThumbsUp, ThumbsDown, ArrowUpDown } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -13,17 +14,23 @@ interface CommentsSectionProps {
   submissionId: string;
 }
 
+interface CommentWithScore extends Comment {
+  wilsonScore: number;
+}
+
 interface CommentsResponse {
-  comments: Comment[];
+  comments: CommentWithScore[];
 }
 
-interface CommentWithReplies extends Comment {
-  replies: Comment[];
+interface CommentWithReplies extends CommentWithScore {
+  replies: CommentWithScore[];
 }
 
-function organizeComments(comments: Comment[]): CommentWithReplies[] {
+type SortOption = "wilson" | "newest" | "oldest";
+
+function organizeComments(comments: CommentWithScore[], sortBy: SortOption): CommentWithReplies[] {
   const topLevel: CommentWithReplies[] = [];
-  const repliesMap = new Map<string, Comment[]>();
+  const repliesMap = new Map<string, CommentWithScore[]>();
 
   for (const comment of comments) {
     if (comment.parentId) {
@@ -36,10 +43,53 @@ function organizeComments(comments: Comment[]): CommentWithReplies[] {
   }
 
   for (const comment of topLevel) {
-    comment.replies = repliesMap.get(comment.id) || [];
+    const replies = repliesMap.get(comment.id) || [];
+    if (sortBy === "wilson") {
+      replies.sort((a, b) => b.wilsonScore - a.wilsonScore);
+    } else if (sortBy === "newest") {
+      replies.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else {
+      replies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
+    comment.replies = replies;
   }
 
   return topLevel;
+}
+
+function CommentVoteButton({
+  commentId,
+  type,
+  count,
+  isActive,
+  onVote,
+  isPending,
+}: {
+  commentId: string;
+  type: "upvote" | "downvote";
+  count: number;
+  isActive: boolean;
+  onVote: (commentId: string, voteType: "upvote" | "downvote") => void;
+  isPending: boolean;
+}) {
+  const Icon = type === "upvote" ? ThumbsUp : ThumbsDown;
+  const colorClass = type === "upvote" 
+    ? (isActive ? "text-green-600 dark:text-green-400" : "text-muted-foreground") 
+    : (isActive ? "text-orange-500 dark:text-orange-400" : "text-muted-foreground");
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={`h-7 px-2 gap-1 ${colorClass}`}
+      onClick={() => onVote(commentId, type)}
+      disabled={isPending}
+      data-testid={`button-${type}-${commentId}`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      <span className="text-xs">{count}</span>
+    </Button>
+  );
 }
 
 function CommentItem({
@@ -47,22 +97,48 @@ function CommentItem({
   submissionId,
   isReply = false,
   onReply,
+  onVote,
+  isPending,
+  userVotes,
 }: {
-  comment: Comment;
+  comment: CommentWithScore;
   submissionId: string;
   isReply?: boolean;
   onReply?: (commentId: string) => void;
+  onVote: (commentId: string, voteType: "upvote" | "downvote") => void;
+  isPending: boolean;
+  userVotes: Record<string, "upvote" | "downvote" | null>;
 }) {
+  const currentVote = userVotes[comment.id] || null;
+
   return (
     <div
       className={`p-3 rounded-lg bg-muted/50 space-y-2 ${isReply ? "ml-6 border-l-2 border-muted" : ""}`}
       data-testid={`comment-${comment.id}`}
     >
       <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-        </p>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1">
+          <CommentVoteButton
+            commentId={comment.id}
+            type="upvote"
+            count={comment.upvoteCount}
+            isActive={currentVote === "upvote"}
+            onVote={onVote}
+            isPending={isPending}
+          />
+          <CommentVoteButton
+            commentId={comment.id}
+            type="downvote"
+            count={comment.downvoteCount}
+            isActive={currentVote === "downvote"}
+            onVote={onVote}
+            isPending={isPending}
+          />
+          <span className="text-xs text-muted-foreground ml-2">
+            {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+          </span>
+        </div>
         {!isReply && onReply && (
           <Button
             variant="ghost"
@@ -85,10 +161,17 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("wilson");
+  const [userVotes, setUserVotes] = useState<Record<string, "upvote" | "downvote" | null>>({});
   const { toast } = useToast();
 
   const { data, isLoading } = useQuery<CommentsResponse>({
-    queryKey: [`/api/submissions/${submissionId}/comments`],
+    queryKey: ['/api/submissions', submissionId, 'comments', sortBy],
+    queryFn: async () => {
+      const res = await fetch(`/api/submissions/${submissionId}/comments?sortBy=${sortBy}`);
+      if (!res.ok) throw new Error('Failed to fetch comments');
+      return res.json();
+    },
   });
 
   const createCommentMutation = useMutation({
@@ -106,7 +189,7 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
       } else {
         setNewComment("");
       }
-      queryClient.invalidateQueries({ queryKey: [`/api/submissions/${submissionId}/comments`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/submissions', submissionId, 'comments'] });
       toast({
         title: variables.parentId ? "Reply added" : "Comment added",
         description: "Your comment has been posted.",
@@ -116,6 +199,27 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
       toast({
         title: "Failed",
         description: "Unable to post your comment. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const voteMutation = useMutation({
+    mutationFn: async ({ commentId, voteType }: { commentId: string; voteType: "upvote" | "downvote" }) => {
+      const response = await apiRequest("POST", `/api/comments/${commentId}/vote`, { voteType });
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      setUserVotes(prev => ({
+        ...prev,
+        [variables.commentId]: data.action === "removed" ? null : variables.voteType,
+      }));
+      queryClient.invalidateQueries({ queryKey: ['/api/submissions', submissionId, 'comments'] });
+    },
+    onError: () => {
+      toast({
+        title: "Failed",
+        description: "Unable to record your vote. Please try again.",
         variant: "destructive",
       });
     },
@@ -131,7 +235,11 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
     createCommentMutation.mutate({ content: replyContent.trim(), parentId });
   };
 
-  const organizedComments = data?.comments ? organizeComments(data.comments) : [];
+  const handleVote = (commentId: string, voteType: "upvote" | "downvote") => {
+    voteMutation.mutate({ commentId, voteType });
+  };
+
+  const organizedComments = data?.comments ? organizeComments(data.comments, sortBy) : [];
   const totalCount = data?.comments?.length || 0;
 
   return (
@@ -185,6 +293,22 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
             </Button>
           </div>
 
+          {totalCount > 0 && (
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+                <SelectTrigger className="w-[140px] h-8" data-testid="select-sort-comments">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="wilson">Best</SelectItem>
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="oldest">Oldest</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-3 mt-4">
             {isLoading ? (
               <div className="text-center py-4 text-muted-foreground">
@@ -201,6 +325,9 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
                     comment={comment}
                     submissionId={submissionId}
                     onReply={(id) => setReplyingTo(replyingTo === id ? null : id)}
+                    onVote={handleVote}
+                    isPending={voteMutation.isPending}
+                    userVotes={userVotes}
                   />
                   
                   {replyingTo === comment.id && (
@@ -259,6 +386,9 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
                           comment={reply}
                           submissionId={submissionId}
                           isReply
+                          onVote={handleVote}
+                          isPending={voteMutation.isPending}
+                          userVotes={userVotes}
                         />
                       ))}
                     </div>

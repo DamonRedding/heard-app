@@ -103,8 +103,25 @@ export const comments = pgTable("comments", {
   parentId: varchar("parent_id"),
   content: text("content").notNull(),
   authorHash: text("author_hash").notNull(),
+  upvoteCount: integer("upvote_count").notNull().default(0),
+  downvoteCount: integer("downvote_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const commentVoteTypeEnum = pgEnum("comment_vote_type", [
+  "upvote",
+  "downvote"
+]);
+
+export const commentVotes = pgTable("comment_votes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  commentId: varchar("comment_id").notNull().references(() => comments.id, { onDelete: "cascade" }),
+  voteType: commentVoteTypeEnum("vote_type").notNull(),
+  voterHash: text("voter_hash").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueCommentVote: uniqueIndex("comment_votes_comment_voter_idx").on(table.commentId, table.voterHash),
+}));
 
 export const reactions = pgTable("reactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -157,6 +174,14 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
   }),
   replies: many(comments, {
     relationName: "commentReplies",
+  }),
+  votes: many(commentVotes),
+}));
+
+export const commentVotesRelations = relations(commentVotes, ({ one }) => ({
+  comment: one(comments, {
+    fields: [commentVotes.commentId],
+    references: [comments.id],
   }),
 }));
 
@@ -216,10 +241,17 @@ export const insertMeTooSchema = createInsertSchema(meToos).omit({
 
 export const insertCommentSchema = createInsertSchema(comments).omit({
   id: true,
+  upvoteCount: true,
+  downvoteCount: true,
   createdAt: true,
 }).extend({
   content: z.string().min(1, "Comment cannot be empty").max(500, "Comment must be less than 500 characters"),
   parentId: z.string().nullable().optional(),
+});
+
+export const insertCommentVoteSchema = createInsertSchema(commentVotes).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertReactionSchema = createInsertSchema(reactions).omit({
@@ -248,6 +280,10 @@ export type MeToo = typeof meToos.$inferSelect;
 
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type Comment = typeof comments.$inferSelect;
+
+export type InsertCommentVote = z.infer<typeof insertCommentVoteSchema>;
+export type CommentVote = typeof commentVotes.$inferSelect;
+export type CommentVoteType = "upvote" | "downvote";
 
 export type InsertReaction = z.infer<typeof insertReactionSchema>;
 export type Reaction = typeof reactions.$inferSelect;

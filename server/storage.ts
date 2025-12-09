@@ -4,6 +4,7 @@ import {
   flags,
   meToos,
   comments,
+  commentVotes,
   reactions,
   emailSubscribers,
   type Submission,
@@ -16,6 +17,9 @@ import {
   type InsertMeToo,
   type Comment,
   type InsertComment,
+  type CommentVote,
+  type InsertCommentVote,
+  type CommentVoteType,
   type Reaction,
   type InsertReaction,
   type EmailSubscriber,
@@ -24,6 +28,7 @@ import {
   type Status,
   type ReactionType,
 } from "@shared/schema";
+import { sortByWilsonScore, withWilsonScore } from "@shared/wilson-score";
 import { db } from "./db";
 import { eq, and, desc, sql, count, or, ilike, inArray } from "drizzle-orm";
 
@@ -74,9 +79,19 @@ export interface IStorage {
 
   getComments(submissionId: string): Promise<Comment[]>;
 
+  getCommentsWithWilsonScore(submissionId: string): Promise<(Comment & { wilsonScore: number })[]>;
+
   getComment(id: string): Promise<Comment | undefined>;
 
   createComment(comment: InsertComment): Promise<Comment>;
+
+  getCommentVote(commentId: string, voterHash: string): Promise<CommentVote | undefined>;
+
+  createCommentVote(vote: InsertCommentVote): Promise<CommentVote>;
+
+  deleteCommentVote(commentId: string, voterHash: string): Promise<void>;
+
+  updateCommentVoteCounts(commentId: string): Promise<void>;
 
   getPatternData(): Promise<{
     churchPatterns: { name: string; count: number; submissions: Submission[] }[];
@@ -379,6 +394,15 @@ export class DatabaseStorage implements IStorage {
       .orderBy(comments.createdAt);
   }
 
+  async getCommentsWithWilsonScore(submissionId: string): Promise<(Comment & { wilsonScore: number })[]> {
+    const commentList = await db
+      .select()
+      .from(comments)
+      .where(eq(comments.submissionId, submissionId));
+    
+    return withWilsonScore(commentList);
+  }
+
   async getComment(id: string): Promise<Comment | undefined> {
     const [result] = await db
       .select()
@@ -390,6 +414,45 @@ export class DatabaseStorage implements IStorage {
   async createComment(comment: InsertComment): Promise<Comment> {
     const [result] = await db.insert(comments).values(comment).returning();
     return result;
+  }
+
+  async getCommentVote(commentId: string, voterHash: string): Promise<CommentVote | undefined> {
+    const [result] = await db
+      .select()
+      .from(commentVotes)
+      .where(and(eq(commentVotes.commentId, commentId), eq(commentVotes.voterHash, voterHash)));
+    return result;
+  }
+
+  async createCommentVote(vote: InsertCommentVote): Promise<CommentVote> {
+    const [result] = await db.insert(commentVotes).values(vote).returning();
+    return result;
+  }
+
+  async deleteCommentVote(commentId: string, voterHash: string): Promise<void> {
+    await db
+      .delete(commentVotes)
+      .where(and(eq(commentVotes.commentId, commentId), eq(commentVotes.voterHash, voterHash)));
+  }
+
+  async updateCommentVoteCounts(commentId: string): Promise<void> {
+    const [upvoteResult] = await db
+      .select({ count: count() })
+      .from(commentVotes)
+      .where(and(eq(commentVotes.commentId, commentId), eq(commentVotes.voteType, "upvote")));
+
+    const [downvoteResult] = await db
+      .select({ count: count() })
+      .from(commentVotes)
+      .where(and(eq(commentVotes.commentId, commentId), eq(commentVotes.voteType, "downvote")));
+
+    await db
+      .update(comments)
+      .set({
+        upvoteCount: upvoteResult?.count || 0,
+        downvoteCount: downvoteResult?.count || 0,
+      })
+      .where(eq(comments.id, commentId));
   }
 
   async getPatternData(): Promise<{

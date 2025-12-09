@@ -1,7 +1,8 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSubmissionSchema, insertCommentSchema, insertEmailSubscriberSchema, type Category, type VoteType, type FlagReason, type Status, type ReactionType } from "@shared/schema";
+import { insertSubmissionSchema, insertCommentSchema, insertEmailSubscriberSchema, type Category, type VoteType, type FlagReason, type Status, type ReactionType, type CommentVoteType } from "@shared/schema";
+import { sortByWilsonScore } from "@shared/wilson-score";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { sendWelcomeEmail } from "./email";
@@ -238,14 +239,31 @@ export async function registerRoutes(
   app.get("/api/submissions/:id/comments", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      const sortBy = req.query.sortBy as string || "wilson";
 
       const submission = await storage.getSubmission(id);
       if (!submission) {
         return res.status(404).json({ error: "Submission not found" });
       }
 
-      const commentList = await storage.getComments(id);
-      res.json({ comments: commentList });
+      const commentList = await storage.getCommentsWithWilsonScore(id);
+      
+      let sortedComments;
+      if (sortBy === "wilson") {
+        sortedComments = sortByWilsonScore(commentList);
+      } else if (sortBy === "newest") {
+        sortedComments = [...commentList].sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      } else if (sortBy === "oldest") {
+        sortedComments = [...commentList].sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      } else {
+        sortedComments = sortByWilsonScore(commentList);
+      }
+      
+      res.json({ comments: sortedComments });
     } catch (error) {
       console.error("Error fetching comments:", error);
       res.status(500).json({ error: "Failed to fetch comments" });
@@ -302,6 +320,62 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error creating comment:", error);
       res.status(500).json({ error: "Failed to create comment" });
+    }
+  });
+
+  app.post("/api/comments/:commentId/vote", async (req: Request, res: Response) => {
+    try {
+      const { commentId } = req.params;
+      const { voteType } = req.body as { voteType: CommentVoteType };
+
+      if (!["upvote", "downvote"].includes(voteType)) {
+        return res.status(400).json({ error: "Invalid vote type" });
+      }
+
+      const clientIP = getClientIP(req);
+      const voterHash = hashIP(clientIP);
+
+      const comment = await storage.getComment(commentId);
+      if (!comment) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+
+      const existingVote = await storage.getCommentVote(commentId, voterHash);
+      let action: "added" | "removed" | "changed" = "added";
+
+      if (existingVote) {
+        if (existingVote.voteType === voteType) {
+          await storage.deleteCommentVote(commentId, voterHash);
+          action = "removed";
+        } else {
+          await storage.deleteCommentVote(commentId, voterHash);
+          await storage.createCommentVote({
+            commentId,
+            voteType,
+            voterHash,
+          });
+          action = "changed";
+        }
+      } else {
+        await storage.createCommentVote({
+          commentId,
+          voteType,
+          voterHash,
+        });
+        action = "added";
+      }
+
+      await storage.updateCommentVoteCounts(commentId);
+
+      const updated = await storage.getComment(commentId);
+      res.json({ 
+        ...updated, 
+        action, 
+        currentVote: action === "removed" ? null : voteType 
+      });
+    } catch (error) {
+      console.error("Error voting on comment:", error);
+      res.status(500).json({ error: "Failed to record vote" });
     }
   });
 
