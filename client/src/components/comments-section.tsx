@@ -89,7 +89,6 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
 
   const { data, isLoading } = useQuery<CommentsResponse>({
     queryKey: [`/api/submissions/${submissionId}/comments`],
-    enabled: isOpen,
   });
 
   const createCommentMutation = useMutation({
