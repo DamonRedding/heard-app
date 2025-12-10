@@ -320,21 +320,26 @@ export default function Home() {
       )}
 
       <main className="container mx-auto px-4 py-8">
-        <div className="space-y-4 mb-8">
-          {/* Primary Controls: Category + Sort - grouped for feed discovery */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <CategoryFilter
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-              categoryCounts={countsData?.counts}
-            />
-            <div className="flex items-center gap-2 sm:ml-auto">
-              <div className="flex items-center rounded-lg border bg-muted/30 p-1">
+        <div className="space-y-4 mb-6">
+          {/* 
+            Feed Controls following UX Laws:
+            - Law of Locality: Sort controls directly above content they affect
+            - Jakob's Law: Reddit/HN pattern - sort is primary feed mode selector
+            - Hick's Law: 2 clear options (Hot/New) with segmented buttons
+            - Fitts's Law: Appropriately sized touch targets
+          */}
+          
+          {/* Row 1: Sort Toggle (Primary) - Following Reddit/HN industry pattern */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center rounded-lg border bg-muted/30 p-1" role="tablist" aria-label="Sort posts">
                 <Button
                   variant={sortType === "hot" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setSortType("hot")}
-                  className="gap-1.5"
+                  className="gap-1.5 min-w-[70px]"
+                  role="tab"
+                  aria-selected={sortType === "hot"}
                   data-testid="button-sort-hot"
                 >
                   <Flame className="h-4 w-4" />
@@ -344,27 +349,40 @@ export default function Home() {
                   variant={sortType === "new" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setSortType("new")}
-                  className="gap-1.5"
+                  className="gap-1.5 min-w-[70px]"
+                  role="tab"
+                  aria-selected={sortType === "new"}
                   data-testid="button-sort-new"
                 >
                   <Clock className="h-4 w-4" />
                   New
                 </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => refetch()}
-                disabled={isFetching}
-                data-testid="button-refresh"
-              >
-                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-              </Button>
+              <span className="text-sm text-muted-foreground hidden sm:inline">
+                {sortType === "hot" ? "Trending experiences" : "Latest experiences"}
+              </span>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              aria-label="Refresh feed"
+              data-testid="button-refresh"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            </Button>
           </div>
 
-          {/* Secondary Controls: Search + Filters */}
-          <div className="flex flex-col md:flex-row gap-3">
+          {/* Row 2: Category Filter - Topic selection */}
+          <CategoryFilter
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            categoryCounts={countsData?.counts}
+          />
+
+          {/* Row 3: Search & Refinement Filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -380,7 +398,7 @@ export default function Home() {
                 value={selectedDenomination || "all"}
                 onValueChange={(value) => setSelectedDenomination(value === "all" ? null : value)}
               >
-                <SelectTrigger className="w-full md:w-[180px]" data-testid="select-denomination-filter">
+                <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-denomination-filter">
                   <SelectValue placeholder="All Denominations" />
                 </SelectTrigger>
                 <SelectContent>
@@ -399,7 +417,7 @@ export default function Home() {
                   data-testid="button-clear-filters"
                 >
                   <X className="h-4 w-4 mr-1" />
-                  Clear all
+                  Clear
                 </Button>
               )}
             </div>
