@@ -321,35 +321,14 @@ export default function Home() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-4 mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search experiences, churches, or locations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-                data-testid="input-search"
-              />
-            </div>
-            <Select
-              value={selectedDenomination || "all"}
-              onValueChange={(value) => setSelectedDenomination(value === "all" ? null : value)}
-            >
-              <SelectTrigger className="w-full md:w-[200px]" data-testid="select-denomination-filter">
-                <SelectValue placeholder="All Denominations" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Denominations</SelectItem>
-                {DENOMINATIONS.map((d) => (
-                  <SelectItem key={d} value={d}>{d}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3 flex-wrap">
+          {/* Primary Controls: Category + Sort - grouped for feed discovery */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <CategoryFilter
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              categoryCounts={countsData?.counts}
+            />
+            <div className="flex items-center gap-2 sm:ml-auto">
               <div className="flex items-center rounded-lg border bg-muted/30 p-1">
                 <Button
                   variant={sortType === "hot" ? "default" : "ghost"}
@@ -381,24 +360,49 @@ export default function Home() {
               >
                 <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
               </Button>
+            </div>
+          </div>
+
+          {/* Secondary Controls: Search + Filters */}
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search experiences, churches, or locations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+                data-testid="input-search"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedDenomination || "all"}
+                onValueChange={(value) => setSelectedDenomination(value === "all" ? null : value)}
+              >
+                <SelectTrigger className="w-full md:w-[180px]" data-testid="select-denomination-filter">
+                  <SelectValue placeholder="All Denominations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Denominations</SelectItem>
+                  {DENOMINATIONS.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {hasFilters && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={clearFilters}
-                  className="text-muted-foreground"
+                  className="text-muted-foreground whitespace-nowrap"
                   data-testid="button-clear-filters"
                 >
                   <X className="h-4 w-4 mr-1" />
-                  Clear
+                  Clear all
                 </Button>
               )}
             </div>
-            <CategoryFilter
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-              categoryCounts={countsData?.counts}
-            />
           </div>
         </div>
 
