@@ -32,6 +32,8 @@ import { sortByWilsonScore, withWilsonScore } from "@shared/wilson-score";
 import { db } from "./db";
 import { eq, and, desc, sql, count, or, ilike, inArray } from "drizzle-orm";
 
+export type SortType = "hot" | "new";
+
 export interface IStorage {
   getSubmissions(options?: {
     category?: Category;
@@ -40,6 +42,7 @@ export interface IStorage {
     denomination?: string;
     page?: number;
     limit?: number;
+    sort?: SortType;
   }): Promise<{ submissions: Submission[]; total: number; hasMore: boolean }>;
 
   getSubmission(id: string): Promise<Submission | undefined>;
@@ -137,10 +140,12 @@ export class DatabaseStorage implements IStorage {
     denomination?: string;
     page?: number;
     limit?: number;
+    sort?: SortType;
   }): Promise<{ submissions: Submission[]; total: number; hasMore: boolean }> {
     const page = options?.page || 1;
     const limit = options?.limit || 20;
     const offset = (page - 1) * limit;
+    const sortType = options?.sort || "hot";
 
     const conditions: ReturnType<typeof eq>[] = [eq(submissions.status, "active")];
     if (options?.category) {
@@ -160,6 +165,15 @@ export class DatabaseStorage implements IStorage {
         )!
       );
     }
+
+    const hotScoreExpression = sql`
+      (${submissions.condemnCount} + ${submissions.absolveCount}) / 
+      POWER(EXTRACT(EPOCH FROM (NOW() - ${submissions.createdAt})) / 3600 + 2, 1.5)
+    `;
+
+    const orderBy = sortType === "new" 
+      ? desc(submissions.createdAt)
+      : desc(hotScoreExpression);
 
     const [result, countResult] = await Promise.all([
       db
@@ -181,7 +195,7 @@ export class DatabaseStorage implements IStorage {
         })
         .from(submissions)
         .where(and(...conditions))
-        .orderBy(desc(submissions.createdAt))
+        .orderBy(orderBy)
         .limit(limit)
         .offset(offset),
       db

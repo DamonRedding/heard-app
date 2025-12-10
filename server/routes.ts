@@ -62,6 +62,7 @@ export async function registerRoutes(
       const denomination = req.query.denomination as string | undefined;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
+      const sort = (req.query.sort as "hot" | "new") || "hot";
 
       const result = await storage.getSubmissions({
         category,
@@ -69,6 +70,7 @@ export async function registerRoutes(
         denomination,
         page,
         limit,
+        sort,
       });
 
       res.json(result);

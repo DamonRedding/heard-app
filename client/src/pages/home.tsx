@@ -7,11 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SubmissionCard, SubmissionCardSkeleton } from "@/components/submission-card";
 import { CategoryFilter } from "@/components/category-filter";
 import { Card, CardContent } from "@/components/ui/card";
-import { PenLine, RefreshCw, Loader2, Search, X, CheckCircle2, Sparkles } from "lucide-react";
+import { PenLine, RefreshCw, Loader2, Search, X, CheckCircle2, Sparkles, Flame, Clock } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Submission, Category, VoteType, FlagReason } from "@shared/schema";
 import { DENOMINATIONS } from "@shared/schema";
+
+type SortType = "hot" | "new";
 
 interface SubmissionsResponse {
   submissions: Submission[];
@@ -31,13 +33,15 @@ function buildSubmissionsUrl(
   category: Category | null, 
   page: number, 
   search: string,
-  denomination: string | null
+  denomination: string | null,
+  sort: SortType
 ): string {
   const params = new URLSearchParams();
   if (category) params.set("category", category);
   if (search) params.set("search", search);
   if (denomination) params.set("denomination", denomination);
   params.set("page", page.toString());
+  params.set("sort", sort);
   return `/api/submissions?${params.toString()}`;
 }
 
@@ -47,6 +51,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [sortType, setSortType] = useState<SortType>("hot");
   const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [highlightedSubmissionId, setHighlightedSubmissionId] = useState<string | null>(null);
@@ -78,7 +83,7 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const submissionsUrl = buildSubmissionsUrl(selectedCategory, page, debouncedSearch, selectedDenomination);
+  const submissionsUrl = buildSubmissionsUrl(selectedCategory, page, debouncedSearch, selectedDenomination, sortType);
 
   const { data, isLoading, isFetching, refetch } = useQuery<SubmissionsResponse>({
     queryKey: [submissionsUrl],
@@ -90,7 +95,7 @@ export default function Home() {
 
   useEffect(() => {
     setPage(1);
-  }, [selectedCategory, selectedDenomination, debouncedSearch]);
+  }, [selectedCategory, selectedDenomination, debouncedSearch, sortType]);
 
   useEffect(() => {
     if (data?.submissions) {
@@ -123,6 +128,7 @@ export default function Home() {
     setSelectedDenomination(null);
     setSearchQuery("");
     setDebouncedSearch("");
+    setSortType("hot");
     setPage(1);
   };
 
@@ -343,10 +349,29 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-semibold">
-                {hasFilters ? "Filtered Results" : "Recent Submissions"}
-              </h2>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center rounded-lg border bg-muted/30 p-1">
+                <Button
+                  variant={sortType === "hot" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setSortType("hot")}
+                  className="gap-1.5"
+                  data-testid="button-sort-hot"
+                >
+                  <Flame className="h-4 w-4" />
+                  Hot
+                </Button>
+                <Button
+                  variant={sortType === "new" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setSortType("new")}
+                  className="gap-1.5"
+                  data-testid="button-sort-new"
+                >
+                  <Clock className="h-4 w-4" />
+                  New
+                </Button>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
