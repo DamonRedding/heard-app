@@ -376,7 +376,7 @@ export default function Admin() {
         <div className="grid gap-4 sm:grid-cols-3 mb-8">
           <Card>
             <CardContent className="pt-6">
-              <div className="text-2xl font-bold">{allSubmissions.length}</div>
+              <div className="text-2xl font-bold" data-testid="text-total-submissions">{data?.total ?? 0}</div>
               <p className="text-sm text-muted-foreground">Total Submissions</p>
             </CardContent>
           </Card>
@@ -405,7 +405,7 @@ export default function Admin() {
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
           <TabsList className="mb-6">
             <TabsTrigger value="all" data-testid="tab-all">
-              All ({allSubmissions.length})
+              All ({data?.total ?? 0})
             </TabsTrigger>
             <TabsTrigger value="flagged" data-testid="tab-flagged">
               Flagged ({flaggedSubmissions.length})
