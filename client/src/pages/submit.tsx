@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { posthog } from "@/lib/posthog";
 import type { InsertSubmission, Submission } from "@shared/schema";
 
 export default function Submit() {
@@ -42,6 +43,11 @@ export default function Submit() {
   };
 
   const handleEngagementComplete = () => {
+    posthog.capture('post_submit_flow_completed', {
+      submission_id: submittedSubmission?.id,
+      category: submittedSubmission?.category,
+    });
+    
     if (submittedSubmission) {
       setLocation(`/?highlight=${submittedSubmission.id}&welcome=true`);
     } else {
