@@ -7,6 +7,7 @@ import {
   commentVotes,
   reactions,
   emailSubscribers,
+  notificationEvents,
   type Submission,
   type InsertSubmission,
   type Vote,
@@ -24,13 +25,16 @@ import {
   type InsertReaction,
   type EmailSubscriber,
   type InsertEmailSubscriber,
+  type NotificationEvent,
+  type InsertNotificationEvent,
+  type NotificationEventType,
   type Category,
   type Status,
   type ReactionType,
 } from "@shared/schema";
 import { sortByWilsonScore, withWilsonScore } from "@shared/wilson-score";
 import { db } from "./db";
-import { eq, and, desc, sql, count, or, ilike, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, count, or, ilike, inArray, gte } from "drizzle-orm";
 
 export type SortType = "hot" | "new";
 
@@ -130,6 +134,18 @@ export interface IStorage {
   getReactionCounts(submissionId: string): Promise<Record<string, number>>;
 
   getReactionCountsForSubmissions(submissionIds: string[]): Promise<Record<string, Record<string, number>>>;
+
+  getSubscribersForNewSubmission(category: Category, denomination?: string | null): Promise<EmailSubscriber[]>;
+
+  getSubscriberBySubmissionId(submissionId: string): Promise<EmailSubscriber | undefined>;
+
+  getAllWeeklyDigestSubscribers(): Promise<EmailSubscriber[]>;
+
+  createNotificationEvent(event: InsertNotificationEvent): Promise<NotificationEvent>;
+
+  hasRecentNotification(email: string, submissionId: string, eventType: NotificationEventType, hoursAgo: number): Promise<boolean>;
+
+  getPopularSubmissionsForDigest(limit: number): Promise<Submission[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -758,6 +774,91 @@ export class DatabaseStorage implements IStorage {
       countsMap[row.submissionId][row.reactionType] = row.count;
     }
     return countsMap;
+  }
+
+  async getSubscribersForNewSubmission(category: Category, denomination?: string | null): Promise<EmailSubscriber[]> {
+    const conditions: ReturnType<typeof eq>[] = [eq(emailSubscribers.notifyOnEngagement, 1)];
+    
+    const result = await db
+      .select()
+      .from(emailSubscribers)
+      .where(and(...conditions));
+
+    return result.filter(sub => {
+      if (sub.category && sub.category !== category) return false;
+      if (sub.denomination && denomination && sub.denomination !== denomination) return false;
+      return true;
+    });
+  }
+
+  async getSubscriberBySubmissionId(submissionId: string): Promise<EmailSubscriber | undefined> {
+    const [result] = await db
+      .select()
+      .from(emailSubscribers)
+      .where(eq(emailSubscribers.submissionId, submissionId));
+    return result;
+  }
+
+  async getAllWeeklyDigestSubscribers(): Promise<EmailSubscriber[]> {
+    return db
+      .select()
+      .from(emailSubscribers)
+      .where(eq(emailSubscribers.weeklyDigest, 1));
+  }
+
+  async createNotificationEvent(event: InsertNotificationEvent): Promise<NotificationEvent> {
+    const [result] = await db.insert(notificationEvents).values(event).returning();
+    return result;
+  }
+
+  async hasRecentNotification(email: string, submissionId: string, eventType: NotificationEventType, hoursAgo: number): Promise<boolean> {
+    const cutoff = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+    const [result] = await db
+      .select({ count: count() })
+      .from(notificationEvents)
+      .where(
+        and(
+          eq(notificationEvents.subscriberEmail, email),
+          eq(notificationEvents.submissionId, submissionId),
+          eq(notificationEvents.eventType, eventType),
+          gte(notificationEvents.sentAt, cutoff)
+        )
+      );
+    return (result?.count || 0) > 0;
+  }
+
+  async getPopularSubmissionsForDigest(limit: number): Promise<Submission[]> {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const result = await db
+      .select({
+        id: submissions.id,
+        content: submissions.content,
+        category: submissions.category,
+        denomination: submissions.denomination,
+        timeframe: submissions.timeframe,
+        condemnCount: submissions.condemnCount,
+        absolveCount: submissions.absolveCount,
+        meTooCount: submissions.meTooCount,
+        flagCount: submissions.flagCount,
+        status: submissions.status,
+        churchName: sql<null>`NULL`.as('churchName'),
+        pastorName: sql<null>`NULL`.as('pastorName'),
+        location: sql<null>`NULL`.as('location'),
+        createdAt: submissions.createdAt,
+      })
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.status, "active"),
+          gte(submissions.createdAt, sevenDaysAgo)
+        )
+      )
+      .orderBy(desc(sql`${submissions.condemnCount} + ${submissions.absolveCount} + ${submissions.meTooCount}`))
+      .limit(limit);
+
+    return result as Submission[];
   }
 }
 

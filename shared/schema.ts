@@ -53,6 +53,14 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "both"
 ]);
 
+export const notificationEventTypeEnum = pgEnum("notification_event_type", [
+  "new_submission",
+  "engagement_vote",
+  "engagement_comment", 
+  "engagement_metoo",
+  "weekly_digest"
+]);
+
 export const submissions = pgTable("submissions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   content: text("content").notNull(),
@@ -212,6 +220,22 @@ export const emailSubscribersRelations = relations(emailSubscribers, ({ one }) =
   }),
 }));
 
+export const notificationEvents = pgTable("notification_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  subscriberEmail: text("subscriber_email").notNull(),
+  submissionId: varchar("submission_id").references(() => submissions.id, { onDelete: "set null" }),
+  eventType: notificationEventTypeEnum("event_type").notNull(),
+  metadata: text("metadata"),
+  sentAt: timestamp("sent_at").notNull().defaultNow(),
+});
+
+export const notificationEventsRelations = relations(notificationEvents, ({ one }) => ({
+  submission: one(submissions, {
+    fields: [notificationEvents.submissionId],
+    references: [submissions.id],
+  }),
+}));
+
 export const insertSubmissionSchema = createInsertSchema(submissions).omit({
   id: true,
   condemnCount: true,
@@ -266,6 +290,11 @@ export const insertEmailSubscriberSchema = createInsertSchema(emailSubscribers).
   email: z.string().email("Please enter a valid email address"),
 });
 
+export const insertNotificationEventSchema = createInsertSchema(notificationEvents).omit({
+  id: true,
+  sentAt: true,
+});
+
 export type InsertSubmission = z.infer<typeof insertSubmissionSchema>;
 export type Submission = typeof submissions.$inferSelect;
 
@@ -290,6 +319,10 @@ export type Reaction = typeof reactions.$inferSelect;
 
 export type InsertEmailSubscriber = z.infer<typeof insertEmailSubscriberSchema>;
 export type EmailSubscriber = typeof emailSubscribers.$inferSelect;
+
+export type InsertNotificationEvent = z.infer<typeof insertNotificationEventSchema>;
+export type NotificationEvent = typeof notificationEvents.$inferSelect;
+export type NotificationEventType = "new_submission" | "engagement_vote" | "engagement_comment" | "engagement_metoo" | "weekly_digest";
 
 export type Category = "leadership" | "financial" | "culture" | "misconduct" | "spiritual_abuse" | "other";
 export type Timeframe = "last_month" | "last_year" | "one_to_five_years" | "five_plus_years";
