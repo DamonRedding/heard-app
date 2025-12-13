@@ -493,6 +493,7 @@ export class DatabaseStorage implements IStorage {
     const allSubmissions = await db
       .select()
       .from(submissions)
+      .where(eq(submissions.status, "active"))
       .orderBy(desc(submissions.createdAt));
 
     const churchMap = new Map<string, Submission[]>();
