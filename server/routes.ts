@@ -6,6 +6,7 @@ import { sortByWilsonScore } from "@shared/wilson-score";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { sendWelcomeEmail } from "./email";
+import { notifySubscribersOfNewSubmission, notifyAuthorOfEngagement, sendWeeklyDigest } from "./notification-service";
 
 const VALID_REACTIONS: ReactionType[] = ["heart", "care", "haha", "wow", "sad", "angry"];
 
@@ -135,6 +136,10 @@ export async function registerRoutes(
 
       const submission = await storage.createSubmission(parsed.data);
 
+      notifySubscribersOfNewSubmission(submission).catch(err => {
+        console.error("Error sending new submission notifications:", err);
+      });
+
       res.setHeader("X-RateLimit-Remaining", remaining.toString());
       res.status(201).json(submission);
     } catch (error) {
@@ -194,6 +199,12 @@ export async function registerRoutes(
 
       await storage.updateVoteCounts(id);
 
+      if (action === "added") {
+        notifyAuthorOfEngagement(id, "engagement_vote", `Your story received a new ${voteType} vote.`).catch(err => {
+          console.error("Error sending vote notification:", err);
+        });
+      }
+
       const updated = await storage.getSubmission(id);
       res.json({ ...updated, action, currentVote: action === "removed" ? null : voteType });
     } catch (error) {
@@ -229,6 +240,12 @@ export async function registerRoutes(
       }
 
       await storage.updateMeTooCount(id);
+
+      if (action === "added") {
+        notifyAuthorOfEngagement(id, "engagement_metoo", "Someone related to your story.").catch(err => {
+          console.error("Error sending me-too notification:", err);
+        });
+      }
 
       const updated = await storage.getSubmission(id);
       res.json({ ...updated, action });
@@ -318,10 +335,29 @@ export async function registerRoutes(
         parentId: parentId || null,
       });
 
+      notifyAuthorOfEngagement(id, "engagement_comment", "Someone commented on your story.").catch(err => {
+        console.error("Error sending comment notification:", err);
+      });
+
       res.status(201).json(comment);
     } catch (error) {
       console.error("Error creating comment:", error);
       res.status(500).json({ error: "Failed to create comment" });
+    }
+  });
+
+  app.post("/api/admin/send-weekly-digest", async (req: Request, res: Response) => {
+    try {
+      const { password } = req.body;
+      if (password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const result = await sendWeeklyDigest();
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error("Error sending weekly digest:", error);
+      res.status(500).json({ error: "Failed to send weekly digest" });
     }
   });
 
