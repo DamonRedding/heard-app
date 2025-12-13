@@ -172,7 +172,7 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
       return apiRequest("POST", `/api/submissions/${submissionId}/metoo`, {});
     },
     onSuccess: (_, submissionId) => {
-      setEngagedIds(prev => new Set([...prev, submissionId]));
+      setEngagedIds(prev => new Set(Array.from(prev).concat(submissionId)));
       queryClient.invalidateQueries({ 
         queryKey: ["/api/submissions/related", submittedSubmission.category, submittedSubmission.denomination] 
       });
