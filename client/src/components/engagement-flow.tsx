@@ -237,6 +237,12 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
 
   const handleVote = (submissionId: string) => {
     if (!engagedIds.has(submissionId)) {
+      posthog.capture('post_submit_i_hear_you_tapped', {
+        submission_id: submittedSubmission.id,
+        voted_submission_id: submissionId,
+        category: submittedSubmission.category,
+        engagement_count: engagedCount + 1,
+      });
       voteMutation.mutate(submissionId);
     }
   };
