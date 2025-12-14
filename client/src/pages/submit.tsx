@@ -22,6 +22,12 @@ export default function Submit() {
       return response.json();
     },
     onSuccess: (data: Submission) => {
+      posthog.capture('submission_created', {
+        submission_id: data.id,
+        category: data.category,
+        denomination: data.denomination,
+        timeframe: data.timeframe,
+      });
       setSubmittedSubmission(data);
       setShowEngagementFlow(true);
       queryClient.invalidateQueries({ predicate: (query) => 
