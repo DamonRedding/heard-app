@@ -297,13 +297,71 @@ export const insertMeTooSchema = createInsertSchema(meToos).omit({
   createdAt: true,
 });
 
+// Helper function to detect spam content patterns
+function isSpamContent(text: string): boolean {
+  const trimmed = text.trim();
+  
+  // Remove all whitespace and check what's left
+  const noWhitespace = trimmed.replace(/\s+/g, '');
+  
+  // Check if content is mostly repetitive characters (like ******* or ====== or ------)
+  if (noWhitespace.length > 0) {
+    const charCounts = new Map<string, number>();
+    for (const char of noWhitespace) {
+      charCounts.set(char, (charCounts.get(char) || 0) + 1);
+    }
+    
+    // If a single character makes up more than 80% of the content, it's spam
+    for (const [char, count] of charCounts) {
+      if (count / noWhitespace.length > 0.8) {
+        // Allow common punctuation only if content has meaningful text
+        const meaningfulChars = noWhitespace.replace(/[^a-zA-Z0-9]/g, '');
+        if (meaningfulChars.length < 5) {
+          return true;
+        }
+      }
+    }
+  }
+  
+  // Check for lines that are just repeated symbols
+  const lines = trimmed.split('\n');
+  const symbolOnlyLines = lines.filter(line => {
+    const stripped = line.trim();
+    // Line is only symbols/punctuation (no letters or numbers)
+    return stripped.length > 0 && !/[a-zA-Z0-9]/.test(stripped);
+  });
+  
+  // If more than half the lines are symbol-only, it's spam
+  if (lines.length > 1 && symbolOnlyLines.length > lines.length / 2) {
+    return true;
+  }
+  
+  // Check for very low letter/number ratio (less than 10% alphanumeric)
+  const alphanumericCount = (noWhitespace.match(/[a-zA-Z0-9]/g) || []).length;
+  if (noWhitespace.length > 10 && alphanumericCount / noWhitespace.length < 0.1) {
+    return true;
+  }
+  
+  return false;
+}
+
 export const insertCommentSchema = createInsertSchema(comments).omit({
   id: true,
   upvoteCount: true,
   downvoteCount: true,
   createdAt: true,
 }).extend({
-  content: z.string().min(1, "Comment cannot be empty").max(500, "Comment must be less than 500 characters"),
+  content: z.string()
+    .min(1, "Comment cannot be empty")
+    .max(500, "Comment must be less than 500 characters")
+    .refine(
+      (text) => text.trim().length >= 3,
+      "Comment must contain at least 3 characters"
+    )
+    .refine(
+      (text) => !isSpamContent(text),
+      "Please write a meaningful comment. Repetitive symbols or characters are not allowed."
+    ),
   parentId: z.string().nullable().optional(),
 });
 
