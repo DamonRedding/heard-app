@@ -45,13 +45,6 @@ export function MobileFilterSheet({
     setIsOpen(open);
   };
 
-  const handleApply = () => {
-    onCategoryChange(tempCategory);
-    onDenominationChange(tempDenomination);
-    onSearchChange(tempSearch);
-    setIsOpen(false);
-  };
-
   const handleClear = () => {
     setTempCategory(null);
     setTempDenomination(null);
@@ -180,7 +173,16 @@ export function MobileFilterSheet({
                 Cancel
               </Button>
             </SheetClose>
-            <Button onClick={handleApply} className="flex-1 gap-2" data-testid="button-apply-filters">
+            <Button 
+              onClick={() => {
+                onCategoryChange(tempCategory);
+                onDenominationChange(tempDenomination);
+                onSearchChange(tempSearch);
+                setIsOpen(false);
+              }} 
+              className="flex-1 gap-2" 
+              data-testid="button-apply-filters"
+            >
               <Check className="h-4 w-4" />
               Apply Filters
             </Button>

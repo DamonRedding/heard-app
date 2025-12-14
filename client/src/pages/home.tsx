@@ -566,11 +566,11 @@ export default function Home() {
           {isMobile && hasFilters && (
             <div className="flex items-center gap-2 flex-wrap">
               {selectedCategory && (
-                <Badge variant="secondary" className="gap-1 text-xs min-h-[44px] px-3">
-                  {CATEGORIES.find(c => c.value === selectedCategory)?.label}
+                <Badge variant="secondary" className="gap-0 text-xs min-h-[44px] pl-3 pr-1">
+                  <span>{CATEGORIES.find(c => c.value === selectedCategory)?.label}</span>
                   <button 
                     onClick={() => setSelectedCategory(null)} 
-                    className="ml-1 min-w-[24px] min-h-[24px] flex items-center justify-center"
+                    className="ml-2 min-w-[44px] min-h-[44px] flex items-center justify-center -my-2 -mr-1 rounded-r-md hover-elevate"
                     data-testid="button-clear-category-filter"
                     aria-label="Clear category filter"
                   >
@@ -579,11 +579,11 @@ export default function Home() {
                 </Badge>
               )}
               {selectedDenomination && (
-                <Badge variant="secondary" className="gap-1 text-xs min-h-[44px] px-3">
-                  {selectedDenomination}
+                <Badge variant="secondary" className="gap-0 text-xs min-h-[44px] pl-3 pr-1">
+                  <span>{selectedDenomination}</span>
                   <button 
                     onClick={() => setSelectedDenomination(null)} 
-                    className="ml-1 min-w-[24px] min-h-[24px] flex items-center justify-center"
+                    className="ml-2 min-w-[44px] min-h-[44px] flex items-center justify-center -my-2 -mr-1 rounded-r-md hover-elevate"
                     data-testid="button-clear-denomination-filter"
                     aria-label="Clear denomination filter"
                   >
@@ -592,11 +592,11 @@ export default function Home() {
                 </Badge>
               )}
               {debouncedSearch && (
-                <Badge variant="secondary" className="gap-1 text-xs min-h-[44px] px-3">
-                  "{debouncedSearch}"
+                <Badge variant="secondary" className="gap-0 text-xs min-h-[44px] pl-3 pr-1">
+                  <span>"{debouncedSearch}"</span>
                   <button 
                     onClick={() => { setSearchQuery(""); setDebouncedSearch(""); }} 
-                    className="ml-1 min-w-[24px] min-h-[24px] flex items-center justify-center"
+                    className="ml-2 min-w-[44px] min-h-[44px] flex items-center justify-center -my-2 -mr-1 rounded-r-md hover-elevate"
                     data-testid="button-clear-search-filter"
                     aria-label="Clear search filter"
                   >
