@@ -101,6 +101,7 @@ Preferred communication style: Simple, everyday language.
 
 **Submissions Table**:
 - `id`: UUID primary key
+- `title`: AI-generated title that matches the author's voice and tone
 - `content`: Text field for experience (50-2000 characters)
 - `category`: Enum (leadership, financial, culture, misconduct, spiritual_abuse, other)
 - `timeframe`: Enum (last_month, last_year, one_to_five_years, five_plus_years)
@@ -111,6 +112,14 @@ Preferred communication style: Simple, everyday language.
 - `status`: Enum (active, under_review, removed)
 - `churchName`, `pastorName`, `location`: Admin-only fields (not displayed publicly)
 - Timestamps: `createdAt`, `updatedAt`
+
+**AI Title Generation** (`server/title-generator.ts`):
+- Uses OpenAI gpt-4o-mini to generate compelling titles for submissions
+- Analyzes content, category, timeframe, and denomination context
+- Generates titles (50-80 chars) that match the author's voice and tone
+- Based on Reddit title research: positive sentiment, power phrases, no questions
+- Falls back to template-based titles if AI fails
+- Integrated via Replit AI Integrations (uses AI_INTEGRATIONS_OPENAI_* env vars)
 
 **Votes Table**:
 - `submissionId`: Foreign key to submissions
@@ -159,6 +168,7 @@ Preferred communication style: Simple, everyday language.
 - Express - Web server framework
 - @neondatabase/serverless - PostgreSQL connection
 - ws - WebSocket support for Neon
+- OpenAI - AI-powered title generation via Replit AI Integrations
 
 **Development Tools**:
 - Vite - Fast build tool and dev server

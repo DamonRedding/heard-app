@@ -1,10 +1,8 @@
 /**
- * Title Generator based on Reddit research:
- * - Dr. Randal S. Olson's analysis (850,000+ posts)
- * - Foundation Inc.'s study (60,000 posts)
- * - Koby Ofek's analysis (10+ million titles)
+ * AI-Powered Title Generator
  * 
- * Key findings applied:
+ * Uses OpenAI to generate titles that match each post's unique voice and tone.
+ * Based on Reddit research:
  * - Optimal length: 60-80 characters (8-12 words)
  * - Positive/neutral sentiment for constructive communities
  * - Power phrases: "the first time", "finally", discovery language
@@ -12,197 +10,133 @@
  * - No questions (questions reduce upvotes)
  */
 
+import OpenAI from "openai";
 import type { Category } from "@shared/schema";
 
-const CATEGORY_THEMES: Record<Category, string[]> = {
-  leadership: [
-    "My experience with pastoral authority",
-    "When church leadership crossed the line",
-    "The truth about my pastor's leadership style",
-    "How leadership decisions affected our congregation",
-    "What happened when I questioned church authority",
-    "My story of authoritarian leadership in church",
-    "The impact of pastoral power dynamics",
-    "When spiritual leaders abuse their position",
-    "Breaking my silence on church leadership",
-    "My journey through leadership abuse in church",
-  ],
-  financial: [
-    "The hidden truth about my church's finances",
-    "My experience with tithing pressure",
-    "What they don't tell you about church finances",
-    "When giving became manipulation",
-    "The financial practices that made me leave",
-    "My story of church financial pressure",
-    "How my church handled money",
-    "The truth behind the offering plate",
-    "My experience with church financial transparency",
-    "When faith and finances collide",
-  ],
-  culture: [
-    "The toxic culture I experienced at church",
-    "My story of exclusion in a faith community",
-    "When church felt more like a clique",
-    "The judgment I faced at my church",
-    "My experience with church community dynamics",
-    "How church culture affected my faith",
-    "The exclusion that changed my perspective",
-    "My story of navigating church politics",
-    "When belonging came with conditions",
-    "The cultural issues nobody talks about",
-  ],
-  misconduct: [
-    "Breaking my silence on what I witnessed",
-    "The misconduct that shattered my trust",
-    "My experience reporting church misconduct",
-    "What I saw behind closed doors",
-    "The truth about what happened at my church",
-    "When the unthinkable happened in my community",
-    "My story of institutional betrayal",
-    "How my church failed to protect",
-    "Speaking up after years of silence",
-    "The incident that changed everything",
-  ],
-  spiritual_abuse: [
-    "My experience with spiritual manipulation",
-    "When scripture was used as a weapon",
-    "The spiritual abuse nobody believed",
-    "How my faith was weaponized against me",
-    "My story of religious control and shame",
-    "Breaking free from spiritual manipulation",
-    "The guilt tactics that held me captive",
-    "When worship became psychological control",
-    "My journey healing from spiritual abuse",
-    "How faith leaders manipulated my beliefs",
-  ],
-  other: [
-    "My church experience that needs to be heard",
-    "A story from my faith community",
-    "What I experienced at my church",
-    "My honest reflection on church life",
-    "The experience that shaped my faith journey",
-    "Something that happened at my church",
-    "My story from within the congregation",
-    "An experience worth sharing",
-    "What I witnessed in my faith community",
-    "My account from inside the church",
-  ],
+const client = new OpenAI({
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+});
+
+const CATEGORY_CONTEXT: Record<Category, string> = {
+  leadership: "pastoral authority, church leadership, power dynamics",
+  financial: "tithing, church finances, financial pressure, donations",
+  culture: "church culture, community dynamics, exclusion, judgment",
+  misconduct: "misconduct, institutional failure, accountability",
+  spiritual_abuse: "spiritual manipulation, religious control, shame tactics",
+  other: "church experience, faith community",
 };
 
-const ENGAGEMENT_PHRASES = [
-  "Finally speaking up about",
-  "The truth about",
-  "My experience with",
-  "What really happened when",
-  "Breaking my silence on",
-  "Here's why",
-  "The story of how",
-  "What I learned from",
-  "My journey through",
-  "How I survived",
-];
-
-const TIME_REFERENCES: Record<string, string[]> = {
-  last_month: ["Recently", "Just weeks ago", "This past month"],
-  last_year: ["This year", "In the past year", "Months ago"],
-  one_to_five_years: ["Years ago", "Looking back", "After all this time"],
-  five_plus_years: ["After many years", "Decades later", "Finally after years"],
-};
-
-export function generateTitle(
+export async function generateTitle(
   content: string,
   category: Category,
   timeframe: string,
   churchName?: string | null,
   denomination?: string | null
-): string {
-  const categoryTitles = CATEGORY_THEMES[category] || CATEGORY_THEMES.other;
-  
-  const contentLower = content.toLowerCase();
-  
-  let baseTitle = categoryTitles[Math.floor(Math.random() * categoryTitles.length)];
-  
-  const hasEmotionalWords = /abuse|hurt|pain|trauma|scared|afraid|manipulation|control|shame|guilt|betrayal|trust/i.test(content);
-  const hasFinancialWords = /money|tithe|offering|donation|fund|financial|giving|pay/i.test(content);
-  const hasLeadershipWords = /pastor|leader|elder|deacon|minister|authority|power/i.test(content);
-  
-  if (hasEmotionalWords && category === "leadership") {
-    baseTitle = "Breaking my silence on pastoral abuse";
-  } else if (hasFinancialWords && category === "financial") {
-    baseTitle = "The financial pressure that changed my faith";
-  } else if (hasLeadershipWords) {
-    baseTitle = "When church leadership failed us";
-  }
-  
-  if (denomination && denomination !== "Other") {
-    const denomTitles: Record<string, string[]> = {
-      Baptist: ["My story from a Baptist church", "Inside a Baptist congregation"],
-      Catholic: ["My experience in the Catholic Church", "A story from the Catholic faith"],
-      Evangelical: ["My Evangelical church story", "Inside an Evangelical community"],
-      Pentecostal: ["My Pentecostal experience", "From inside a Pentecostal church"],
-      Methodist: ["My Methodist church story", "From a Methodist congregation"],
-      Lutheran: ["My Lutheran church experience", "Inside a Lutheran community"],
-      Presbyterian: ["My Presbyterian story", "From a Presbyterian church"],
-      "Non-denominational": ["My non-denominational church experience", "Inside a non-denominational congregation"],
-    };
+): Promise<string> {
+  try {
+    const categoryContext = CATEGORY_CONTEXT[category] || CATEGORY_CONTEXT.other;
     
-    if (denomTitles[denomination]) {
-      const denomOptions = denomTitles[denomination];
-      if (Math.random() > 0.5) {
-        baseTitle = denomOptions[Math.floor(Math.random() * denomOptions.length)];
-      }
+    const contentPreview = content.length > 1500 ? content.substring(0, 1500) + "..." : content;
+    
+    const prompt = `You are a title writer for a platform where people share anonymous church experiences. Generate a title that sounds like it was written by the same person who wrote this post.
+
+POST CONTENT:
+${contentPreview}
+
+CONTEXT:
+- Category: ${category} (${categoryContext})
+- Timeframe: ${timeframe}${denomination ? `\n- Denomination: ${denomination}` : ""}${churchName ? `\n- Church: ${churchName}` : ""}
+
+TITLE REQUIREMENTS:
+1. Match the author's voice, tone, and emotional register
+2. Length: 50-80 characters (aim for 60-70)
+3. Use statement format, NOT a question
+4. Sound personal and authentic (like a Reddit post title)
+5. Front-load the most compelling element
+6. Use power phrases naturally: "finally", "the truth about", "my experience with", "what happened when"
+7. Avoid clickbait, sensationalism, or generic titles
+8. Do NOT use emojis
+
+Examples of good titles that match author voice:
+- "Finally speaking up about what my pastor did to our family"
+- "The financial manipulation that made me leave after 15 years"
+- "My experience with spiritual abuse at a megachurch"
+- "What happened when I questioned the leadership"
+
+Return ONLY the title text, nothing else.`;
+
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      max_tokens: 100,
+      temperature: 0.7,
+    });
+
+    let title = response.choices[0]?.message?.content?.trim() || "";
+    
+    title = title.replace(/^["']|["']$/g, "").trim();
+    
+    if (title.length < 20 || title.length > 100) {
+      return generateFallbackTitle(content, category);
     }
+    
+    return title;
+  } catch (error) {
+    console.error("AI title generation failed, using fallback:", error);
+    return generateFallbackTitle(content, category);
+  }
+}
+
+function generateFallbackTitle(content: string, category: Category): string {
+  const fallbackTitles: Record<Category, string[]> = {
+    leadership: [
+      "My experience with church leadership",
+      "When pastoral authority crossed the line",
+      "The truth about my church's leadership",
+    ],
+    financial: [
+      "The financial pressure I experienced at church",
+      "My story of tithing manipulation",
+      "What they don't tell you about church finances",
+    ],
+    culture: [
+      "The toxic culture I experienced at church",
+      "My story of exclusion in a faith community",
+      "When church felt more like a clique",
+    ],
+    misconduct: [
+      "Breaking my silence on what I witnessed",
+      "The misconduct that shattered my trust",
+      "What I saw behind closed doors",
+    ],
+    spiritual_abuse: [
+      "My experience with spiritual manipulation",
+      "When scripture was used as a weapon",
+      "Breaking free from spiritual abuse",
+    ],
+    other: [
+      "My church experience that needs to be heard",
+      "A story from my faith community",
+      "What I experienced at my church",
+    ],
+  };
+
+  const titles = fallbackTitles[category] || fallbackTitles.other;
+  
+  const firstSentence = content.split(/[.!?]/)[0]?.trim();
+  if (firstSentence && firstSentence.length >= 30 && firstSentence.length <= 80) {
+    return firstSentence;
   }
   
-  if (churchName && churchName.length > 2) {
-    if (Math.random() > 0.7) {
-      baseTitle = `What happened at ${churchName}`;
-    }
-  }
-  
-  const timeRef = TIME_REFERENCES[timeframe];
-  if (timeRef && Math.random() > 0.6) {
-    const prefix = timeRef[Math.floor(Math.random() * timeRef.length)];
-    baseTitle = `${prefix}: ${baseTitle.charAt(0).toLowerCase()}${baseTitle.slice(1)}`;
-  }
-  
-  if (baseTitle.length > 80) {
-    baseTitle = baseTitle.substring(0, 77) + "...";
-  } else if (baseTitle.length < 40 && contentLower.length > 50) {
-    const firstSentence = content.split(/[.!?]/)[0].trim();
-    if (firstSentence.length >= 30 && firstSentence.length <= 80) {
-      baseTitle = firstSentence;
-    }
-  }
-  
-  return baseTitle;
+  return titles[Math.floor(Math.random() * titles.length)];
 }
 
 export function generateTitleFromContent(content: string, category: Category): string {
-  const contentClean = content.replace(/\s+/g, ' ').trim();
-  
-  const sentences = contentClean.split(/(?<=[.!?])\s+/);
-  
-  if (sentences.length > 0) {
-    let firstSentence = sentences[0].trim();
-    
-    if (firstSentence.length >= 30 && firstSentence.length <= 80) {
-      return firstSentence.replace(/[.!?]$/, '');
-    }
-    
-    if (firstSentence.length > 80) {
-      const words = firstSentence.split(' ');
-      let truncated = '';
-      for (const word of words) {
-        if ((truncated + ' ' + word).length <= 77) {
-          truncated = truncated ? truncated + ' ' + word : word;
-        } else {
-          break;
-        }
-      }
-      return truncated + '...';
-    }
-  }
-  
-  return CATEGORY_THEMES[category][0];
+  return generateFallbackTitle(content, category);
 }

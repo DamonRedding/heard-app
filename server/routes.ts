@@ -174,7 +174,7 @@ export async function registerRoutes(
         });
       }
 
-      const title = generateTitle(
+      const title = await generateTitle(
         parsed.data.content,
         parsed.data.category,
         parsed.data.timeframe,

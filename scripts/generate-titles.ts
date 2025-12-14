@@ -1,33 +1,29 @@
 /**
- * Script to retroactively add titles to existing submissions
- * Based on Reddit title optimization research:
- * - Dr. Randal S. Olson (850,000+ posts)
- * - Foundation Inc. (60,000 posts) 
- * - Koby Ofek (10+ million titles)
+ * Script to generate AI-powered titles for all existing submissions
+ * Uses OpenAI to match each post's unique voice and tone
  */
 
 import { db } from "../server/db";
 import { submissions } from "../shared/schema";
 import { generateTitle } from "../server/title-generator";
-import { isNull, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { Category } from "../shared/schema";
 
-async function generateTitlesForExistingSubmissions() {
-  console.log("Starting title generation for existing submissions...\n");
+async function generateTitlesForAllSubmissions() {
+  console.log("Starting AI title generation for all submissions...\n");
   
-  const submissionsWithoutTitles = await db
-    .select()
-    .from(submissions)
-    .where(isNull(submissions.title));
+  const allSubmissions = await db.select().from(submissions);
   
-  console.log(`Found ${submissionsWithoutTitles.length} submissions without titles.\n`);
+  console.log(`Found ${allSubmissions.length} submissions to process.\n`);
   
   let updated = 0;
   let errors = 0;
   
-  for (const submission of submissionsWithoutTitles) {
+  for (const submission of allSubmissions) {
     try {
-      const title = generateTitle(
+      console.log(`[${submission.id.substring(0, 8)}] Generating title...`);
+      
+      const title = await generateTitle(
         submission.content,
         submission.category as Category,
         submission.timeframe,
@@ -40,8 +36,10 @@ async function generateTitlesForExistingSubmissions() {
         .set({ title })
         .where(eq(submissions.id, submission.id));
       
-      console.log(`[${submission.id.substring(0, 8)}] Generated: "${title}"`);
+      console.log(`  → "${title}"`);
       updated++;
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       console.error(`[${submission.id.substring(0, 8)}] Error:`, error);
       errors++;
@@ -53,7 +51,7 @@ async function generateTitlesForExistingSubmissions() {
   console.log(`  Errors: ${errors}`);
 }
 
-generateTitlesForExistingSubmissions()
+generateTitlesForAllSubmissions()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error("Fatal error:", error);
