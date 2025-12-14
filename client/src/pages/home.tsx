@@ -7,11 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SubmissionCard, SubmissionCardSkeleton } from "@/components/submission-card";
 import { CategoryFilter } from "@/components/category-filter";
 import { Card, CardContent } from "@/components/ui/card";
-import { PenLine, RefreshCw, Loader2, Search, X, CheckCircle2, Sparkles, Flame, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { PenLine, RefreshCw, Loader2, Search, X, CheckCircle2, Sparkles, Flame, Clock, User, TrendingUp } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useFeedPersonalization } from "@/hooks/use-feed-personalization";
 import type { Submission, Category, VoteType, FlagReason } from "@shared/schema";
-import { DENOMINATIONS } from "@shared/schema";
+import { DENOMINATIONS, CATEGORIES } from "@shared/schema";
 
 type SortType = "hot" | "new";
 
@@ -34,7 +37,8 @@ function buildSubmissionsUrl(
   page: number, 
   search: string,
   denomination: string | null,
-  sort: SortType
+  sort: SortType,
+  personalizationParams?: string
 ): string {
   const params = new URLSearchParams();
   if (category) params.set("category", category);
@@ -42,6 +46,11 @@ function buildSubmissionsUrl(
   if (denomination) params.set("denomination", denomination);
   params.set("page", page.toString());
   params.set("sort", sort);
+  
+  if (!category && !search && !denomination && personalizationParams) {
+    return `/api/submissions/personalized?${params.toString()}&${personalizationParams}`;
+  }
+  
   return `/api/submissions?${params.toString()}`;
 }
 
@@ -58,6 +67,9 @@ export default function Home() {
   const [reactionsMap, setReactionsMap] = useState<Record<string, Record<string, number>>>({});
   const { toast } = useToast();
   const searchParams = useSearch();
+  
+  const { trackEngagement, getPersonalizationLevel, getPersonalizationParams, totalEngagements } = useFeedPersonalization();
+  const personalizationLevel = getPersonalizationLevel();
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
@@ -83,7 +95,8 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const submissionsUrl = buildSubmissionsUrl(selectedCategory, page, debouncedSearch, selectedDenomination, sortType);
+  const personalizationParams = getPersonalizationParams();
+  const submissionsUrl = buildSubmissionsUrl(selectedCategory, page, debouncedSearch, selectedDenomination, sortType, personalizationParams);
 
   const { data, isLoading, isFetching, refetch } = useQuery<SubmissionsResponse>({
     queryKey: [submissionsUrl],
@@ -238,9 +251,13 @@ export default function Home() {
 
   const handleVote = useCallback(
     (submissionId: string, voteType: VoteType) => {
+      const submission = allSubmissions.find(s => s.id === submissionId);
+      if (submission) {
+        trackEngagement(submission.category, "vote");
+      }
       voteMutation.mutate({ submissionId, voteType });
     },
-    [voteMutation]
+    [voteMutation, allSubmissions, trackEngagement]
   );
 
   const handleFlag = useCallback(
@@ -252,16 +269,24 @@ export default function Home() {
 
   const handleMeToo = useCallback(
     (submissionId: string) => {
+      const submission = allSubmissions.find(s => s.id === submissionId);
+      if (submission) {
+        trackEngagement(submission.category, "metoo");
+      }
       meTooMutation.mutate({ submissionId });
     },
-    [meTooMutation]
+    [meTooMutation, allSubmissions, trackEngagement]
   );
 
   const handleReact = useCallback(
     (submissionId: string, reactionType: string) => {
+      const submission = allSubmissions.find(s => s.id === submissionId);
+      if (submission) {
+        trackEngagement(submission.category, "reaction");
+      }
       reactMutation.mutate({ submissionId, reactionType });
     },
-    [reactMutation]
+    [reactMutation, allSubmissions, trackEngagement]
   );
 
   const handleLoadMore = () => {
@@ -362,16 +387,54 @@ export default function Home() {
                 {sortType === "hot" ? "Trending experiences" : "Latest experiences"}
               </span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => refetch()}
-              disabled={isFetching}
-              aria-label="Refresh feed"
-              data-testid="button-refresh"
-            >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            </Button>
+            <div className="flex items-center gap-2">
+              {personalizationLevel.level !== "new" && !hasFilters && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge 
+                      variant="secondary" 
+                      className="gap-1.5 cursor-help"
+                      data-testid="badge-personalization"
+                    >
+                      {personalizationLevel.level === "discovering" ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <User className="h-3 w-3" />
+                      )}
+                      <span className="hidden sm:inline">
+                        {personalizationLevel.level === "discovering" ? "Learning" : "For You"}
+                      </span>
+                      <span className="text-xs opacity-70">
+                        {personalizationLevel.percentage}%
+                      </span>
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[250px]">
+                    <p className="font-medium mb-1">{personalizationLevel.description}</p>
+                    {personalizationLevel.topCategories.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Top interests: {personalizationLevel.topCategories
+                          .map(tc => CATEGORIES.find(c => c.value === tc.category)?.label || tc.category)
+                          .join(", ")}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {Math.floor(totalEngagements)} interactions tracked
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                aria-label="Refresh feed"
+                data-testid="button-refresh"
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
           </div>
 
           {/* Row 2: Category Filter - Topic selection */}

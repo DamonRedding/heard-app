@@ -81,6 +81,42 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/submissions/personalized", async (req: Request, res: Response) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const sort = (req.query.sort as "hot" | "new") || "hot";
+      
+      const boostParams = req.query.boost;
+      const categoryBoosts: { category: Category; weight: number }[] = [];
+      
+      if (boostParams) {
+        const boostArray = Array.isArray(boostParams) ? boostParams : [boostParams];
+        for (const boost of boostArray) {
+          const [category, weight] = (boost as string).split(":");
+          if (category && weight) {
+            categoryBoosts.push({
+              category: category as Category,
+              weight: parseInt(weight) || 0,
+            });
+          }
+        }
+      }
+
+      const result = await storage.getPersonalizedSubmissions({
+        categoryBoosts,
+        page,
+        limit,
+        sort,
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching personalized submissions:", error);
+      res.status(500).json({ error: "Failed to fetch personalized submissions" });
+    }
+  });
+
   app.get("/api/submissions/related", async (req: Request, res: Response) => {
     try {
       const category = req.query.category as Category | undefined;

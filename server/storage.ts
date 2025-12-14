@@ -153,6 +153,13 @@ export interface IStorage {
   createEmailTracking(data: { subscriberEmail: string; emailType: EmailType; submissionId?: string | null }): Promise<EmailTracking>;
 
   markEmailOpened(trackingId: string): Promise<void>;
+
+  getPersonalizedSubmissions(options: {
+    categoryBoosts: { category: Category; weight: number }[];
+    page?: number;
+    limit?: number;
+    sort?: SortType;
+  }): Promise<{ submissions: Submission[]; total: number; hasMore: boolean }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -889,6 +896,166 @@ export class DatabaseStorage implements IStorage {
         eq(emailTracking.id, trackingId),
         sql`${emailTracking.openedAt} IS NULL`
       ));
+  }
+
+  async getPersonalizedSubmissions(options: {
+    categoryBoosts: { category: Category; weight: number }[];
+    page?: number;
+    limit?: number;
+    sort?: SortType;
+  }): Promise<{ submissions: Submission[]; total: number; hasMore: boolean }> {
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const offset = (page - 1) * limit;
+    const sortType = options.sort || "hot";
+
+    const conditions: ReturnType<typeof eq>[] = [eq(submissions.status, "active")];
+
+    const hotScoreExpression = sql`
+      (${submissions.condemnCount} + ${submissions.absolveCount}) / 
+      POWER(EXTRACT(EPOCH FROM (NOW() - ${submissions.createdAt})) / 3600 + 2, 1.5)
+    `;
+
+    const baseOrderBy = sortType === "new" 
+      ? desc(submissions.createdAt)
+      : desc(hotScoreExpression);
+
+    const selectFields = {
+      id: submissions.id,
+      content: submissions.content,
+      category: submissions.category,
+      denomination: submissions.denomination,
+      timeframe: submissions.timeframe,
+      condemnCount: submissions.condemnCount,
+      absolveCount: submissions.absolveCount,
+      meTooCount: submissions.meTooCount,
+      flagCount: submissions.flagCount,
+      status: submissions.status,
+      churchName: sql<null>`NULL`.as('churchName'),
+      pastorName: sql<null>`NULL`.as('pastorName'),
+      location: sql<null>`NULL`.as('location'),
+      createdAt: submissions.createdAt,
+    };
+
+    if (options.categoryBoosts.length === 0) {
+      const [result, countResult] = await Promise.all([
+        db
+          .select(selectFields)
+          .from(submissions)
+          .where(and(...conditions))
+          .orderBy(baseOrderBy)
+          .limit(limit)
+          .offset(offset),
+        db
+          .select({ count: count() })
+          .from(submissions)
+          .where(and(...conditions)),
+      ]);
+
+      const total = countResult[0]?.count || 0;
+      const hasMore = offset + result.length < total;
+
+      return {
+        submissions: result as Submission[],
+        total,
+        hasMore,
+      };
+    }
+
+    const rawTotalWeight = options.categoryBoosts.reduce((sum, b) => sum + b.weight, 0);
+    const cappedTotalWeight = Math.min(rawTotalWeight, 80);
+    
+    const boostedSlots = Math.floor(limit * (cappedTotalWeight / 100));
+    const regularSlots = limit - boostedSlots;
+
+    const categorySlots: { category: Category; slots: number }[] = options.categoryBoosts.map(boost => ({
+      category: boost.category,
+      slots: Math.max(1, Math.round(boostedSlots * (boost.weight / rawTotalWeight))),
+    }));
+
+    let totalAllocated = categorySlots.reduce((sum, cs) => sum + cs.slots, 0);
+    while (totalAllocated > boostedSlots && categorySlots.length > 0) {
+      const maxSlotCategory = categorySlots.reduce((max, cs) => cs.slots > max.slots ? cs : max, categorySlots[0]);
+      maxSlotCategory.slots--;
+      totalAllocated--;
+    }
+
+    const categoryQueries = categorySlots.map(cs => 
+      cs.slots > 0
+        ? db
+            .select(selectFields)
+            .from(submissions)
+            .where(and(
+              eq(submissions.status, "active"),
+              eq(submissions.category, cs.category)
+            ))
+            .orderBy(baseOrderBy)
+            .limit(cs.slots + 5)
+        : Promise.resolve([])
+    );
+
+    const regularQuery = db
+      .select(selectFields)
+      .from(submissions)
+      .where(eq(submissions.status, "active"))
+      .orderBy(baseOrderBy)
+      .limit(limit * 2)
+      .offset(offset);
+
+    const countQuery = db
+      .select({ count: count() })
+      .from(submissions)
+      .where(and(...conditions));
+
+    const [categoryResults, regularResult, countResult] = await Promise.all([
+      Promise.all(categoryQueries),
+      regularQuery,
+      countQuery,
+    ]);
+
+    const boostedPosts: Submission[] = [];
+    const usedIds = new Set<string>();
+
+    categoryResults.forEach((results, idx) => {
+      const targetSlots = categorySlots[idx].slots;
+      let added = 0;
+      for (const post of results as Submission[]) {
+        if (!usedIds.has(post.id) && added < targetSlots) {
+          boostedPosts.push(post);
+          usedIds.add(post.id);
+          added++;
+        }
+      }
+    });
+
+    const regularPosts: Submission[] = [];
+    for (const post of regularResult as Submission[]) {
+      if (!usedIds.has(post.id) && regularPosts.length < regularSlots) {
+        regularPosts.push(post);
+        usedIds.add(post.id);
+      }
+    }
+
+    const combined = [...boostedPosts, ...regularPosts];
+    
+    if (sortType === "new") {
+      combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else {
+      combined.sort((a, b) => {
+        const scoreA = (a.condemnCount + a.absolveCount) / Math.pow((Date.now() - new Date(a.createdAt).getTime()) / 3600000 + 2, 1.5);
+        const scoreB = (b.condemnCount + b.absolveCount) / Math.pow((Date.now() - new Date(b.createdAt).getTime()) / 3600000 + 2, 1.5);
+        return scoreB - scoreA;
+      });
+    }
+
+    const total = countResult[0]?.count || 0;
+    const hasMore = offset + combined.length < total;
+
+    return {
+      submissions: combined.slice(0, limit),
+      total,
+      hasMore,
+    };
   }
 }
 
