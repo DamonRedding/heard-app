@@ -103,8 +103,11 @@ export async function registerRoutes(
         }
       }
 
+      const denominationBoost = req.query.denomination as string | undefined;
+
       const result = await storage.getPersonalizedSubmissions({
         categoryBoosts,
+        denominationBoost,
         page,
         limit,
         sort,

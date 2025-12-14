@@ -911,6 +911,7 @@ export class DatabaseStorage implements IStorage {
 
   async getPersonalizedSubmissions(options: {
     categoryBoosts: { category: Category; weight: number }[];
+    denominationBoost?: string;
     page?: number;
     limit?: number;
     sort?: SortType;
@@ -919,6 +920,7 @@ export class DatabaseStorage implements IStorage {
     const limit = options.limit || 20;
     const offset = (page - 1) * limit;
     const sortType = options.sort || "hot";
+    const denominationBoost = options.denominationBoost;
 
     const conditions: ReturnType<typeof eq>[] = [eq(submissions.status, "active")];
 
@@ -1051,7 +1053,6 @@ export class DatabaseStorage implements IStorage {
 
     const combined = [...boostedPosts, ...regularPosts];
     
-    const boostedCategories = new Set(options.categoryBoosts.map(b => b.category));
     const categoryWeightMap = new Map(options.categoryBoosts.map(b => [b.category, b.weight]));
     
     if (sortType === "new") {
@@ -1059,17 +1060,23 @@ export class DatabaseStorage implements IStorage {
     } else {
       combined.sort((a, b) => {
         const calculateCompositeScore = (post: Submission): number => {
+          // Relevance: category (3x) + denomination (2x)
           const categoryWeight = categoryWeightMap.get(post.category as Category) || 0;
-          const relevanceScore = 1 + (categoryWeight / 100) * 3;
+          const categoryBoostFactor = (categoryWeight / 100) * 3;
+          const denominationMatch = denominationBoost && post.denomination === denominationBoost;
+          const denominationBoostFactor = denominationMatch ? 0.2 : 0;
+          const relevanceScore = 1 + categoryBoostFactor + denominationBoostFactor;
           
+          // Recency: linear decay from 1 to 0.5 over 14 days, then clamp at 0.5
           const ageInDays = (Date.now() - new Date(post.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-          const recencyScore = ageInDays >= 7 ? 0.5 : 1 - (ageInDays / 14);
+          const recencyScore = Math.max(0.5, 1 - (ageInDays / 28));
           
+          // Engagement: (reactions + comments) / max(views, 1), capped at 2
           const totalReactions = post.condemnCount + post.absolveCount + post.meTooCount;
           const viewCount = Math.max(post.viewCount || 1, 1);
           const commentCount = post.commentCount || 0;
-          const engagementRate = (totalReactions + commentCount * 2) / viewCount;
-          const engagementScore = Math.min(engagementRate + 0.1, 2);
+          const engagementRate = (totalReactions + commentCount) / viewCount;
+          const engagementScore = Math.min(engagementRate, 2);
           
           return relevanceScore * recencyScore * engagementScore;
         };
