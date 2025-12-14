@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle2, Users, MessageCircle, ThumbsUp, ThumbsDown, ArrowRight, ArrowLeft, Mail, BookOpen, Loader2, Calendar, Check } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { posthog } from "@/lib/posthog";
 import { formatDistanceToNow } from "date-fns";
 import { CATEGORIES, type Submission, type Category } from "@shared/schema";
 
@@ -145,6 +146,16 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
   const { toast } = useToast();
 
   const engagedCount = engagedIds.size;
+
+  // Track post-submit flow screen views for funnel analysis
+  useEffect(() => {
+    posthog.capture('post_submit_screen_viewed', {
+      step,
+      step_name: step === 1 ? 'confirmation' : step === 2 ? 'related_stories' : 'email_subscription',
+      submission_id: submittedSubmission.id,
+      category: submittedSubmission.category,
+    });
+  }, [step, submittedSubmission.id, submittedSubmission.category]);
 
   const { data: stats, isLoading: statsLoading } = useQuery<CommunityStats>({
     queryKey: ["/api/community/stats"],
