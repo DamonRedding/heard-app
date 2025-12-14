@@ -189,7 +189,7 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
       } else {
         setNewComment("");
       }
-      queryClient.invalidateQueries({ queryKey: ['/api/submissions', submissionId, 'comments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/submissions', submissionId, 'comments', sortBy] });
       toast({
         title: variables.parentId ? "Reply added" : "Comment added",
         description: "Your comment has been posted.",
@@ -214,7 +214,7 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
         ...prev,
         [variables.commentId]: data.action === "removed" ? null : variables.voteType,
       }));
-      queryClient.invalidateQueries({ queryKey: ['/api/submissions', submissionId, 'comments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/submissions', submissionId, 'comments', sortBy] });
     },
     onError: () => {
       toast({
