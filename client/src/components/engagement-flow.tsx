@@ -50,15 +50,23 @@ function RelatedPostCard({
   onVote: (id: string) => void;
   isEngaged: boolean;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const categoryLabel = getCategoryLabel(submission.category);
   const timeAgo = formatDistanceToNow(new Date(submission.createdAt), { addSuffix: false });
-  const contentPreview = submission.content.length > 120 
-    ? `"${submission.content.slice(0, 120)}..."` 
-    : `"${submission.content}"`;
+  const isTruncated = submission.content.length > 120;
+  const contentPreview = isExpanded || !isTruncated
+    ? `"${submission.content}"`
+    : `"${submission.content.slice(0, 120)}..."`;
 
   const handleVote = () => {
     if (!isEngaged) {
       onVote(submission.id);
+    }
+  };
+
+  const handleToggleExpand = () => {
+    if (isTruncated) {
+      setIsExpanded(!isExpanded);
     }
   };
 
@@ -84,9 +92,36 @@ function RelatedPostCard({
           </p>
         </div>
 
-        <p className="font-serif text-sm leading-relaxed" data-testid={`related-content-${submission.id}`}>
-          {contentPreview}
-        </p>
+        <div 
+          className={isTruncated ? "cursor-pointer hover:bg-accent/5 rounded-md transition-colors -mx-2 px-2 -my-1 py-1" : ""}
+          onClick={handleToggleExpand}
+          role={isTruncated ? "button" : undefined}
+          tabIndex={isTruncated ? 0 : undefined}
+          onKeyDown={(e) => {
+            if (isTruncated && (e.key === "Enter" || e.key === " ")) {
+              e.preventDefault();
+              handleToggleExpand();
+            }
+          }}
+          data-testid={`related-content-area-${submission.id}`}
+        >
+          <p className="font-serif text-sm leading-relaxed" data-testid={`related-content-${submission.id}`}>
+            {contentPreview}
+          </p>
+          {isTruncated && (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-primary hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleExpand();
+              }}
+              data-testid={`button-toggle-expand-${submission.id}`}
+            >
+              {isExpanded ? "Show less" : "Read more"}
+            </button>
+          )}
+        </div>
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
