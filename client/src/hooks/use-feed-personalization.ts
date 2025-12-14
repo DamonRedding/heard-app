@@ -9,8 +9,15 @@ interface CategoryEngagement {
   lastEngaged: number;
 }
 
+interface DenominationEngagement {
+  denomination: string;
+  count: number;
+  lastEngaged: number;
+}
+
 interface PersonalizationData {
   engagements: Record<Category, CategoryEngagement>;
+  denominationEngagements: Record<string, DenominationEngagement>;
   totalEngagements: number;
   firstVisit: number;
   lastVisit: number;
@@ -25,6 +32,7 @@ interface PersonalizationLevel {
 
 const DEFAULT_DATA: PersonalizationData = {
   engagements: {} as Record<Category, CategoryEngagement>,
+  denominationEngagements: {} as Record<string, DenominationEngagement>,
   totalEngagements: 0,
   firstVisit: Date.now(),
   lastVisit: Date.now(),
@@ -64,7 +72,11 @@ export function useFeedPersonalization() {
     saveData(stored);
   }, []);
 
-  const trackEngagement = useCallback((category: Category, type: "vote" | "reaction" | "comment" | "metoo" | "view") => {
+  const trackEngagement = useCallback((
+    category: Category, 
+    type: "vote" | "reaction" | "comment" | "metoo" | "view",
+    denomination?: string | null
+  ) => {
     setData((prev) => {
       const current = prev.engagements[category] || { category, count: 0, lastEngaged: 0 };
       
@@ -81,6 +93,23 @@ export function useFeedPersonalization() {
         totalEngagements: prev.totalEngagements + 1,
         lastVisit: Date.now(),
       };
+      
+      if (denomination && denomination.trim()) {
+        const denomKey = denomination.trim();
+        const currentDenom = prev.denominationEngagements[denomKey] || { 
+          denomination: denomKey, 
+          count: 0, 
+          lastEngaged: 0 
+        };
+        updated.denominationEngagements = {
+          ...prev.denominationEngagements,
+          [denomKey]: {
+            denomination: denomKey,
+            count: currentDenom.count + 1,
+            lastEngaged: Date.now(),
+          },
+        };
+      }
       
       saveData(updated);
       return updated;
@@ -158,6 +187,18 @@ export function useFeedPersonalization() {
     return weights;
   }, [getPersonalizationLevel]);
 
+  const getTopDenomination = useCallback((): string | null => {
+    const denomList = Object.values(data.denominationEngagements)
+      .filter((e) => e.count > 0)
+      .sort((a, b) => b.count - a.count);
+    
+    if (denomList.length === 0 || denomList[0].count < 2) {
+      return null;
+    }
+    
+    return denomList[0].denomination;
+  }, [data]);
+
   const getPersonalizationParams = useCallback((): string => {
     const level = getPersonalizationLevel();
     
@@ -169,10 +210,16 @@ export function useFeedPersonalization() {
     level.topCategories.forEach(({ category, weight }) => {
       params.append("boost", `${category}:${weight}`);
     });
+    
+    const topDenom = getTopDenomination();
+    if (topDenom) {
+      params.set("denomination", topDenom);
+    }
+    
     params.set("personalized", "true");
     
     return params.toString();
-  }, [getPersonalizationLevel]);
+  }, [getPersonalizationLevel, getTopDenomination]);
 
   const resetPersonalization = useCallback(() => {
     const fresh = { ...DEFAULT_DATA, firstVisit: Date.now(), lastVisit: Date.now() };
@@ -186,6 +233,7 @@ export function useFeedPersonalization() {
     getPersonalizationLevel,
     getCategoryWeights,
     getPersonalizationParams,
+    getTopDenomination,
     resetPersonalization,
     totalEngagements: data.totalEngagements,
   };
