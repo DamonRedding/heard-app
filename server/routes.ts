@@ -631,6 +631,21 @@ export async function registerRoutes(
     }
   });
 
+  // Email tracking pixel endpoint
+  app.get("/api/email/track/:trackingId.png", async (req: Request, res: Response) => {
+    const { trackingId } = req.params;
+    try {
+      await storage.markEmailOpened(trackingId);
+    } catch (e) {
+      console.error("Email tracking error:", e);
+    }
+    // Return 1x1 transparent PNG
+    const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.send(pixel);
+  });
+
   app.post("/api/email-subscribers", async (req: Request, res: Response) => {
     console.log("POST /api/email-subscribers received:", JSON.stringify(req.body));
     try {
@@ -653,7 +668,14 @@ export async function registerRoutes(
       console.log("Created subscriber:", subscriber.id, subscriber.email);
       
       console.log("Sending welcome email to:", parsed.data.email);
-      sendWelcomeEmail(parsed.data.email).then((result) => {
+      // Create email tracking record and send with tracking pixel
+      storage.createEmailTracking({
+        subscriberEmail: parsed.data.email,
+        emailType: "welcome",
+        submissionId: parsed.data.submissionId,
+      }).then((tracking) => {
+        return sendWelcomeEmail(parsed.data.email, tracking.id);
+      }).then((result) => {
         if (result.success) {
           console.log("Welcome email sent successfully to:", parsed.data.email);
         } else {

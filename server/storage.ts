@@ -8,6 +8,7 @@ import {
   reactions,
   emailSubscribers,
   notificationEvents,
+  emailTracking,
   type Submission,
   type InsertSubmission,
   type Vote,
@@ -28,6 +29,8 @@ import {
   type NotificationEvent,
   type InsertNotificationEvent,
   type NotificationEventType,
+  type EmailTracking,
+  type EmailType,
   type Category,
   type Status,
   type ReactionType,
@@ -146,6 +149,10 @@ export interface IStorage {
   hasRecentNotification(email: string, submissionId: string, eventType: NotificationEventType, hoursAgo: number): Promise<boolean>;
 
   getPopularSubmissionsForDigest(limit: number): Promise<Submission[]>;
+
+  createEmailTracking(data: { subscriberEmail: string; emailType: EmailType; submissionId?: string | null }): Promise<EmailTracking>;
+
+  markEmailOpened(trackingId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -860,6 +867,28 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
 
     return result as Submission[];
+  }
+
+  async createEmailTracking(data: { subscriberEmail: string; emailType: EmailType; submissionId?: string | null }): Promise<EmailTracking> {
+    const [result] = await db
+      .insert(emailTracking)
+      .values({
+        subscriberEmail: data.subscriberEmail,
+        emailType: data.emailType,
+        submissionId: data.submissionId || null,
+      })
+      .returning();
+    return result;
+  }
+
+  async markEmailOpened(trackingId: string): Promise<void> {
+    await db
+      .update(emailTracking)
+      .set({ openedAt: new Date() })
+      .where(and(
+        eq(emailTracking.id, trackingId),
+        sql`${emailTracking.openedAt} IS NULL`
+      ));
   }
 }
 

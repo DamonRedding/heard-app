@@ -76,7 +76,17 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
   }
 }
 
-export async function sendWelcomeEmail(email: string): Promise<{ success: boolean; error?: string }> {
+function getTrackingPixel(trackingId?: string): string {
+  if (!trackingId) return '';
+  const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+    ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+    : process.env.REPL_SLUG 
+      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+      : 'http://localhost:5000';
+  return `<img src="${baseUrl}/api/email/track/${trackingId}.png" width="1" height="1" style="display:none" alt="" />`;
+}
+
+export async function sendWelcomeEmail(email: string, trackingId?: string): Promise<{ success: boolean; error?: string }> {
   return sendEmail({
     to: email,
     subject: 'Welcome to ChurchHeard',
@@ -88,6 +98,7 @@ export async function sendWelcomeEmail(email: string): Promise<{ success: boolea
         <p>We're glad you're here.</p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
         <p style="color: #666; font-size: 12px;">You received this email because you subscribed to ChurchHeard updates.</p>
+        ${getTrackingPixel(trackingId)}
       </div>
     `,
     text: `Welcome to ChurchHeard\n\nThank you for joining our community. Your voice matters.\n\nChurchHeard is a safe space where church members can share their experiences anonymously and support one another.\n\nWe're glad you're here.`
@@ -97,7 +108,8 @@ export async function sendWelcomeEmail(email: string): Promise<{ success: boolea
 export async function sendSubmissionNotificationEmail(
   subscriberEmail: string, 
   submissionTitle: string,
-  category: string
+  category: string,
+  trackingId?: string
 ): Promise<{ success: boolean; error?: string }> {
   return sendEmail({
     to: subscriberEmail,
@@ -111,6 +123,7 @@ export async function sendSubmissionNotificationEmail(
         <p>Visit ChurchHeard to read and support this story.</p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
         <p style="color: #666; font-size: 12px;">You received this email because you subscribed to ChurchHeard updates.</p>
+        ${getTrackingPixel(trackingId)}
       </div>
     `,
     text: `A New Story Has Been Shared\n\nSomeone in our community has shared a new experience.\n\nCategory: ${category}\nTitle: ${submissionTitle}\n\nVisit ChurchHeard to read and support this story.`

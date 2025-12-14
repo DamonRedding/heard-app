@@ -236,6 +236,21 @@ export const notificationEventsRelations = relations(notificationEvents, ({ one 
   }),
 }));
 
+export const emailTypeEnum = pgEnum("email_type", [
+  "welcome",
+  "engagement_notification",
+  "weekly_digest"
+]);
+
+export const emailTracking = pgTable("email_tracking", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  subscriberEmail: text("subscriber_email").notNull(),
+  emailType: emailTypeEnum("email_type").notNull(),
+  submissionId: varchar("submission_id").references(() => submissions.id, { onDelete: "set null" }),
+  sentAt: timestamp("sent_at").notNull().defaultNow(),
+  openedAt: timestamp("opened_at"),
+});
+
 export const insertSubmissionSchema = createInsertSchema(submissions).omit({
   id: true,
   condemnCount: true,
@@ -323,6 +338,9 @@ export type EmailSubscriber = typeof emailSubscribers.$inferSelect;
 export type InsertNotificationEvent = z.infer<typeof insertNotificationEventSchema>;
 export type NotificationEvent = typeof notificationEvents.$inferSelect;
 export type NotificationEventType = "new_submission" | "engagement_vote" | "engagement_comment" | "engagement_metoo" | "weekly_digest";
+
+export type EmailTracking = typeof emailTracking.$inferSelect;
+export type EmailType = "welcome" | "engagement_notification" | "weekly_digest";
 
 export type Category = "leadership" | "financial" | "culture" | "misconduct" | "spiritual_abuse" | "other";
 export type Timeframe = "last_month" | "last_year" | "one_to_five_years" | "five_plus_years";
