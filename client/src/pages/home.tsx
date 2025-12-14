@@ -253,7 +253,7 @@ export default function Home() {
     (submissionId: string, voteType: VoteType) => {
       const submission = allSubmissions.find(s => s.id === submissionId);
       if (submission) {
-        trackEngagement(submission.category, "vote", submission.denomination);
+        trackEngagement(submission.category, "vote", submission.denomination, submission.content);
       }
       voteMutation.mutate({ submissionId, voteType });
     },
@@ -271,7 +271,7 @@ export default function Home() {
     (submissionId: string) => {
       const submission = allSubmissions.find(s => s.id === submissionId);
       if (submission) {
-        trackEngagement(submission.category, "metoo", submission.denomination);
+        trackEngagement(submission.category, "metoo", submission.denomination, submission.content);
       }
       meTooMutation.mutate({ submissionId });
     },
@@ -282,7 +282,7 @@ export default function Home() {
     (submissionId: string, reactionType: string) => {
       const submission = allSubmissions.find(s => s.id === submissionId);
       if (submission) {
-        trackEngagement(submission.category, "reaction", submission.denomination);
+        trackEngagement(submission.category, "reaction", submission.denomination, submission.content);
       }
       reactMutation.mutate({ submissionId, reactionType });
     },

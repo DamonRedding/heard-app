@@ -15,9 +15,15 @@ interface DenominationEngagement {
   lastEngaged: number;
 }
 
+interface KeywordData {
+  count: number;
+  lastSeen: number;
+}
+
 interface PersonalizationData {
   engagements: Record<Category, CategoryEngagement>;
   denominationEngagements: Record<string, DenominationEngagement>;
+  keywords: Record<string, KeywordData>;
   totalEngagements: number;
   firstVisit: number;
   lastVisit: number;
@@ -33,10 +39,32 @@ interface PersonalizationLevel {
 const DEFAULT_DATA: PersonalizationData = {
   engagements: {} as Record<Category, CategoryEngagement>,
   denominationEngagements: {} as Record<string, DenominationEngagement>,
+  keywords: {} as Record<string, KeywordData>,
   totalEngagements: 0,
   firstVisit: Date.now(),
   lastVisit: Date.now(),
 };
+
+const STOP_WORDS = new Set([
+  "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with",
+  "by", "from", "as", "is", "was", "are", "were", "been", "be", "have", "has", "had",
+  "do", "does", "did", "will", "would", "could", "should", "may", "might", "must",
+  "shall", "can", "need", "i", "you", "he", "she", "it", "we", "they", "my", "your",
+  "his", "her", "its", "our", "their", "this", "that", "these", "those", "what",
+  "which", "who", "whom", "when", "where", "why", "how", "all", "each", "every",
+  "both", "few", "more", "most", "other", "some", "such", "no", "not", "only",
+  "same", "so", "than", "too", "very", "just", "also", "now", "here", "there",
+  "then", "once", "church", "pastor", "me", "about", "after", "before", "up", "down"
+]);
+
+function extractKeywords(content: string): string[] {
+  return content
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .filter(word => word.length >= 4 && !STOP_WORDS.has(word))
+    .slice(0, 20);
+}
 
 function getStoredData(): PersonalizationData {
   try {
@@ -75,7 +103,8 @@ export function useFeedPersonalization() {
   const trackEngagement = useCallback((
     category: Category, 
     type: "vote" | "reaction" | "comment" | "metoo" | "view",
-    denomination?: string | null
+    denomination?: string | null,
+    content?: string | null
   ) => {
     setData((prev) => {
       const current = prev.engagements[category] || { category, count: 0, lastEngaged: 0 };
@@ -109,6 +138,22 @@ export function useFeedPersonalization() {
             lastEngaged: Date.now(),
           },
         };
+      }
+      
+      if (content) {
+        const keywords = extractKeywords(content);
+        const newKeywords: Record<string, KeywordData> = {};
+        for (const key of Object.keys(prev.keywords)) {
+          newKeywords[key] = { ...prev.keywords[key] };
+        }
+        for (const word of keywords) {
+          const existing = newKeywords[word] || { count: 0, lastSeen: 0 };
+          newKeywords[word] = {
+            count: existing.count + 1,
+            lastSeen: Date.now(),
+          };
+        }
+        updated.keywords = newKeywords;
       }
       
       saveData(updated);
@@ -227,6 +272,23 @@ export function useFeedPersonalization() {
     saveData(fresh);
   }, []);
 
+  const getKeywordRelevanceScore = useCallback((content: string): number => {
+    if (Object.keys(data.keywords).length === 0) return 0;
+    
+    const contentKeywords = extractKeywords(content);
+    if (contentKeywords.length === 0) return 0;
+    
+    let matchScore = 0;
+    for (const word of contentKeywords) {
+      const keywordData = data.keywords[word];
+      if (keywordData) {
+        matchScore += Math.min(keywordData.count, 5);
+      }
+    }
+    
+    return Math.min(matchScore / contentKeywords.length, 1);
+  }, [data.keywords]);
+
   return {
     data,
     trackEngagement,
@@ -234,6 +296,7 @@ export function useFeedPersonalization() {
     getCategoryWeights,
     getPersonalizationParams,
     getTopDenomination,
+    getKeywordRelevanceScore,
     resetPersonalization,
     totalEngagements: data.totalEngagements,
   };
