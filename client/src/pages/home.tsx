@@ -354,7 +354,7 @@ export default function Home() {
           data-testid="mobile-sticky-tabs"
         >
           <div className="flex items-center justify-between px-4 py-2.5">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Link href="/" data-testid="mobile-logo">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                   <span className="text-sm font-bold text-primary-foreground">H</span>
@@ -365,52 +365,64 @@ export default function Home() {
                   variant={sortType === "hot" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setSortType("hot")}
-                  className="gap-1.5 min-w-[60px] h-8 text-xs"
+                  className="gap-1.5 min-w-[70px] h-9 text-sm"
                   role="tab"
                   aria-selected={sortType === "hot"}
                   data-testid="button-sort-hot-sticky"
                 >
-                  <Flame className="h-3.5 w-3.5" />
+                  <Flame className="h-4 w-4" />
                   Hot
                 </Button>
                 <Button
                   variant={sortType === "new" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setSortType("new")}
-                  className="gap-1.5 min-w-[60px] h-8 text-xs"
+                  className="gap-1.5 min-w-[70px] h-9 text-sm"
                   role="tab"
                   aria-selected={sortType === "new"}
                   data-testid="button-sort-new-sticky"
                 >
-                  <Clock className="h-3.5 w-3.5" />
+                  <Clock className="h-4 w-4" />
                   New
                 </Button>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <MobileFilterSheet
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-                selectedDenomination={selectedDenomination}
-                onDenominationChange={setSelectedDenomination}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                categoryCounts={countsData?.counts}
-                hasActiveFilters={!!hasFilters}
-                onClearFilters={clearFilters}
-              />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              aria-label="Refresh feed"
+              className="h-9 w-9"
+              data-testid="button-refresh-sticky"
+            >
+              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+            </Button>
+          </div>
+          <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/20">
+            <MobileFilterSheet
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              selectedDenomination={selectedDenomination}
+              onDenominationChange={setSelectedDenomination}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              categoryCounts={countsData?.counts}
+              hasActiveFilters={!!hasFilters}
+              onClearFilters={clearFilters}
+            />
+            {hasFilters && (
               <Button
                 variant="ghost"
-                size="icon"
-                onClick={() => refetch()}
-                disabled={isFetching}
-                aria-label="Refresh feed"
-                className="h-8 w-8"
-                data-testid="button-refresh-sticky"
+                size="sm"
+                onClick={clearFilters}
+                className="text-muted-foreground text-xs h-8"
+                data-testid="button-clear-filters-mobile"
               >
-                <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+                <X className="h-3.5 w-3.5 mr-1" />
+                Clear filters
               </Button>
-            </div>
+            )}
           </div>
         </div>
       )}
