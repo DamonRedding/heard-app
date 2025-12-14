@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { FeedbackButton } from "@/components/feedback-button";
 import { PenLine, Info, Shield, Home } from "lucide-react";
 
 export function Header() {
@@ -68,6 +69,7 @@ export function Header() {
             </Button>
           </Link>
 
+          <FeedbackButton />
           <ThemeToggle />
         </nav>
       </div>

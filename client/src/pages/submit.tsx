@@ -10,6 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { posthog } from "@/lib/posthog";
 import type { InsertSubmission, Submission } from "@shared/schema";
 
+const FEEDBACK_SURVEY_ID = "019b1a12-c6bd-0000-f85d-8f5186253654";
+const FEEDBACK_SHOWN_KEY = "heard_feedback_shown";
+
 export default function Submit() {
   const [submittedSubmission, setSubmittedSubmission] = useState<Submission | null>(null);
   const [showEngagementFlow, setShowEngagementFlow] = useState(false);
@@ -53,6 +56,18 @@ export default function Submit() {
       submission_id: submittedSubmission?.id,
       category: submittedSubmission?.category,
     });
+    
+    const lastShown = localStorage.getItem(FEEDBACK_SHOWN_KEY);
+    const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const shouldShowFeedback = !lastShown || parseInt(lastShown) < oneWeekAgo;
+    
+    if (shouldShowFeedback) {
+      localStorage.setItem(FEEDBACK_SHOWN_KEY, Date.now().toString());
+      posthog.capture("survey shown", {
+        $survey_id: FEEDBACK_SURVEY_ID,
+        trigger: "post_engagement_flow",
+      });
+    }
     
     if (submittedSubmission) {
       setLocation(`/?highlight=${submittedSubmission.id}&welcome=true`);
