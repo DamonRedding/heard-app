@@ -1,8 +1,8 @@
 /**
  * AI-Powered Title Generator
  * 
- * Uses OpenAI to generate varied, authentic titles that sound like the author wrote them.
- * Emphasizes diversity and natural voice over formulaic patterns.
+ * Uses OpenAI to generate titles that are directly connected to and derived from
+ * the actual post content. Prioritizes accuracy over creativity.
  */
 
 import OpenAI from "openai";
@@ -13,33 +13,6 @@ const client = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
 });
 
-const CATEGORY_EMOTIONAL_CONTEXT: Record<Category, string> = {
-  leadership: "authority, power dynamics, trust betrayal, institutional failure, speaking up",
-  financial: "money pressure, transparency issues, accountability, giving, sacrifice",
-  culture: "belonging, exclusion, judgment, community dynamics, feeling unseen",
-  misconduct: "witnessing wrongdoing, institutional betrayal, justice, breaking silence",
-  spiritual_abuse: "manipulation, control, weaponized faith, shame, freedom",
-  other: "personal journey, church experience, faith community",
-};
-
-const DIVERSE_TITLE_EXAMPLES = [
-  "After 15 years, I finally left",
-  "What nobody tells you about megachurch finances",
-  "The sermon that changed everything",
-  "I was the pastor's favorite until I wasn't",
-  "Three words that shattered my faith",
-  "Why I stopped tithing",
-  "The meeting that ended my silence",
-  "Twelve years of looking the other way",
-  "When the elders chose money over truth",
-  "I believed them for too long",
-  "The day I walked out mid-service",
-  "How my church became a business",
-  "Nobody warned me about the inner circle",
-  "The guilt trips finally stopped working",
-  "What happens when you question the pastor",
-];
-
 export async function generateTitle(
   content: string,
   category: Category,
@@ -48,64 +21,45 @@ export async function generateTitle(
   denomination?: string | null
 ): Promise<string> {
   try {
-    const emotionalContext = CATEGORY_EMOTIONAL_CONTEXT[category] || CATEGORY_EMOTIONAL_CONTEXT.other;
-    const contentPreview = content.length > 1200 ? content.substring(0, 1200) + "..." : content;
+    const contentPreview = content.length > 1500 ? content.substring(0, 1500) + "..." : content;
     
-    const randomExamples = DIVERSE_TITLE_EXAMPLES
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 5)
-      .map(t => `- "${t}"`)
-      .join("\n");
+    const prompt = `Create a title for this anonymous church experience post. The title MUST directly reflect the actual content - do not invent details or themes that aren't present.
 
-    const styleHints = [
-      "a dramatic moment or turning point",
-      "a time reference (years, days, moments)",
-      "a specific detail from their story",
-      "an emotional realization",
-      "something they discovered or learned",
-      "a contrast or irony",
-      "what they wish they knew",
-      "the thing that finally broke them",
-    ];
-    const randomHint = styleHints[Math.floor(Math.random() * styleHints.length)];
+POST CONTENT:
+"${contentPreview}"
 
-    const prompt = `Write ONE title for this anonymous church experience post. The title should sound exactly like the person who wrote the post.
+METADATA:
+- Category: ${category}
+- When it happened: ${timeframe.replace(/_/g, " ")}${denomination ? `\n- Denomination: ${denomination}` : ""}${churchName ? `\n- Church: ${churchName}` : ""}
 
-POST:
-${contentPreview}
+STRICT REQUIREMENTS:
+1. The title MUST be derived from actual words, phrases, or events in the post
+2. Do NOT invent dramatic themes that aren't explicitly stated
+3. Do NOT use clichés like "breaking my silence" or "trust shattered" unless those exact concepts appear
+4. If the post mentions specific events, use those as the title basis
+5. If the post is vague, create a simple, honest title that matches its tone
+6. Length: 35-70 characters
+7. No questions, no emojis
+8. Use the author's actual vocabulary when possible
 
-CONTEXT: ${category} (themes: ${emotionalContext})${denomination ? ` | ${denomination}` : ""}
+APPROACH:
+- Pull a key phrase or sentence directly from the content
+- Summarize the main point in the author's own voice
+- Keep it simple and honest rather than dramatic
 
-DIVERSE TITLE STYLES (for inspiration only, don't copy):
-${randomExamples}
-
-THIS title should focus on: ${randomHint}
-
-RULES:
-- 40-75 characters
-- Sound human and personal, not corporate or clickbait
-- Match the emotional tone of the post
-- Avoid generic phrases like "My experience with..." or "The truth about..."
-- No questions, no emojis
-- Be specific to THIS story, not generic church complaints
-- Vary your approach - could be a moment, a realization, a time reference, a detail
-
-Return ONLY the title, no quotes or explanation.`;
+Return ONLY the title text.`;
 
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 80,
-      temperature: 0.95,
-      top_p: 0.9,
-      frequency_penalty: 0.4,
-      presence_penalty: 0.3,
+      max_tokens: 60,
+      temperature: 0.5,
     });
 
     let title = response.choices[0]?.message?.content?.trim() || "";
     title = title.replace(/^["']|["']$/g, "").trim();
     
-    if (title.length < 15 || title.length > 100) {
+    if (title.length < 15 || title.length > 90) {
       return generateFallbackTitle(content, category);
     }
     
@@ -117,46 +71,36 @@ Return ONLY the title, no quotes or explanation.`;
 }
 
 function generateFallbackTitle(content: string, category: Category): string {
-  const firstSentence = content.split(/[.!?]/)[0]?.trim();
-  if (firstSentence && firstSentence.length >= 25 && firstSentence.length <= 75) {
+  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const firstSentence = sentences[0]?.trim();
+  
+  if (firstSentence && firstSentence.length >= 20 && firstSentence.length <= 70) {
     return firstSentence;
   }
   
-  const categoryFallbacks: Record<Category, string[]> = {
-    leadership: [
-      "When the pastor became untouchable",
-      "The leadership meeting that changed everything",
-      "I finally saw behind the curtain",
-    ],
-    financial: [
-      "Following the money changed my faith",
-      "The building fund that broke my trust",
-      "When giving became obligation",
-    ],
-    culture: [
-      "The in-crowd I was never part of",
-      "Invisible in my own church",
-      "When community became performance",
-    ],
-    misconduct: [
-      "What I saw that I can't unsee",
-      "The day everything changed",
-      "When silence was no longer an option",
-    ],
-    spiritual_abuse: [
-      "How scripture became a weapon",
-      "The shame that kept me quiet",
-      "Breaking free after years of control",
-    ],
-    other: [
-      "A story that needs to be told",
-      "What happened at my church",
-      "The moment I knew something was wrong",
-    ],
+  if (firstSentence && firstSentence.length > 70) {
+    const words = firstSentence.split(' ');
+    let truncated = '';
+    for (const word of words) {
+      if ((truncated + ' ' + word).trim().length <= 65) {
+        truncated = (truncated + ' ' + word).trim();
+      } else {
+        break;
+      }
+    }
+    return truncated + '...';
+  }
+  
+  const categoryLabels: Record<Category, string> = {
+    leadership: "A leadership experience at my church",
+    financial: "A financial experience at my church", 
+    culture: "A culture experience at my church",
+    misconduct: "What I witnessed at my church",
+    spiritual_abuse: "A spiritual experience at my church",
+    other: "An experience at my church",
   };
 
-  const options = categoryFallbacks[category] || categoryFallbacks.other;
-  return options[Math.floor(Math.random() * options.length)];
+  return categoryLabels[category] || categoryLabels.other;
 }
 
 export function generateTitleFromContent(content: string, category: Category): string {
