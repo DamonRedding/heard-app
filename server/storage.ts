@@ -197,12 +197,18 @@ export class DatabaseStorage implements IStorage {
     }
     if (options?.search) {
       const searchPattern = `%${options.search}%`;
+      const matchingCommentSubmissions = db
+        .select({ submissionId: comments.submissionId })
+        .from(comments)
+        .where(ilike(comments.content, searchPattern));
+      
       conditions.push(
         or(
           ilike(submissions.content, searchPattern),
           ilike(submissions.churchName, searchPattern),
           ilike(submissions.pastorName, searchPattern),
-          ilike(submissions.location, searchPattern)
+          ilike(submissions.location, searchPattern),
+          inArray(submissions.id, matchingCommentSubmissions)
         )!
       );
     }
