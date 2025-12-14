@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ interface PullToRefreshProps {
 
 const PULL_THRESHOLD = 80;
 const RESISTANCE = 2.5;
+const DIRECTION_LOCK_THRESHOLD = 10;
 
 export function PullToRefresh({ 
   onRefresh, 
@@ -23,40 +24,54 @@ export function PullToRefresh({
   const [isPulling, setIsPulling] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const startYRef = useRef(0);
-  const currentYRef = useRef(0);
+  const directionLockedRef = useRef<"down" | "up" | null>(null);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (disabled || isRefreshing) return;
     
-    const container = containerRef.current;
-    if (!container) return;
-    
-    if (container.scrollTop <= 0) {
-      startYRef.current = e.touches[0].clientY;
-      setIsPulling(true);
-    }
+    startYRef.current = e.touches[0].clientY;
+    directionLockedRef.current = null;
   }, [disabled, isRefreshing]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isPulling || disabled || isRefreshing) return;
+    if (disabled || isRefreshing) return;
     
     const container = containerRef.current;
-    if (!container || container.scrollTop > 0) {
+    if (!container) return;
+
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - startYRef.current;
+    
+    if (directionLockedRef.current === null && Math.abs(diff) > DIRECTION_LOCK_THRESHOLD) {
+      directionLockedRef.current = diff > 0 ? "down" : "up";
+    }
+    
+    if (directionLockedRef.current === "up") {
+      setPullDistance(0);
+      setIsPulling(false);
+      return;
+    }
+    
+    if (container.scrollTop <= 0 && diff > 0 && directionLockedRef.current === "down") {
+      setIsPulling(true);
+      const distance = Math.min(diff / RESISTANCE, PULL_THRESHOLD * 1.5);
+      setPullDistance(distance);
+    } else {
+      if (isPulling && diff <= 0) {
+        setPullDistance(0);
+        setIsPulling(false);
+      }
+    }
+  }, [disabled, isRefreshing, isPulling]);
+
+  const handleTouchEnd = useCallback(async () => {
+    directionLockedRef.current = null;
+    
+    if (!isPulling || disabled) {
+      setIsPulling(false);
       setPullDistance(0);
       return;
     }
-
-    currentYRef.current = e.touches[0].clientY;
-    const diff = currentYRef.current - startYRef.current;
-    
-    if (diff > 0) {
-      const distance = Math.min(diff / RESISTANCE, PULL_THRESHOLD * 1.5);
-      setPullDistance(distance);
-    }
-  }, [isPulling, disabled, isRefreshing]);
-
-  const handleTouchEnd = useCallback(async () => {
-    if (!isPulling || disabled) return;
     
     setIsPulling(false);
 
@@ -75,6 +90,12 @@ export function PullToRefresh({
     }
   }, [isPulling, pullDistance, isRefreshing, onRefresh, disabled]);
 
+  const handleTouchCancel = useCallback(() => {
+    directionLockedRef.current = null;
+    setIsPulling(false);
+    setPullDistance(0);
+  }, []);
+
   const progress = Math.min(pullDistance / PULL_THRESHOLD, 1);
   const rotation = progress * 360;
   const showIndicator = pullDistance > 10 || isRefreshing;
@@ -82,10 +103,11 @@ export function PullToRefresh({
   return (
     <div
       ref={containerRef}
-      className={cn("relative overflow-auto", className)}
+      className={cn("relative", className)}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
     >
       <div
         className={cn(
