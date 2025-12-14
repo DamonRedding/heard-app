@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
-import { MobileNavigation, FloatingActionButton } from "@/components/mobile-navigation";
+import { MobileNavigation } from "@/components/mobile-navigation";
 import Home from "@/pages/home";
 import Submit from "@/pages/submit";
 import About from "@/pages/about";
@@ -32,7 +32,6 @@ function App() {
           <div className="min-h-screen bg-background text-foreground pb-16 md:pb-0">
             <Header />
             <Router />
-            <FloatingActionButton />
             <MobileNavigation />
           </div>
           <Toaster />

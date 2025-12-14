@@ -69,12 +69,10 @@ export default function Home() {
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [highlightedSubmissionId, setHighlightedSubmissionId] = useState<string | null>(null);
   const [reactionsMap, setReactionsMap] = useState<Record<string, Record<string, number>>>({});
-  const [heroCollapsed, setHeroCollapsed] = useState(false);
   const { toast } = useToast();
   const searchParams = useSearch();
   const isMobile = useIsMobile();
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const lastScrollY = useRef(0);
   
   const { trackEngagement, getPersonalizationLevel, getPersonalizationParams, totalEngagements } = useFeedPersonalization();
   const personalizationLevel = getPersonalizationLevel();
@@ -102,23 +100,6 @@ export default function Home() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  useEffect(() => {
-    if (!isMobile) return;
-    
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY > 100 && currentScrollY > lastScrollY.current) {
-        setHeroCollapsed(true);
-      } else if (currentScrollY < 50) {
-        setHeroCollapsed(false);
-      }
-      lastScrollY.current = currentScrollY;
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [isMobile]);
 
   const personalizationParams = getPersonalizationParams();
   const submissionsUrl = buildSubmissionsUrl(selectedCategory, page, debouncedSearch, selectedDenomination, sortType, personalizationParams);
@@ -348,20 +329,16 @@ export default function Home() {
 
   const feedContent = (
     <div className="min-h-screen">
-      <section className={cn(
-        "bg-primary/5 border-b",
-        isMobile && heroCollapsed && "hero-collapsed",
-        isMobile && !heroCollapsed && "hero-expanded"
-      )}>
-        <div className="container mx-auto px-4 py-8 sm:py-12 md:py-16">
-          <div className="max-w-2xl mx-auto text-center space-y-3 sm:space-y-4">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight">
+      <section className="bg-primary/5 border-b hidden md:block">
+        <div className="container mx-auto px-4 py-12 md:py-16">
+          <div className="max-w-2xl mx-auto text-center space-y-4">
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
               Anonymous Church Experiences
             </h1>
-            <p className="text-base sm:text-lg text-muted-foreground">
+            <p className="text-lg text-muted-foreground">
               A safe space to share what you've witnessed or experienced. Your voice matters.
             </p>
-            <Link href="/submit" className="hidden md:inline-block">
+            <Link href="/submit" className="inline-block">
               <Button size="lg" className="gap-2 mt-4" data-testid="button-share-experience-hero">
                 <PenLine className="h-5 w-5" />
                 Share Your Experience
@@ -371,15 +348,87 @@ export default function Home() {
         </div>
       </section>
 
-      {isMobile && heroCollapsed && (
-        <button
-          onClick={() => setHeroCollapsed(false)}
-          className="w-full py-2 bg-primary/5 border-b flex items-center justify-center gap-1 text-sm text-muted-foreground hover-elevate"
-          data-testid="button-expand-hero"
+      {isMobile && (
+        <div 
+          className="sticky top-14 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
+          data-testid="mobile-sticky-tabs"
         >
-          <ChevronUp className="h-4 w-4" />
-          <span>Show intro</span>
-        </button>
+          <div className="flex items-center justify-between px-4 py-2">
+            <div className="flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort posts">
+              <Button
+                variant={sortType === "hot" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setSortType("hot")}
+                className="gap-1.5 min-w-[70px] h-8 text-xs"
+                role="tab"
+                aria-selected={sortType === "hot"}
+                data-testid="button-sort-hot-sticky"
+              >
+                <Flame className="h-3.5 w-3.5" />
+                Hot
+              </Button>
+              <Button
+                variant={sortType === "new" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setSortType("new")}
+                className="gap-1.5 min-w-[70px] h-8 text-xs"
+                role="tab"
+                aria-selected={sortType === "new"}
+                data-testid="button-sort-new-sticky"
+              >
+                <Clock className="h-3.5 w-3.5" />
+                New
+              </Button>
+            </div>
+            <div className="flex items-center gap-1">
+              {personalizationLevel.level !== "new" && !hasFilters && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge 
+                      variant="secondary" 
+                      className="gap-1 cursor-help text-xs"
+                      data-testid="badge-personalization-sticky"
+                    >
+                      {personalizationLevel.level === "discovering" ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <User className="h-3 w-3" />
+                      )}
+                      <span className="text-xs opacity-70">
+                        {personalizationLevel.percentage}%
+                      </span>
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[250px]">
+                    <p className="font-medium mb-1">{personalizationLevel.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <MobileFilterSheet
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                selectedDenomination={selectedDenomination}
+                onDenominationChange={setSelectedDenomination}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                categoryCounts={countsData?.counts}
+                hasActiveFilters={!!hasFilters}
+                onClearFilters={clearFilters}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                aria-label="Refresh feed"
+                className="h-8 w-8"
+                data-testid="button-refresh-sticky"
+              >
+                <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showWelcomeBanner && (
@@ -414,103 +463,91 @@ export default function Home() {
 
       <main className="container mx-auto px-4 py-4 sm:py-6 md:py-8">
         <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
-          <div className="flex items-center justify-between gap-2 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex items-center rounded-lg border bg-muted/30 p-0.5 sm:p-1" role="tablist" aria-label="Sort posts">
+          {!isMobile && (
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center rounded-lg border bg-muted/30 p-1" role="tablist" aria-label="Sort posts">
+                  <Button
+                    variant={sortType === "hot" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setSortType("hot")}
+                    className="gap-1.5 min-w-[70px] h-9 text-sm"
+                    role="tab"
+                    aria-selected={sortType === "hot"}
+                    data-testid="button-sort-hot"
+                  >
+                    <Flame className="h-4 w-4" />
+                    Hot
+                  </Button>
+                  <Button
+                    variant={sortType === "new" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setSortType("new")}
+                    className="gap-1.5 min-w-[70px] h-9 text-sm"
+                    role="tab"
+                    aria-selected={sortType === "new"}
+                    data-testid="button-sort-new"
+                  >
+                    <Clock className="h-4 w-4" />
+                    New
+                  </Button>
+                </div>
+                <span className="text-sm text-muted-foreground hidden lg:inline">
+                  {sortType === "hot" ? "Trending experiences" : "Latest experiences"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {personalizationLevel.level !== "new" && !hasFilters && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge 
+                        variant="secondary" 
+                        className="gap-1.5 cursor-help text-xs"
+                        data-testid="badge-personalization"
+                      >
+                        {personalizationLevel.level === "discovering" ? (
+                          <TrendingUp className="h-3 w-3" />
+                        ) : (
+                          <User className="h-3 w-3" />
+                        )}
+                        <span>
+                          {personalizationLevel.level === "discovering" ? "Learning" : "For You"}
+                        </span>
+                        <span className="text-xs opacity-70">
+                          {personalizationLevel.percentage}%
+                        </span>
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[250px]">
+                      <p className="font-medium mb-1">{personalizationLevel.description}</p>
+                      {personalizationLevel.topCategories.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Top interests: {personalizationLevel.topCategories
+                            .map(tc => CATEGORIES.find(c => c.value === tc.category)?.label || tc.category)
+                            .join(", ")}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {Math.floor(totalEngagements)} interactions tracked
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                
                 <Button
-                  variant={sortType === "hot" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setSortType("hot")}
-                  className="gap-1 sm:gap-1.5 min-w-[60px] sm:min-w-[70px] h-8 sm:h-9 text-xs sm:text-sm"
-                  role="tab"
-                  aria-selected={sortType === "hot"}
-                  data-testid="button-sort-hot"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => refetch()}
+                  disabled={isFetching}
+                  aria-label="Refresh feed"
+                  className="h-9 w-9"
+                  data-testid="button-refresh"
                 >
-                  <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  Hot
-                </Button>
-                <Button
-                  variant={sortType === "new" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setSortType("new")}
-                  className="gap-1 sm:gap-1.5 min-w-[60px] sm:min-w-[70px] h-8 sm:h-9 text-xs sm:text-sm"
-                  role="tab"
-                  aria-selected={sortType === "new"}
-                  data-testid="button-sort-new"
-                >
-                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  New
+                  <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
                 </Button>
               </div>
-              <span className="text-sm text-muted-foreground hidden lg:inline">
-                {sortType === "hot" ? "Trending experiences" : "Latest experiences"}
-              </span>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              {personalizationLevel.level !== "new" && !hasFilters && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge 
-                      variant="secondary" 
-                      className="gap-1 sm:gap-1.5 cursor-help text-xs"
-                      data-testid="badge-personalization"
-                    >
-                      {personalizationLevel.level === "discovering" ? (
-                        <TrendingUp className="h-3 w-3" />
-                      ) : (
-                        <User className="h-3 w-3" />
-                      )}
-                      <span className="hidden sm:inline">
-                        {personalizationLevel.level === "discovering" ? "Learning" : "For You"}
-                      </span>
-                      <span className="text-xs opacity-70">
-                        {personalizationLevel.percentage}%
-                      </span>
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[250px]">
-                    <p className="font-medium mb-1">{personalizationLevel.description}</p>
-                    {personalizationLevel.topCategories.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Top interests: {personalizationLevel.topCategories
-                          .map(tc => CATEGORIES.find(c => c.value === tc.category)?.label || tc.category)
-                          .join(", ")}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {Math.floor(totalEngagements)} interactions tracked
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              
-              {isMobile ? (
-                <MobileFilterSheet
-                  selectedCategory={selectedCategory}
-                  onCategoryChange={setSelectedCategory}
-                  selectedDenomination={selectedDenomination}
-                  onDenominationChange={setSelectedDenomination}
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  categoryCounts={countsData?.counts}
-                  hasActiveFilters={!!hasFilters}
-                  onClearFilters={clearFilters}
-                />
-              ) : null}
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => refetch()}
-                disabled={isFetching}
-                aria-label="Refresh feed"
-                className="h-8 w-8 sm:h-9 sm:w-9"
-                data-testid="button-refresh"
-              >
-                <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-              </Button>
-            </div>
-          </div>
+          )}
 
           {!isMobile && (
             <>
@@ -691,7 +728,7 @@ export default function Home() {
       {isMobile && allSubmissions.length > 3 && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-36 right-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-background border shadow-md hover-elevate active-elevate-2"
+          className="fixed bottom-20 right-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-background border shadow-md hover-elevate active-elevate-2"
           data-testid="button-scroll-to-top"
           aria-label="Scroll to top"
         >
