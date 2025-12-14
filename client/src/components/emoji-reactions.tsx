@@ -1,6 +1,7 @@
 import { useState, useEffect, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { SmilePlus } from "lucide-react";
 
@@ -178,6 +179,7 @@ export function EmojiReactions({
   isReacting = false,
 }: EmojiReactionsProps) {
   const instanceId = useId();
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [userReactions, setUserReactions] = useState<string[]>([]);
   const [animatingReaction, setAnimatingReaction] = useState<string | null>(null);
@@ -248,12 +250,15 @@ export function EmojiReactions({
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-2 gap-1.5 text-muted-foreground hover:text-foreground"
+            className={cn(
+              "gap-1.5 text-muted-foreground hover:text-foreground",
+              isMobile ? "min-h-[44px] min-w-[44px] px-2" : "h-8 px-2"
+            )}
             disabled={isReacting}
             data-testid={`button-add-reaction-${submissionId}`}
             aria-label="Add reaction"
           >
-            <SmilePlus className="h-4 w-4" />
+            <SmilePlus className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
             {totalReactions > 0 && (
               <span 
                 className="text-xs tabular-nums"
@@ -275,7 +280,8 @@ export function EmojiReactions({
                 key={reaction.emoji}
                 onClick={() => handleReact(reaction.emoji)}
                 className={cn(
-                  "p-2 rounded-lg transition-all",
+                  "rounded-lg transition-all",
+                  isMobile ? "p-3 min-h-[44px] min-w-[44px]" : "p-2",
                   "hover:bg-accent hover:scale-125",
                   "focus:outline-none focus:ring-2 focus:ring-ring",
                   userReactions.includes(reaction.emoji) && "bg-accent/50",
@@ -299,7 +305,8 @@ export function EmojiReactions({
               key={emoji}
               onClick={() => handleReact(emoji)}
               className={cn(
-                "flex items-center justify-center h-6 w-6 rounded-full transition-transform",
+                "flex items-center justify-center rounded-full transition-transform",
+                isMobile ? "h-10 w-10" : "h-6 w-6",
                 "hover:scale-110 hover:z-10",
                 userReactions.includes(emoji) && "ring-2 ring-primary ring-offset-1 ring-offset-background"
               )}

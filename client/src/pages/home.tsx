@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -6,15 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SubmissionCard, SubmissionCardSkeleton } from "@/components/submission-card";
 import { CategoryFilter } from "@/components/category-filter";
+import { MobileFilterSheet } from "@/components/mobile-filter-sheet";
+import { PullToRefresh } from "@/components/pull-to-refresh";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PenLine, RefreshCw, Loader2, Search, X, CheckCircle2, Sparkles, Flame, Clock, User, TrendingUp } from "lucide-react";
+import { PenLine, RefreshCw, Loader2, Search, X, CheckCircle2, Sparkles, Flame, Clock, User, TrendingUp, ChevronUp } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useFeedPersonalization } from "@/hooks/use-feed-personalization";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Submission, Category, VoteType, FlagReason } from "@shared/schema";
 import { DENOMINATIONS, CATEGORIES } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
 type SortType = "hot" | "new";
 
@@ -65,8 +69,12 @@ export default function Home() {
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [highlightedSubmissionId, setHighlightedSubmissionId] = useState<string | null>(null);
   const [reactionsMap, setReactionsMap] = useState<Record<string, Record<string, number>>>({});
+  const [heroCollapsed, setHeroCollapsed] = useState(false);
   const { toast } = useToast();
   const searchParams = useSearch();
+  const isMobile = useIsMobile();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
   
   const { trackEngagement, getPersonalizationLevel, getPersonalizationParams, totalEngagements } = useFeedPersonalization();
   const personalizationLevel = getPersonalizationLevel();
@@ -94,6 +102,23 @@ export default function Home() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > 100 && currentScrollY > lastScrollY.current) {
+        setHeroCollapsed(true);
+      } else if (currentScrollY < 50) {
+        setHeroCollapsed(false);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isMobile]);
 
   const personalizationParams = getPersonalizationParams();
   const submissionsUrl = buildSubmissionsUrl(selectedCategory, page, debouncedSearch, selectedDenomination, sortType, personalizationParams);
@@ -136,6 +161,25 @@ export default function Home() {
     }
   }, [data, page]);
 
+  useEffect(() => {
+    if (!isMobile || !data?.hasMore || isFetching) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && data?.hasMore && !isFetching) {
+          setPage((prev) => prev + 1);
+        }
+      },
+      { threshold: 0.1, rootMargin: "100px" }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [isMobile, data?.hasMore, isFetching]);
+
   const clearFilters = () => {
     setSelectedCategory(null);
     setSelectedDenomination(null);
@@ -146,6 +190,11 @@ export default function Home() {
   };
 
   const hasFilters = selectedCategory || selectedDenomination || debouncedSearch;
+
+  const handleRefresh = useCallback(async () => {
+    setPage(1);
+    await refetch();
+  }, [refetch]);
 
   const voteMutation = useMutation({
     mutationFn: async ({ submissionId, voteType }: { submissionId: string; voteType: VoteType }) => {
@@ -293,18 +342,26 @@ export default function Home() {
     setPage((prev) => prev + 1);
   };
 
-  return (
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const feedContent = (
     <div className="min-h-screen">
-      <section className="bg-primary/5 border-b">
-        <div className="container mx-auto px-4 py-12 sm:py-16">
-          <div className="max-w-2xl mx-auto text-center space-y-4">
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+      <section className={cn(
+        "bg-primary/5 border-b",
+        isMobile && heroCollapsed && "hero-collapsed",
+        isMobile && !heroCollapsed && "hero-expanded"
+      )}>
+        <div className="container mx-auto px-4 py-8 sm:py-12 md:py-16">
+          <div className="max-w-2xl mx-auto text-center space-y-3 sm:space-y-4">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight">
               Anonymous Church Experiences
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base sm:text-lg text-muted-foreground">
               A safe space to share what you've witnessed or experienced. Your voice matters.
             </p>
-            <Link href="/submit">
+            <Link href="/submit" className="hidden md:inline-block">
               <Button size="lg" className="gap-2 mt-4" data-testid="button-share-experience-hero">
                 <PenLine className="h-5 w-5" />
                 Share Your Experience
@@ -314,20 +371,31 @@ export default function Home() {
         </div>
       </section>
 
+      {isMobile && heroCollapsed && (
+        <button
+          onClick={() => setHeroCollapsed(false)}
+          className="w-full py-2 bg-primary/5 border-b flex items-center justify-center gap-1 text-sm text-muted-foreground hover-elevate"
+          data-testid="button-expand-hero"
+        >
+          <ChevronUp className="h-4 w-4" />
+          <span>Show intro</span>
+        </button>
+      )}
+
       {showWelcomeBanner && (
-        <div className="container mx-auto px-4 pt-6">
+        <div className="container mx-auto px-4 pt-4 sm:pt-6">
           <Card className="border-absolve/30 bg-absolve/5" data-testid="welcome-banner">
-            <CardContent className="flex items-start sm:items-center gap-4 p-4">
+            <CardContent className="flex items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4">
               <div className="flex-shrink-0">
-                <CheckCircle2 className="h-8 w-8 text-absolve" />
+                <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-absolve" />
               </div>
-              <div className="flex-1 space-y-1">
-                <h3 className="font-semibold flex items-center gap-2">
+              <div className="flex-1 space-y-0.5 sm:space-y-1">
+                <h3 className="font-semibold flex items-center gap-2 text-sm sm:text-base">
                   Your story is now live
-                  <Sparkles className="h-4 w-4 text-accent" />
+                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                  Thank you for your courage. Your experience is highlighted below and is now part of our community.
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Thank you for your courage. Your experience is highlighted below.
                 </p>
               </div>
               <Button 
@@ -344,56 +412,47 @@ export default function Home() {
         </div>
       )}
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="space-y-4 mb-6">
-          {/* 
-            Feed Controls following UX Laws:
-            - Law of Locality: Sort controls directly above content they affect
-            - Jakob's Law: Reddit/HN pattern - sort is primary feed mode selector
-            - Hick's Law: 2 clear options (Hot/New) with segmented buttons
-            - Fitts's Law: Appropriately sized touch targets
-          */}
-          
-          {/* Row 1: Sort Toggle (Primary) - Following Reddit/HN industry pattern */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center rounded-lg border bg-muted/30 p-1" role="tablist" aria-label="Sort posts">
+      <main className="container mx-auto px-4 py-4 sm:py-6 md:py-8">
+        <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center rounded-lg border bg-muted/30 p-0.5 sm:p-1" role="tablist" aria-label="Sort posts">
                 <Button
                   variant={sortType === "hot" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setSortType("hot")}
-                  className="gap-1.5 min-w-[70px]"
+                  className="gap-1 sm:gap-1.5 min-w-[60px] sm:min-w-[70px] h-8 sm:h-9 text-xs sm:text-sm"
                   role="tab"
                   aria-selected={sortType === "hot"}
                   data-testid="button-sort-hot"
                 >
-                  <Flame className="h-4 w-4" />
+                  <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   Hot
                 </Button>
                 <Button
                   variant={sortType === "new" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setSortType("new")}
-                  className="gap-1.5 min-w-[70px]"
+                  className="gap-1 sm:gap-1.5 min-w-[60px] sm:min-w-[70px] h-8 sm:h-9 text-xs sm:text-sm"
                   role="tab"
                   aria-selected={sortType === "new"}
                   data-testid="button-sort-new"
                 >
-                  <Clock className="h-4 w-4" />
+                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   New
                 </Button>
               </div>
-              <span className="text-sm text-muted-foreground hidden sm:inline">
+              <span className="text-sm text-muted-foreground hidden lg:inline">
                 {sortType === "hot" ? "Trending experiences" : "Latest experiences"}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {personalizationLevel.level !== "new" && !hasFilters && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge 
                       variant="secondary" 
-                      className="gap-1.5 cursor-help"
+                      className="gap-1 sm:gap-1.5 cursor-help text-xs"
                       data-testid="badge-personalization"
                     >
                       {personalizationLevel.level === "discovering" ? (
@@ -424,75 +483,146 @@ export default function Home() {
                   </TooltipContent>
                 </Tooltip>
               )}
+              
+              {isMobile ? (
+                <MobileFilterSheet
+                  selectedCategory={selectedCategory}
+                  onCategoryChange={setSelectedCategory}
+                  selectedDenomination={selectedDenomination}
+                  onDenominationChange={setSelectedDenomination}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  categoryCounts={countsData?.counts}
+                  hasActiveFilters={!!hasFilters}
+                  onClearFilters={clearFilters}
+                />
+              ) : null}
+              
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => refetch()}
                 disabled={isFetching}
                 aria-label="Refresh feed"
+                className="h-8 w-8 sm:h-9 sm:w-9"
                 data-testid="button-refresh"
               >
-                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+                <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
               </Button>
             </div>
           </div>
 
-          {/* Row 2: Category Filter - Topic selection */}
-          <CategoryFilter
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            categoryCounts={countsData?.counts}
-          />
-
-          {/* Row 3: Search & Refinement Filters */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search experiences, churches, or locations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-                data-testid="input-search"
+          {!isMobile && (
+            <>
+              <CategoryFilter
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                categoryCounts={countsData?.counts}
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <Select
-                value={selectedDenomination || "all"}
-                onValueChange={(value) => setSelectedDenomination(value === "all" ? null : value)}
-              >
-                <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-denomination-filter">
-                  <SelectValue placeholder="All Denominations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Denominations</SelectItem>
-                  {DENOMINATIONS.map((d) => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {hasFilters && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearFilters}
-                  className="text-muted-foreground whitespace-nowrap"
-                  data-testid="button-clear-filters"
-                >
-                  <X className="h-4 w-4 mr-1" />
-                  Clear
-                </Button>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search experiences, churches, or locations..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                    data-testid="input-search"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={selectedDenomination || "all"}
+                    onValueChange={(value) => setSelectedDenomination(value === "all" ? null : value)}
+                  >
+                    <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-denomination-filter">
+                      <SelectValue placeholder="All Denominations" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Denominations</SelectItem>
+                      {DENOMINATIONS.map((d) => (
+                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {hasFilters && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="text-muted-foreground whitespace-nowrap"
+                      data-testid="button-clear-filters"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {isMobile && hasFilters && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {selectedCategory && (
+                <Badge variant="secondary" className="gap-1 text-xs min-h-[44px] px-3">
+                  {CATEGORIES.find(c => c.value === selectedCategory)?.label}
+                  <button 
+                    onClick={() => setSelectedCategory(null)} 
+                    className="ml-1 min-w-[24px] min-h-[24px] flex items-center justify-center"
+                    data-testid="button-clear-category-filter"
+                    aria-label="Clear category filter"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </Badge>
               )}
+              {selectedDenomination && (
+                <Badge variant="secondary" className="gap-1 text-xs min-h-[44px] px-3">
+                  {selectedDenomination}
+                  <button 
+                    onClick={() => setSelectedDenomination(null)} 
+                    className="ml-1 min-w-[24px] min-h-[24px] flex items-center justify-center"
+                    data-testid="button-clear-denomination-filter"
+                    aria-label="Clear denomination filter"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </Badge>
+              )}
+              {debouncedSearch && (
+                <Badge variant="secondary" className="gap-1 text-xs min-h-[44px] px-3">
+                  "{debouncedSearch}"
+                  <button 
+                    onClick={() => { setSearchQuery(""); setDebouncedSearch(""); }} 
+                    className="ml-1 min-w-[24px] min-h-[24px] flex items-center justify-center"
+                    data-testid="button-clear-search-filter"
+                    aria-label="Clear search filter"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="text-xs text-muted-foreground min-h-[44px] px-3"
+                data-testid="button-clear-filters-mobile"
+              >
+                Clear all
+              </Button>
             </div>
-          </div>
+          )}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {isLoading && page === 1 ? (
             Array.from({ length: 5 }).map((_, i) => <SubmissionCardSkeleton key={i} />)
           ) : allSubmissions.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-lg text-muted-foreground mb-4">
+            <div className="text-center py-12 sm:py-16">
+              <p className="text-base sm:text-lg text-muted-foreground mb-4">
                 No experiences shared yet. Be the first.
               </p>
               <Link href="/submit">
@@ -520,29 +650,64 @@ export default function Home() {
                 />
               ))}
 
-              {data?.hasMore && (
-                <div className="flex justify-center pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={handleLoadMore}
-                    disabled={isFetching}
-                    data-testid="button-load-more"
-                  >
-                    {isFetching ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      "Load More"
-                    )}
-                  </Button>
+              {isMobile ? (
+                <div ref={loadMoreRef} className="py-4 flex justify-center">
+                  {isFetching && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Loading more...</span>
+                    </div>
+                  )}
+                  {!data?.hasMore && allSubmissions.length > 0 && (
+                    <p className="text-sm text-muted-foreground">You've reached the end</p>
+                  )}
                 </div>
+              ) : (
+                data?.hasMore && (
+                  <div className="flex justify-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={handleLoadMore}
+                      disabled={isFetching}
+                      data-testid="button-load-more"
+                    >
+                      {isFetching ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        "Load More"
+                      )}
+                    </Button>
+                  </div>
+                )
               )}
             </>
           )}
         </div>
       </main>
+
+      {isMobile && allSubmissions.length > 3 && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-36 right-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-background border shadow-md hover-elevate active-elevate-2"
+          data-testid="button-scroll-to-top"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="h-5 w-5" />
+        </button>
+      )}
     </div>
   );
+
+  if (isMobile) {
+    return (
+      <PullToRefresh onRefresh={handleRefresh} disabled={isLoading}>
+        {feedContent}
+      </PullToRefresh>
+    );
+  }
+
+  return feedContent;
 }

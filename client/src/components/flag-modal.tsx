@@ -16,6 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Flag, Loader2 } from "lucide-react";
 import type { FlagReason } from "@shared/schema";
 
@@ -37,6 +38,7 @@ export function FlagModal({ submissionId, onFlag, isFlagged = false }: FlagModal
   const [selectedReason, setSelectedReason] = useState<FlagReason>("spam");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(isFlagged);
+  const isMobile = useIsMobile();
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -57,13 +59,13 @@ export function FlagModal({ submissionId, onFlag, isFlagged = false }: FlagModal
         <TooltipTrigger asChild>
           <Button
             variant="ghost"
-            size="sm"
+            size={isMobile ? "icon" : "sm"}
             disabled
-            className="gap-1.5 text-flag opacity-60"
+            className={isMobile ? "min-h-[44px] min-w-[44px] text-flag opacity-60" : "gap-1.5 text-flag opacity-60"}
             data-testid={`button-flagged-${submissionId}`}
           >
-            <Flag className="h-4 w-4 fill-current" />
-            <span className="hidden sm:inline">Reported</span>
+            <Flag className={isMobile ? "h-5 w-5 fill-current" : "h-4 w-4 fill-current"} />
+            {!isMobile && <span className="hidden sm:inline">Reported</span>}
           </Button>
         </TooltipTrigger>
         <TooltipContent>
@@ -78,13 +80,13 @@ export function FlagModal({ submissionId, onFlag, isFlagged = false }: FlagModal
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          size="sm"
-          className="gap-1.5 text-muted-foreground hover:text-flag"
+          size={isMobile ? "icon" : "sm"}
+          className={isMobile ? "min-h-[44px] min-w-[44px] text-muted-foreground hover:text-flag" : "gap-1.5 text-muted-foreground hover:text-flag"}
           data-testid={`button-flag-${submissionId}`}
           title="Report inappropriate content"
         >
-          <Flag className="h-4 w-4" />
-          <span className="hidden sm:inline">Report</span>
+          <Flag className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
+          {!isMobile && <span className="hidden sm:inline">Report</span>}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

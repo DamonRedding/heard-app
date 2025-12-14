@@ -6,6 +6,7 @@ import { VoteButtons } from "@/components/vote-buttons";
 import { EmojiReactions } from "@/components/emoji-reactions";
 import { FlagModal } from "@/components/flag-modal";
 import { CommentsSection } from "@/components/comments-section";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { CATEGORIES, TIMEFRAMES, type Submission, type VoteType, type FlagReason } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { Users, Heart, Phone, ExternalLink, ChevronDown, ChevronUp, Calendar, Clock } from "lucide-react";
@@ -131,6 +132,7 @@ export function SubmissionCard({
   isHighlighted = false,
 }: SubmissionCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const isMobile = useIsMobile();
   
   const isTruncated = submission.content.length > TRUNCATE_LENGTH;
   const contentPreview = isExpanded || !isTruncated
@@ -245,45 +247,87 @@ export function SubmissionCard({
       </CardContent>
 
       <CardFooter className="flex flex-col gap-4 pt-0">
-        <div className="flex items-center justify-between w-full gap-4 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap">
-            <VoteButtons
-              submissionId={submission.id}
-              condemnCount={submission.condemnCount}
-              absolveCount={submission.absolveCount}
-              onVote={(voteType) => onVote(submission.id, voteType)}
-              isVoting={isVoting}
-            />
-            <div className="h-5 w-px bg-border mx-1" />
-            <EmojiReactions
-              submissionId={submission.id}
-              reactions={reactions}
-              onReact={(reactionType) => onReact?.(submission.id, reactionType)}
-              isReacting={isReacting}
-            />
-            <div className="h-5 w-px bg-border mx-1" />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-muted-foreground hover:text-primary"
-              onClick={() => onMeToo(submission.id)}
-              disabled={isMeTooing}
-              data-testid={`button-metoo-${submission.id}`}
-            >
-              <Users className="h-4 w-4" />
-              <span>Me Too</span>
-              {submission.meTooCount > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0" data-testid={`text-metoo-count-${submission.id}`}>
-                  {submission.meTooCount}
-                </Badge>
-              )}
-            </Button>
+        {isMobile ? (
+          <div className="flex flex-col gap-3 w-full">
+            <div className="flex items-center justify-between">
+              <VoteButtons
+                submissionId={submission.id}
+                condemnCount={submission.condemnCount}
+                absolveCount={submission.absolveCount}
+                onVote={(voteType) => onVote(submission.id, voteType)}
+                isVoting={isVoting}
+              />
+              <FlagModal
+                submissionId={submission.id}
+                onFlag={(reason) => onFlag(submission.id, reason)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <EmojiReactions
+                submissionId={submission.id}
+                reactions={reactions}
+                onReact={(reactionType) => onReact?.(submission.id, reactionType)}
+                isReacting={isReacting}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-muted-foreground hover:text-primary min-h-[44px] px-3"
+                onClick={() => onMeToo(submission.id)}
+                disabled={isMeTooing}
+                data-testid={`button-metoo-${submission.id}`}
+              >
+                <Users className="h-4 w-4" />
+                <span>Me Too</span>
+                {submission.meTooCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0" data-testid={`text-metoo-count-${submission.id}`}>
+                    {submission.meTooCount}
+                  </Badge>
+                )}
+              </Button>
+            </div>
           </div>
-          <FlagModal
-            submissionId={submission.id}
-            onFlag={(reason) => onFlag(submission.id, reason)}
-          />
-        </div>
+        ) : (
+          <div className="flex items-center justify-between w-full gap-4 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <VoteButtons
+                submissionId={submission.id}
+                condemnCount={submission.condemnCount}
+                absolveCount={submission.absolveCount}
+                onVote={(voteType) => onVote(submission.id, voteType)}
+                isVoting={isVoting}
+              />
+              <div className="h-5 w-px bg-border mx-1" />
+              <EmojiReactions
+                submissionId={submission.id}
+                reactions={reactions}
+                onReact={(reactionType) => onReact?.(submission.id, reactionType)}
+                isReacting={isReacting}
+              />
+              <div className="h-5 w-px bg-border mx-1" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-muted-foreground hover:text-primary"
+                onClick={() => onMeToo(submission.id)}
+                disabled={isMeTooing}
+                data-testid={`button-metoo-${submission.id}`}
+              >
+                <Users className="h-4 w-4" />
+                <span>Me Too</span>
+                {submission.meTooCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0" data-testid={`text-metoo-count-${submission.id}`}>
+                    {submission.meTooCount}
+                  </Badge>
+                )}
+              </Button>
+            </div>
+            <FlagModal
+              submissionId={submission.id}
+              onFlag={(reason) => onFlag(submission.id, reason)}
+            />
+          </div>
+        )}
         <CommentsSection submissionId={submission.id} />
       </CardFooter>
     </Card>

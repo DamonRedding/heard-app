@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import type { VoteType } from "@shared/schema";
 
@@ -43,6 +44,7 @@ export function VoteButtons({
   const [currentVote, setCurrentVote] = useState<VoteType | null>(null);
   const [animatingButton, setAnimatingButton] = useState<VoteType | null>(null);
   const [animatingCount, setAnimatingCount] = useState<VoteType | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const votes = getStoredVotes();
@@ -79,6 +81,7 @@ export function VoteButtons({
         disabled={isVoting}
         className={cn(
           "gap-1.5 transition-all border",
+          isMobile && "min-h-[44px] min-w-[60px] px-3",
           currentVote === "absolve" 
             ? "bg-upvote text-upvote-foreground border-upvote" 
             : "hover:bg-upvote/10 hover:text-upvote hover:border-upvote/50",
@@ -88,7 +91,7 @@ export function VoteButtons({
         aria-label="I understand this experience"
       >
         <ThumbsUp className={cn(
-          "h-4 w-4",
+          isMobile ? "h-5 w-5" : "h-4 w-4",
           currentVote === "absolve" && "fill-current"
         )} />
         <span
@@ -109,6 +112,7 @@ export function VoteButtons({
         disabled={isVoting}
         className={cn(
           "gap-1.5 transition-all border",
+          isMobile && "min-h-[44px] min-w-[60px] px-3",
           currentVote === "condemn" 
             ? "bg-downvote text-downvote-foreground border-downvote" 
             : "hover:bg-downvote/10 hover:text-downvote hover:border-downvote/50",
@@ -118,7 +122,7 @@ export function VoteButtons({
         aria-label="This is not okay"
       >
         <ThumbsDown className={cn(
-          "h-4 w-4",
+          isMobile ? "h-5 w-5" : "h-4 w-4",
           currentVote === "condemn" && "fill-current"
         )} />
         <span
