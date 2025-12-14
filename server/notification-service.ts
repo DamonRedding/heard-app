@@ -52,7 +52,7 @@ export async function notifySubscribersOfNewSubmission(submission: Submission): 
             <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">
               <p style="margin: 0; color: #333;">"${preview}"</p>
             </div>
-            <p><a href="${process.env.REPLIT_DEV_DOMAIN || 'https://churchheard.com'}" style="color: #1a1a2e;">Read and support this story</a></p>
+            <p><a href="${process.env.APP_URL || 'https://churchheard.com'}" style="color: #1a1a2e;">Read and support this story</a></p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
             <p style="color: #666; font-size: 12px;">You received this email because you subscribed to ChurchHeard updates.</p>
           </div>
@@ -125,7 +125,7 @@ export async function notifyAuthorOfEngagement(
           <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">
             <p style="margin: 0; color: #333;">"${truncateContent(submission.content)}"</p>
           </div>
-          <p><a href="${process.env.REPLIT_DEV_DOMAIN || 'https://churchheard.com'}" style="color: #1a1a2e;">View your story and responses</a></p>
+          <p><a href="${process.env.APP_URL || 'https://churchheard.com'}" style="color: #1a1a2e;">View your story and responses</a></p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
           <p style="color: #666; font-size: 12px;">You received this email because you opted to receive engagement notifications.</p>
         </div>
@@ -195,7 +195,7 @@ export async function sendWeeklyDigest(): Promise<{ sent: number; failed: number
             <h1 style="color: #1a1a2e;">Weekly Community Digest</h1>
             <p>Here are some of the most impactful stories shared this week:</p>
             ${storiesHtml}
-            <p><a href="${process.env.REPLIT_DEV_DOMAIN || 'https://churchheard.com'}" style="color: #1a1a2e;">Read more stories on ChurchHeard</a></p>
+            <p><a href="${process.env.APP_URL || 'https://churchheard.com'}" style="color: #1a1a2e;">Read more stories on ChurchHeard</a></p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
             <p style="color: #666; font-size: 12px;">You received this email because you subscribed to the weekly digest.</p>
           </div>

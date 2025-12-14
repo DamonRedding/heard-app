@@ -76,14 +76,13 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
   }
 }
 
+function getBaseUrl(): string {
+  return process.env.APP_URL || 'https://churchheard.com';
+}
+
 function getTrackingPixel(trackingId?: string): string {
   if (!trackingId) return '';
-  const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-    ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-    : process.env.REPL_SLUG 
-      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-      : 'http://localhost:5000';
-  return `<img src="${baseUrl}/api/email/track/${trackingId}.png" width="1" height="1" style="display:none" alt="" />`;
+  return `<img src="${getBaseUrl()}/api/email/track/${trackingId}.png" width="1" height="1" style="display:none" alt="" />`;
 }
 
 export async function sendWelcomeEmail(email: string, trackingId?: string): Promise<{ success: boolean; error?: string }> {
