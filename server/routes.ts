@@ -371,6 +371,8 @@ export async function registerRoutes(
         parentId: parentId || null,
       });
 
+      await storage.updateCommentCount(id);
+
       notifyAuthorOfEngagement(id, "engagement_comment", "Someone commented on your story.").catch(err => {
         console.error("Error sending comment notification:", err);
       });
@@ -379,6 +381,32 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error creating comment:", error);
       res.status(500).json({ error: "Failed to create comment" });
+    }
+  });
+
+  app.post("/api/submissions/:id/view", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const clientIP = getClientIP(req);
+      const viewerHash = hashIP(clientIP);
+
+      const submission = await storage.getSubmission(id);
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+
+      const existingView = await storage.getView(id, viewerHash);
+      if (existingView) {
+        return res.json({ success: true, isNew: false });
+      }
+
+      await storage.createView(id, viewerHash);
+      await storage.updateViewCount(id);
+
+      res.json({ success: true, isNew: true });
+    } catch (error) {
+      console.error("Error tracking view:", error);
+      res.status(500).json({ error: "Failed to track view" });
     }
   });
 

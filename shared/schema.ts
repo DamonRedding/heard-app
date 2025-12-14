@@ -71,6 +71,8 @@ export const submissions = pgTable("submissions", {
   absolveCount: integer("absolve_count").notNull().default(0),
   meTooCount: integer("me_too_count").notNull().default(0),
   flagCount: integer("flag_count").notNull().default(0),
+  viewCount: integer("view_count").notNull().default(0),
+  commentCount: integer("comment_count").notNull().default(0),
   status: statusEnum("status").notNull().default("active"),
   churchName: text("church_name"),
   pastorName: text("pastor_name"),
@@ -141,12 +143,29 @@ export const reactions = pgTable("reactions", {
   uniqueReaction: uniqueIndex("reactions_submission_user_type_idx").on(table.submissionId, table.userHash, table.reactionType),
 }));
 
+export const submissionViews = pgTable("submission_views", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  submissionId: varchar("submission_id").notNull().references(() => submissions.id, { onDelete: "cascade" }),
+  viewerHash: text("viewer_hash").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueView: uniqueIndex("submission_views_submission_viewer_idx").on(table.submissionId, table.viewerHash),
+}));
+
+export const submissionViewsRelations = relations(submissionViews, ({ one }) => ({
+  submission: one(submissions, {
+    fields: [submissionViews.submissionId],
+    references: [submissions.id],
+  }),
+}));
+
 export const submissionsRelations = relations(submissions, ({ many }) => ({
   votes: many(votes),
   flags: many(flags),
   meToos: many(meToos),
   comments: many(comments),
   reactions: many(reactions),
+  views: many(submissionViews),
 }));
 
 export const votesRelations = relations(votes, ({ one }) => ({
@@ -341,6 +360,8 @@ export type NotificationEventType = "new_submission" | "engagement_vote" | "enga
 
 export type EmailTracking = typeof emailTracking.$inferSelect;
 export type EmailType = "welcome" | "engagement_notification" | "weekly_digest";
+
+export type SubmissionView = typeof submissionViews.$inferSelect;
 
 export type Category = "leadership" | "financial" | "culture" | "misconduct" | "spiritual_abuse" | "other";
 export type Timeframe = "last_month" | "last_year" | "one_to_five_years" | "five_plus_years";

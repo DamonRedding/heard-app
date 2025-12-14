@@ -9,6 +9,7 @@ import {
   emailSubscribers,
   notificationEvents,
   emailTracking,
+  submissionViews,
   type Submission,
   type InsertSubmission,
   type Vote,
@@ -31,6 +32,7 @@ import {
   type NotificationEventType,
   type EmailTracking,
   type EmailType,
+  type SubmissionView,
   type Category,
   type Status,
   type ReactionType,
@@ -156,10 +158,19 @@ export interface IStorage {
 
   getPersonalizedSubmissions(options: {
     categoryBoosts: { category: Category; weight: number }[];
+    denominationBoost?: string;
     page?: number;
     limit?: number;
     sort?: SortType;
   }): Promise<{ submissions: Submission[]; total: number; hasMore: boolean }>;
+
+  getView(submissionId: string, viewerHash: string): Promise<SubmissionView | undefined>;
+
+  createView(submissionId: string, viewerHash: string): Promise<SubmissionView>;
+
+  updateViewCount(submissionId: string): Promise<void>;
+
+  updateCommentCount(submissionId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -930,6 +941,8 @@ export class DatabaseStorage implements IStorage {
       absolveCount: submissions.absolveCount,
       meTooCount: submissions.meTooCount,
       flagCount: submissions.flagCount,
+      viewCount: submissions.viewCount,
+      commentCount: submissions.commentCount,
       status: submissions.status,
       churchName: sql<null>`NULL`.as('churchName'),
       pastorName: sql<null>`NULL`.as('pastorName'),
@@ -1038,13 +1051,30 @@ export class DatabaseStorage implements IStorage {
 
     const combined = [...boostedPosts, ...regularPosts];
     
+    const boostedCategories = new Set(options.categoryBoosts.map(b => b.category));
+    const categoryWeightMap = new Map(options.categoryBoosts.map(b => [b.category, b.weight]));
+    
     if (sortType === "new") {
       combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } else {
       combined.sort((a, b) => {
-        const scoreA = (a.condemnCount + a.absolveCount) / Math.pow((Date.now() - new Date(a.createdAt).getTime()) / 3600000 + 2, 1.5);
-        const scoreB = (b.condemnCount + b.absolveCount) / Math.pow((Date.now() - new Date(b.createdAt).getTime()) / 3600000 + 2, 1.5);
-        return scoreB - scoreA;
+        const calculateCompositeScore = (post: Submission): number => {
+          const categoryWeight = categoryWeightMap.get(post.category as Category) || 0;
+          const relevanceScore = 1 + (categoryWeight / 100) * 3;
+          
+          const ageInDays = (Date.now() - new Date(post.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+          const recencyScore = ageInDays >= 7 ? 0.5 : 1 - (ageInDays / 14);
+          
+          const totalReactions = post.condemnCount + post.absolveCount + post.meTooCount;
+          const viewCount = Math.max(post.viewCount || 1, 1);
+          const commentCount = post.commentCount || 0;
+          const engagementRate = (totalReactions + commentCount * 2) / viewCount;
+          const engagementScore = Math.min(engagementRate + 0.1, 2);
+          
+          return relevanceScore * recencyScore * engagementScore;
+        };
+        
+        return calculateCompositeScore(b) - calculateCompositeScore(a);
       });
     }
 
@@ -1056,6 +1086,46 @@ export class DatabaseStorage implements IStorage {
       total,
       hasMore,
     };
+  }
+
+  async getView(submissionId: string, viewerHash: string): Promise<SubmissionView | undefined> {
+    const [result] = await db
+      .select()
+      .from(submissionViews)
+      .where(and(eq(submissionViews.submissionId, submissionId), eq(submissionViews.viewerHash, viewerHash)));
+    return result;
+  }
+
+  async createView(submissionId: string, viewerHash: string): Promise<SubmissionView> {
+    const [result] = await db
+      .insert(submissionViews)
+      .values({ submissionId, viewerHash })
+      .returning();
+    return result;
+  }
+
+  async updateViewCount(submissionId: string): Promise<void> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(submissionViews)
+      .where(eq(submissionViews.submissionId, submissionId));
+
+    await db
+      .update(submissions)
+      .set({ viewCount: result?.count || 0 })
+      .where(eq(submissions.id, submissionId));
+  }
+
+  async updateCommentCount(submissionId: string): Promise<void> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(comments)
+      .where(eq(comments.submissionId, submissionId));
+
+    await db
+      .update(submissions)
+      .set({ commentCount: result?.count || 0 })
+      .where(eq(submissions.id, submissionId));
   }
 }
 
