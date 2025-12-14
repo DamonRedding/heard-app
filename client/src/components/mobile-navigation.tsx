@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { Home, PenLine, Info } from "lucide-react";
+import { Home, PenLine, Info, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTheme } from "@/components/theme-provider";
 
 interface MobileNavItem {
   icon: typeof Home;
@@ -19,8 +20,13 @@ const navItems: MobileNavItem[] = [
 export function MobileNavigation() {
   const [location] = useLocation();
   const isMobile = useIsMobile();
+  const { theme, setTheme } = useTheme();
 
   if (!isMobile) return null;
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
 
   return (
     <nav 
@@ -57,31 +63,22 @@ export function MobileNavigation() {
             </Link>
           );
         })}
+        <button
+          onClick={toggleTheme}
+          className="flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px] rounded-lg transition-colors text-muted-foreground hover-elevate active-elevate-2"
+          data-testid="mobile-nav-theme"
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? (
+            <Sun className="h-5 w-5" />
+          ) : (
+            <Moon className="h-5 w-5" />
+          )}
+          <span className="text-xs font-medium text-muted-foreground">
+            Theme
+          </span>
+        </button>
       </div>
     </nav>
-  );
-}
-
-interface FloatingActionButtonProps {
-  onClick?: () => void;
-}
-
-export function FloatingActionButton({ onClick }: FloatingActionButtonProps) {
-  const [location] = useLocation();
-  const isMobile = useIsMobile();
-  
-  if (!isMobile || location === "/submit") return null;
-
-  return (
-    <Link href="/submit">
-      <button
-        onClick={onClick}
-        className="fixed bottom-20 right-4 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover-elevate active-elevate-2 transition-transform active:scale-95"
-        data-testid="fab-share-experience"
-        aria-label="Share your experience"
-      >
-        <PenLine className="h-6 w-6" />
-      </button>
-    </Link>
   );
 }

@@ -350,60 +350,44 @@ export default function Home() {
 
       {isMobile && (
         <div 
-          className="sticky top-14 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
+          className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
           data-testid="mobile-sticky-tabs"
         >
-          <div className="flex items-center justify-between px-4 py-2">
-            <div className="flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort posts">
-              <Button
-                variant={sortType === "hot" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setSortType("hot")}
-                className="gap-1.5 min-w-[70px] h-8 text-xs"
-                role="tab"
-                aria-selected={sortType === "hot"}
-                data-testid="button-sort-hot-sticky"
-              >
-                <Flame className="h-3.5 w-3.5" />
-                Hot
-              </Button>
-              <Button
-                variant={sortType === "new" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setSortType("new")}
-                className="gap-1.5 min-w-[70px] h-8 text-xs"
-                role="tab"
-                aria-selected={sortType === "new"}
-                data-testid="button-sort-new-sticky"
-              >
-                <Clock className="h-3.5 w-3.5" />
-                New
-              </Button>
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <Link href="/" data-testid="mobile-logo">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                  <span className="text-sm font-bold text-primary-foreground">H</span>
+                </div>
+              </Link>
+              <div className="flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort posts">
+                <Button
+                  variant={sortType === "hot" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setSortType("hot")}
+                  className="gap-1.5 min-w-[60px] h-8 text-xs"
+                  role="tab"
+                  aria-selected={sortType === "hot"}
+                  data-testid="button-sort-hot-sticky"
+                >
+                  <Flame className="h-3.5 w-3.5" />
+                  Hot
+                </Button>
+                <Button
+                  variant={sortType === "new" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setSortType("new")}
+                  className="gap-1.5 min-w-[60px] h-8 text-xs"
+                  role="tab"
+                  aria-selected={sortType === "new"}
+                  data-testid="button-sort-new-sticky"
+                >
+                  <Clock className="h-3.5 w-3.5" />
+                  New
+                </Button>
+              </div>
             </div>
             <div className="flex items-center gap-1">
-              {personalizationLevel.level !== "new" && !hasFilters && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge 
-                      variant="secondary" 
-                      className="gap-1 cursor-help text-xs"
-                      data-testid="badge-personalization-sticky"
-                    >
-                      {personalizationLevel.level === "discovering" ? (
-                        <TrendingUp className="h-3 w-3" />
-                      ) : (
-                        <User className="h-3 w-3" />
-                      )}
-                      <span className="text-xs opacity-70">
-                        {personalizationLevel.percentage}%
-                      </span>
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[250px]">
-                    <p className="font-medium mb-1">{personalizationLevel.description}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
               <MobileFilterSheet
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
