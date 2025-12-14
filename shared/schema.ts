@@ -63,6 +63,7 @@ export const notificationEventTypeEnum = pgEnum("notification_event_type", [
 
 export const submissions = pgTable("submissions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title"),
   content: text("content").notNull(),
   category: categoryEnum("category").notNull(),
   denomination: text("denomination"),
@@ -272,15 +273,24 @@ export const emailTracking = pgTable("email_tracking", {
 
 export const insertSubmissionSchema = createInsertSchema(submissions).omit({
   id: true,
+  title: true,
   condemnCount: true,
   absolveCount: true,
   meTooCount: true,
   flagCount: true,
+  viewCount: true,
+  commentCount: true,
   status: true,
   createdAt: true,
 }).extend({
   content: z.string().min(50, "Experience must be at least 50 characters").max(2000, "Experience must be less than 2000 characters"),
 });
+
+export const insertSubmissionWithTitleSchema = insertSubmissionSchema.extend({
+  title: z.string().optional(),
+});
+
+export type InsertSubmissionWithTitle = z.infer<typeof insertSubmissionWithTitleSchema>;
 
 export const insertVoteSchema = createInsertSchema(votes).omit({
   id: true,

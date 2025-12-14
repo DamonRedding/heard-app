@@ -12,6 +12,7 @@ import {
   submissionViews,
   type Submission,
   type InsertSubmission,
+  type InsertSubmissionWithTitle,
   type Vote,
   type InsertVote,
   type Flag,
@@ -56,7 +57,7 @@ export interface IStorage {
 
   getSubmission(id: string): Promise<Submission | undefined>;
 
-  createSubmission(submission: InsertSubmission): Promise<Submission>;
+  createSubmission(submission: InsertSubmissionWithTitle): Promise<Submission>;
 
   updateSubmissionStatus(id: string, status: Status): Promise<Submission | undefined>;
 
@@ -226,6 +227,7 @@ export class DatabaseStorage implements IStorage {
       db
         .select({
           id: submissions.id,
+          title: submissions.title,
           content: submissions.content,
           category: submissions.category,
           denomination: submissions.denomination,
@@ -234,6 +236,8 @@ export class DatabaseStorage implements IStorage {
           absolveCount: submissions.absolveCount,
           meTooCount: submissions.meTooCount,
           flagCount: submissions.flagCount,
+          viewCount: submissions.viewCount,
+          commentCount: submissions.commentCount,
           status: submissions.status,
           churchName: sql<null>`NULL`.as('churchName'),
           pastorName: sql<null>`NULL`.as('pastorName'),
@@ -265,6 +269,7 @@ export class DatabaseStorage implements IStorage {
     const [result] = await db
       .select({
         id: submissions.id,
+        title: submissions.title,
         content: submissions.content,
         category: submissions.category,
         denomination: submissions.denomination,
@@ -273,6 +278,8 @@ export class DatabaseStorage implements IStorage {
         absolveCount: submissions.absolveCount,
         meTooCount: submissions.meTooCount,
         flagCount: submissions.flagCount,
+        viewCount: submissions.viewCount,
+        commentCount: submissions.commentCount,
         status: submissions.status,
         churchName: sql<null>`NULL`.as('churchName'),
         pastorName: sql<null>`NULL`.as('pastorName'),
@@ -284,7 +291,7 @@ export class DatabaseStorage implements IStorage {
     return result as Submission | undefined;
   }
 
-  async createSubmission(submission: InsertSubmission): Promise<Submission> {
+  async createSubmission(submission: InsertSubmissionWithTitle): Promise<Submission> {
     const [result] = await db
       .insert(submissions)
       .values(submission)

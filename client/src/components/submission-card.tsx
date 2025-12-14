@@ -179,6 +179,14 @@ export function SubmissionCard({
             </span>
           </div>
         </div>
+        {submission.title && (
+          <h3 
+            className="text-lg font-semibold leading-tight mt-1"
+            data-testid={`text-title-${submission.id}`}
+          >
+            {submission.title}
+          </h3>
+        )}
       </CardHeader>
 
       <CardContent className="pb-4">

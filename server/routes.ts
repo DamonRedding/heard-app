@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createHash } from "crypto";
 import { sendWelcomeEmail } from "./email";
 import { notifySubscribersOfNewSubmission, notifyAuthorOfEngagement, sendWeeklyDigest } from "./notification-service";
+import { generateTitle } from "./title-generator";
 
 const VALID_REACTIONS: ReactionType[] = ["heart", "care", "haha", "wow", "sad", "angry"];
 
@@ -173,7 +174,18 @@ export async function registerRoutes(
         });
       }
 
-      const submission = await storage.createSubmission(parsed.data);
+      const title = generateTitle(
+        parsed.data.content,
+        parsed.data.category,
+        parsed.data.timeframe,
+        parsed.data.churchName,
+        parsed.data.denomination
+      );
+
+      const submission = await storage.createSubmission({
+        ...parsed.data,
+        title,
+      });
 
       notifySubscribersOfNewSubmission(submission).catch(err => {
         console.error("Error sending new submission notifications:", err);
