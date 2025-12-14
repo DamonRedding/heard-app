@@ -51,6 +51,12 @@ export function MobileNavigation() {
                 )}
                 data-testid={item.testId}
                 aria-current={isActive ? "page" : undefined}
+                onClick={(e) => {
+                  if (isActive && item.href === "/") {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
               >
                 <Icon className={cn("h-5 w-5", isActive && "text-primary")} />
                 <span className={cn(

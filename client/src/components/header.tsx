@@ -35,6 +35,12 @@ export function Header() {
               size="sm"
               className="gap-2"
               data-testid="link-feed"
+              onClick={(e) => {
+                if (location === "/") {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
             >
               <Home className="h-4 w-4" />
               <span>Feed</span>
