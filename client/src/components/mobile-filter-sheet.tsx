@@ -74,7 +74,11 @@ export function MobileFilterSheet({
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-xl">
+      <SheetContent 
+        side="bottom" 
+        className="h-[85vh] rounded-t-xl"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <SheetHeader className="pb-4 border-b">
           <div className="flex items-center justify-between">
             <SheetTitle>Filter Experiences</SheetTitle>
