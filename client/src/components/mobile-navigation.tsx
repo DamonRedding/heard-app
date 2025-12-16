@@ -41,16 +41,30 @@ export function MobileNavigation() {
           const Icon = item.icon;
           const isShareButton = item.href === "/submit";
           
+          if (isShareButton) {
+            return (
+              <Link key={item.href} href={item.href}>
+                <button
+                  className="flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px] rounded-lg transition-colors bg-primary text-primary-foreground hover-elevate active-elevate-2"
+                  data-testid={item.testId}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-xs font-medium">
+                    {item.label}
+                  </span>
+                </button>
+              </Link>
+            );
+          }
+          
           return (
             <Link key={item.href} href={item.href}>
               <button
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px] rounded-lg transition-colors",
-                  isShareButton
-                    ? "text-primary bg-primary/10 hover-elevate active-elevate-2"
-                    : isActive 
-                      ? "text-primary" 
-                      : "text-muted-foreground hover-elevate active-elevate-2"
+                  isActive 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover-elevate active-elevate-2"
                 )}
                 data-testid={item.testId}
                 aria-current={isActive ? "page" : undefined}
@@ -61,13 +75,10 @@ export function MobileNavigation() {
                   }
                 }}
               >
-                <Icon className={cn(
-                  "h-5 w-5", 
-                  isShareButton ? "text-primary" : isActive && "text-primary"
-                )} />
+                <Icon className={cn("h-5 w-5", isActive && "text-primary")} />
                 <span className={cn(
                   "text-xs font-medium",
-                  isShareButton ? "text-primary" : isActive ? "text-primary" : "text-muted-foreground"
+                  isActive ? "text-primary" : "text-muted-foreground"
                 )}>
                   {item.label}
                 </span>
