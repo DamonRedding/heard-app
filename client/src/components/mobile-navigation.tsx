@@ -41,33 +41,16 @@ export function MobileNavigation() {
           const Icon = item.icon;
           const isShareButton = item.href === "/submit";
           
-          if (isShareButton) {
-            return (
-              <Link key={item.href} href={item.href}>
-                <button
-                  className="flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px] rounded-lg transition-all hover-elevate active-elevate-2"
-                  data-testid={item.testId}
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary shadow-md -mt-4">
-                    <Icon className="h-5 w-5 text-primary-foreground" />
-                  </div>
-                  <span className="text-xs font-medium text-primary">
-                    {item.label}
-                  </span>
-                </button>
-              </Link>
-            );
-          }
-          
           return (
             <Link key={item.href} href={item.href}>
               <button
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px] rounded-lg transition-colors",
-                  isActive 
-                    ? "text-primary" 
-                    : "text-muted-foreground hover-elevate active-elevate-2"
+                  isShareButton
+                    ? "text-primary bg-primary/10 hover-elevate active-elevate-2"
+                    : isActive 
+                      ? "text-primary" 
+                      : "text-muted-foreground hover-elevate active-elevate-2"
                 )}
                 data-testid={item.testId}
                 aria-current={isActive ? "page" : undefined}
@@ -78,10 +61,13 @@ export function MobileNavigation() {
                   }
                 }}
               >
-                <Icon className={cn("h-5 w-5", isActive && "text-primary")} />
+                <Icon className={cn(
+                  "h-5 w-5", 
+                  isShareButton ? "text-primary" : isActive && "text-primary"
+                )} />
                 <span className={cn(
                   "text-xs font-medium",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isShareButton ? "text-primary" : isActive ? "text-primary" : "text-muted-foreground"
                 )}>
                   {item.label}
                 </span>
