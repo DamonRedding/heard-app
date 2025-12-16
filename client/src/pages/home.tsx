@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PenLine, RefreshCw, Loader2, Search, X, CheckCircle2, Sparkles, Flame, Clock, User, TrendingUp, ChevronUp } from "lucide-react";
+import { EndOfFeed } from "@/components/end-of-feed";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useFeedPersonalization } from "@/hooks/use-feed-personalization";
@@ -684,37 +685,56 @@ export default function Home() {
               ))}
 
               {isMobile ? (
-                <div ref={loadMoreRef} className="py-4 flex justify-center">
+                <div ref={loadMoreRef} className="py-4">
                   {isFetching && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span className="text-sm">Loading more...</span>
                     </div>
                   )}
-                  {!data?.hasMore && allSubmissions.length > 0 && (
-                    <p className="text-sm text-muted-foreground">You've reached the end</p>
+                  {!data?.hasMore && allSubmissions.length > 0 && !isFetching && (
+                    <EndOfFeed
+                      sortType={sortType}
+                      onSwitchSort={setSortType}
+                      onRefresh={handleRefresh}
+                      isRefreshing={isFetching}
+                      totalShown={allSubmissions.length}
+                    />
                   )}
                 </div>
               ) : (
-                data?.hasMore && (
-                  <div className="flex justify-center pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={handleLoadMore}
-                      disabled={isFetching}
-                      data-testid="button-load-more"
-                    >
-                      {isFetching ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Loading...
-                        </>
-                      ) : (
-                        "Load More"
-                      )}
-                    </Button>
-                  </div>
-                )
+                <>
+                  {data?.hasMore && (
+                    <div className="flex justify-center pt-4">
+                      <Button
+                        variant="outline"
+                        onClick={handleLoadMore}
+                        disabled={isFetching}
+                        data-testid="button-load-more"
+                      >
+                        {isFetching ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          "Load More"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  {!data?.hasMore && allSubmissions.length > 0 && !isFetching && (
+                    <div className="pt-4">
+                      <EndOfFeed
+                        sortType={sortType}
+                        onSwitchSort={setSortType}
+                        onRefresh={handleRefresh}
+                        isRefreshing={isFetching}
+                        totalShown={allSubmissions.length}
+                      />
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
