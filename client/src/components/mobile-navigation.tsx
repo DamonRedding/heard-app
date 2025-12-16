@@ -39,6 +39,26 @@ export function MobileNavigation() {
         {navItems.map((item) => {
           const isActive = location === item.href;
           const Icon = item.icon;
+          const isShareButton = item.href === "/submit";
+          
+          if (isShareButton) {
+            return (
+              <Link key={item.href} href={item.href}>
+                <button
+                  className="flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px] rounded-lg transition-all hover-elevate active-elevate-2"
+                  data-testid={item.testId}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary shadow-md -mt-4">
+                    <Icon className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  <span className="text-xs font-medium text-primary">
+                    {item.label}
+                  </span>
+                </button>
+              </Link>
+            );
+          }
           
           return (
             <Link key={item.href} href={item.href}>
