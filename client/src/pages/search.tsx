@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SubmissionCard, SubmissionCardSkeleton } from "@/components/submission-card";
+import { SearchTypeahead } from "@/components/search-typeahead";
 import { Search, X, Clock, TrendingUp, Flame } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CATEGORIES, DENOMINATIONS, type Category, type Submission, type VoteType, type FlagReason } from "@shared/schema";
@@ -252,29 +252,27 @@ export default function SearchPage() {
           </div>
           
           <div className="px-4 py-2 space-y-2">
-            <form onSubmit={handleSubmit} className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search experiences, churches..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10 h-10"
-                data-testid="input-search"
-              />
-              {searchQuery && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                  data-testid="button-clear-input"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </form>
+            <SearchTypeahead
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onSubmit={handleSearch}
+              onCategorySelect={(category, triggerSearch) => {
+                setSelectedCategory(category);
+                if (triggerSearch) {
+                  setSubmittedQuery(searchQuery.trim());
+                  setIsSearchActive(true);
+                }
+              }}
+              onDenominationSelect={(denomination, triggerSearch) => {
+                setSelectedDenomination(denomination);
+                if (triggerSearch) {
+                  setSubmittedQuery(searchQuery.trim());
+                  setIsSearchActive(true);
+                }
+              }}
+              placeholder="Search experiences, churches..."
+              autoFocus={false}
+            />
 
             {hasActiveSearch && (
               <div className="flex-1 flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort results">

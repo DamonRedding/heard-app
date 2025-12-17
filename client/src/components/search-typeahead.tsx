@@ -66,8 +66,8 @@ interface SearchTypeaheadProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: (query: string) => void;
-  onCategorySelect?: (category: Category) => void;
-  onDenominationSelect?: (denomination: string) => void;
+  onCategorySelect?: (category: Category, triggerSearch?: boolean) => void;
+  onDenominationSelect?: (denomination: string, triggerSearch?: boolean) => void;
   placeholder?: string;
   className?: string;
   autoFocus?: boolean;
@@ -128,17 +128,22 @@ export function SearchTypeahead({
 
   const handleCategoryClick = useCallback((category: Category) => {
     if (onCategorySelect) {
-      onCategorySelect(category);
+      onCategorySelect(category, true);
     }
     setIsOpen(false);
   }, [onCategorySelect]);
 
   const handleDenominationClick = useCallback((denomination: string) => {
     if (onDenominationSelect) {
-      onDenominationSelect(denomination);
+      onDenominationSelect(denomination, true);
     }
     setIsOpen(false);
   }, [onDenominationSelect]);
+
+  const handleSubmissionClick = useCallback((submission: SearchSuggestion) => {
+    handleSubmit(value.trim() || (submission.title || truncateContent(submission.content, 40)));
+    setIsOpen(false);
+  }, [handleSubmit, value]);
 
   const handleRecentClick = useCallback((query: string) => {
     onChange(query);
@@ -167,8 +172,7 @@ export function SearchTypeahead({
           handleRecentClick(item.value as string);
         } else if (item.type === "submission") {
           const sub = item.value as SearchSuggestion;
-          const text = sub.title || truncateContent(sub.content, 40);
-          handleSubmit(text);
+          handleSubmissionClick(sub);
         } else if (item.type === "category") {
           const cat = item.value as { value: Category };
           handleCategoryClick(cat.value);
@@ -183,7 +187,7 @@ export function SearchTypeahead({
       setIsOpen(false);
       inputRef.current?.blur();
     }
-  }, [value, recentSearches, suggestions, selectedIndex, handleSubmit, handleRecentClick, handleCategoryClick, handleDenominationClick]);
+  }, [value, recentSearches, suggestions, selectedIndex, handleSubmit, handleRecentClick, handleCategoryClick, handleDenominationClick, handleSubmissionClick]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -305,7 +309,7 @@ export function SearchTypeahead({
                       <button
                         key={submission.id}
                         type="button"
-                        onClick={() => handleSubmit(displayText)}
+                        onClick={() => handleSubmissionClick(submission)}
                         className={cn(
                           "flex items-start gap-3 w-full px-3 py-2.5 text-left rounded-md min-h-[44px]",
                           selectedIndex === currentIndex ? "bg-accent" : "hover-elevate"

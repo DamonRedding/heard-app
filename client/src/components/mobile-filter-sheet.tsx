@@ -3,8 +3,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { SlidersHorizontal, Search, X, Check } from "lucide-react";
+import { SearchTypeahead } from "@/components/search-typeahead";
+import { SlidersHorizontal, X, Check } from "lucide-react";
 import { CATEGORIES, DENOMINATIONS, type Category } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -100,16 +100,20 @@ export function MobileFilterSheet({
         <div className="py-6 space-y-6 overflow-y-auto max-h-[calc(85vh-140px)]">
           <div className="space-y-3">
             <label className="text-sm font-medium">Search</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search experiences, churches..."
-                value={tempSearch}
-                onChange={(e) => setTempSearch(e.target.value)}
-                className="pl-9"
-                data-testid="input-search-mobile"
-              />
-            </div>
+            <SearchTypeahead
+              value={tempSearch}
+              onChange={setTempSearch}
+              onSubmit={(query) => {
+                setTempSearch(query);
+              }}
+              onCategorySelect={(category, _triggerSearch) => {
+                setTempCategory(category);
+              }}
+              onDenominationSelect={(denomination, _triggerSearch) => {
+                setTempDenomination(denomination);
+              }}
+              placeholder="Search experiences, churches..."
+            />
           </div>
 
           <div className="space-y-3">
