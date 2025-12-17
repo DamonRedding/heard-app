@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Info, Sun, Moon } from "lucide-react";
+import { Home, Info, Sun, Moon, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/components/theme-provider";
@@ -13,6 +13,7 @@ interface MobileNavItem {
 
 const navItems: MobileNavItem[] = [
   { icon: Home, label: "Feed", href: "/", testId: "mobile-nav-feed" },
+  { icon: Search, label: "Search", href: "/search", testId: "mobile-nav-search" },
   { icon: Info, label: "About", href: "/about", testId: "mobile-nav-about" },
 ];
 

@@ -387,31 +387,6 @@ export default function Home() {
               </Button>
             </div>
           </div>
-          <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/20">
-            <MobileFilterSheet
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-              selectedDenomination={selectedDenomination}
-              onDenominationChange={setSelectedDenomination}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              categoryCounts={countsData?.counts}
-              hasActiveFilters={!!hasFilters}
-              onClearFilters={clearFilters}
-            />
-            {hasFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="text-muted-foreground text-xs h-8"
-                data-testid="button-clear-filters-mobile"
-              >
-                <X className="h-3.5 w-3.5 mr-1" />
-                Clear filters
-              </Button>
-            )}
-          </div>
         </div>
       )}
 
