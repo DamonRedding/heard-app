@@ -638,23 +638,35 @@ export default function Home() {
         </div>
 
         <div className="space-y-4 sm:space-y-6">
-          {(isLoading && page === 1) || (page === 1 && !data) ? (
-            Array.from({ length: 5 }).map((_, i) => <SubmissionCardSkeleton key={i} />)
-          ) : allSubmissions.length === 0 && data?.submissions?.length === 0 ? (
-            <div className="text-center py-12 sm:py-16">
-              <p className="text-base sm:text-lg text-muted-foreground mb-4">
-                No experiences shared yet. Be the first.
-              </p>
-              <Link href="/submit">
-                <Button variant="outline" className="gap-2" data-testid="button-share-experience-empty">
-                  <PenLine className="h-4 w-4" />
-                  Share Your Experience
-                </Button>
-              </Link>
-            </div>
-          ) : (
-            <>
-              {allSubmissions.map((submission) => (
+          {(() => {
+            // Use allSubmissions if populated, otherwise fall back to data.submissions for immediate display
+            const displaySubmissions = allSubmissions.length > 0 ? allSubmissions : (data?.submissions ?? []);
+            const showSkeleton = (isLoading || isFetching) && displaySubmissions.length === 0;
+            const showEmpty = displaySubmissions.length === 0 && !isLoading && !isFetching;
+            
+            if (showSkeleton) {
+              return Array.from({ length: 5 }).map((_, i) => <SubmissionCardSkeleton key={i} />);
+            }
+            
+            if (showEmpty) {
+              return (
+                <div className="text-center py-12 sm:py-16">
+                  <p className="text-base sm:text-lg text-muted-foreground mb-4">
+                    No experiences shared yet. Be the first.
+                  </p>
+                  <Link href="/submit">
+                    <Button variant="outline" className="gap-2" data-testid="button-share-experience-empty">
+                      <PenLine className="h-4 w-4" />
+                      Share Your Experience
+                    </Button>
+                  </Link>
+                </div>
+              );
+            }
+            
+            return (
+              <>
+                {displaySubmissions.map((submission) => (
                 <SubmissionCard
                   key={submission.id}
                   submission={submission}
@@ -723,7 +735,8 @@ export default function Home() {
                 </>
               )}
             </>
-          )}
+            );
+          })()}
         </div>
       </main>
 
