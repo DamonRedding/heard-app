@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { MobileNavigation } from "@/components/mobile-navigation";
+import { ShareFAB } from "@/components/share-fab";
 import Home from "@/pages/home";
 import Submit from "@/pages/submit";
 import About from "@/pages/about";
@@ -34,6 +35,7 @@ function App() {
             <Router />
             <MobileNavigation />
           </div>
+          <ShareFAB />
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>

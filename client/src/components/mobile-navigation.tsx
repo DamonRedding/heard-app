@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Info, Sun, Moon, Plus } from "lucide-react";
+import { Home, Info, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/components/theme-provider";
@@ -28,25 +28,12 @@ export function MobileNavigation() {
   };
 
   return (
-    <>
-      {/* Floating Action Button for Share - positioned above bottom nav */}
-      <Link href="/submit">
-        <button
-          className="fixed bottom-20 right-4 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover-elevate active-elevate-2 transition-transform"
-          data-testid="fab-share"
-          aria-label="Share a story"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
-      </Link>
-
-      {/* Bottom Navigation Bar */}
-      <nav 
-        className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t"
-        role="navigation"
-        aria-label="Mobile navigation"
-        data-testid="mobile-navigation"
-      >
+    <nav 
+      className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t"
+      role="navigation"
+      aria-label="Mobile navigation"
+      data-testid="mobile-navigation"
+    >
         <div className="flex items-center justify-around h-16 px-2 safe-area-inset-bottom">
           {navItems.map((item) => {
             const isActive = location === item.href;
@@ -97,7 +84,6 @@ export function MobileNavigation() {
             </span>
           </button>
         </div>
-      </nav>
-    </>
+    </nav>
   );
 }
