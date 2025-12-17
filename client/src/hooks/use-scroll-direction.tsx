@@ -12,7 +12,7 @@ interface ScrollDirectionState {
 }
 
 export function useScrollDirection(options: ScrollDirectionOptions = {}): ScrollDirectionState {
-  const { threshold = 80, autoRevealDelay = 400 } = options;
+  const { threshold = 80, autoRevealDelay = 500 } = options;
   
   const [state, setState] = useState<ScrollDirectionState>({
     isVisible: true,
@@ -22,31 +22,24 @@ export function useScrollDirection(options: ScrollDirectionOptions = {}): Scroll
   
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
-  const autoRevealTimer = useRef<NodeJS.Timeout | null>(null);
+  const scrollStopTimer = useRef<NodeJS.Timeout | null>(null);
+  const isHiddenRef = useRef(false);
 
-  const clearAutoRevealTimer = useCallback(() => {
-    if (autoRevealTimer.current) {
-      clearTimeout(autoRevealTimer.current);
-      autoRevealTimer.current = null;
+  const clearScrollStopTimer = useCallback(() => {
+    if (scrollStopTimer.current) {
+      clearTimeout(scrollStopTimer.current);
+      scrollStopTimer.current = null;
     }
   }, []);
-
-  const scheduleAutoReveal = useCallback(() => {
-    clearAutoRevealTimer();
-    autoRevealTimer.current = setTimeout(() => {
-      setState(prev => ({
-        ...prev,
-        isVisible: true,
-      }));
-    }, autoRevealDelay);
-  }, [autoRevealDelay, clearAutoRevealTimer]);
 
   const updateScrollState = useCallback(() => {
     const scrollY = window.scrollY;
     const delta = scrollY - lastScrollY.current;
     
+    clearScrollStopTimer();
+    
     if (scrollY < threshold) {
-      clearAutoRevealTimer();
+      isHiddenRef.current = false;
       setState({
         isVisible: true,
         scrollDirection: null,
@@ -56,29 +49,35 @@ export function useScrollDirection(options: ScrollDirectionOptions = {}): Scroll
       return;
     }
     
-    if (Math.abs(delta) < 10) {
+    if (Math.abs(delta) >= 10) {
+      if (delta > 0 && scrollY > threshold) {
+        isHiddenRef.current = true;
+        setState({
+          isVisible: false,
+          scrollDirection: "down",
+          scrollY,
+        });
+      } else if (delta < 0) {
+        isHiddenRef.current = false;
+        setState({
+          isVisible: true,
+          scrollDirection: "up",
+          scrollY,
+        });
+      }
       lastScrollY.current = scrollY;
-      return;
     }
     
-    if (delta > 0 && scrollY > threshold) {
-      setState({
-        isVisible: false,
-        scrollDirection: "down",
-        scrollY,
-      });
-      scheduleAutoReveal();
-    } else if (delta < 0) {
-      clearAutoRevealTimer();
-      setState({
-        isVisible: true,
-        scrollDirection: "up",
-        scrollY,
-      });
+    if (isHiddenRef.current) {
+      scrollStopTimer.current = setTimeout(() => {
+        isHiddenRef.current = false;
+        setState(prev => ({
+          ...prev,
+          isVisible: true,
+        }));
+      }, autoRevealDelay);
     }
-    
-    lastScrollY.current = scrollY;
-  }, [threshold, scheduleAutoReveal, clearAutoRevealTimer]);
+  }, [threshold, autoRevealDelay, clearScrollStopTimer]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -95,9 +94,9 @@ export function useScrollDirection(options: ScrollDirectionOptions = {}): Scroll
     
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      clearAutoRevealTimer();
+      clearScrollStopTimer();
     };
-  }, [updateScrollState, clearAutoRevealTimer]);
+  }, [updateScrollState, clearScrollStopTimer]);
 
   return state;
 }
