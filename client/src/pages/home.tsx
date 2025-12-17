@@ -11,7 +11,7 @@ import { PullToRefresh } from "@/components/pull-to-refresh";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PenLine, RefreshCw, Loader2, Search, X, CheckCircle2, Sparkles, Flame, Clock, User, TrendingUp, ChevronUp } from "lucide-react";
+import { PenLine, RefreshCw, Loader2, Search, X, CheckCircle2, Sparkles, Flame, Clock, User, TrendingUp } from "lucide-react";
 import { EndOfFeed } from "@/components/end-of-feed";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -330,10 +330,6 @@ export default function Home() {
 
   const handleLoadMore = () => {
     setPage((prev) => prev + 1);
-  };
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const feedContent = (
@@ -725,18 +721,6 @@ export default function Home() {
         </div>
       </main>
 
-      {isMobile && allSubmissions.length > 3 && (
-        <Button
-          size="icon"
-          variant="outline"
-          onClick={scrollToTop}
-          className="fixed bottom-20 right-4 z-30 rounded-full shadow-md"
-          data-testid="button-scroll-to-top"
-          aria-label="Scroll to top"
-        >
-          <ChevronUp className="h-5 w-5" />
-        </Button>
-      )}
     </div>
   );
 
