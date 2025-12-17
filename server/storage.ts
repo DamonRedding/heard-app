@@ -947,15 +947,6 @@ export class DatabaseStorage implements IStorage {
 
     const conditions: ReturnType<typeof eq>[] = [eq(submissions.status, "active")];
 
-    const hotScoreExpression = sql`
-      (${submissions.condemnCount} + ${submissions.absolveCount}) / 
-      POWER(EXTRACT(EPOCH FROM (NOW() - ${submissions.createdAt})) / 3600 + 2, 1.5)
-    `;
-
-    const baseOrderBy = sortType === "new" 
-      ? desc(submissions.createdAt)
-      : desc(hotScoreExpression);
-
     const selectFields = {
       id: submissions.id,
       title: submissions.title,
@@ -976,144 +967,62 @@ export class DatabaseStorage implements IStorage {
       createdAt: submissions.createdAt,
     };
 
-    if (options.categoryBoosts.length === 0) {
-      const [result, countResult] = await Promise.all([
-        db
-          .select(selectFields)
-          .from(submissions)
-          .where(and(...conditions))
-          .orderBy(baseOrderBy)
-          .limit(limit)
-          .offset(offset),
-        db
-          .select({ count: count() })
-          .from(submissions)
-          .where(and(...conditions)),
-      ]);
-
-      const total = countResult[0]?.count || 0;
-      const hasMore = offset + result.length < total;
-
-      return {
-        submissions: result as Submission[],
-        total,
-        hasMore,
-      };
+    // Build category boost SQL expression
+    let categoryBoostExpr = sql`0`;
+    if (options.categoryBoosts.length > 0) {
+      const caseParts = options.categoryBoosts.map(b => 
+        sql`WHEN ${submissions.category} = ${b.category} THEN ${b.weight / 100.0}`
+      );
+      categoryBoostExpr = sql`CASE ${sql.join(caseParts, sql` `)} ELSE 0 END`;
     }
 
-    const rawTotalWeight = options.categoryBoosts.reduce((sum, b) => sum + b.weight, 0);
-    const cappedTotalWeight = Math.min(rawTotalWeight, 80);
-    
-    const boostedSlots = Math.floor(limit * (cappedTotalWeight / 100));
-    const regularSlots = limit - boostedSlots;
+    // Denomination boost expression
+    const denomBoostExpr = denominationBoost 
+      ? sql`CASE WHEN ${submissions.denomination} = ${denominationBoost} THEN 0.2 ELSE 0 END`
+      : sql`0`;
 
-    const categorySlots: { category: Category; slots: number }[] = options.categoryBoosts.map(boost => ({
-      category: boost.category,
-      slots: Math.max(1, Math.round(boostedSlots * (boost.weight / rawTotalWeight))),
-    }));
+    // Recency score: linear decay from 1 to 0.5 over 28 days
+    const recencyExpr = sql`GREATEST(0.5, 1 - (EXTRACT(EPOCH FROM (NOW() - ${submissions.createdAt})) / 86400 / 28))`;
 
-    let totalAllocated = categorySlots.reduce((sum, cs) => sum + cs.slots, 0);
-    while (totalAllocated > boostedSlots && categorySlots.length > 0) {
-      const maxSlotCategory = categorySlots.reduce((max, cs) => cs.slots > max.slots ? cs : max, categorySlots[0]);
-      maxSlotCategory.slots--;
-      totalAllocated--;
+    // Engagement score: (reactions + comments) / max(views, 1), capped at 2
+    const engagementExpr = sql`LEAST(2, (${submissions.condemnCount} + ${submissions.absolveCount} + ${submissions.meTooCount} + ${submissions.commentCount}) / GREATEST(${submissions.viewCount}, 1)::float)`;
+
+    // Hot score (for non-personalized sorting)
+    const hotScoreExpr = sql`(${submissions.condemnCount} + ${submissions.absolveCount}) / POWER(EXTRACT(EPOCH FROM (NOW() - ${submissions.createdAt})) / 3600 + 2, 1.5)`;
+
+    // Composite personalization score: (1 + categoryBoost * 3 + denomBoost) * recency * engagement
+    const personalizationScoreExpr = sql`(1 + (${categoryBoostExpr}) * 3 + (${denomBoostExpr})) * (${recencyExpr}) * (${engagementExpr})`;
+
+    // Determine order by expression
+    let orderByExpr;
+    if (sortType === "new") {
+      orderByExpr = desc(submissions.createdAt);
+    } else if (options.categoryBoosts.length > 0) {
+      orderByExpr = desc(personalizationScoreExpr);
+    } else {
+      orderByExpr = desc(hotScoreExpr);
     }
 
-    const categoryQueries = categorySlots.map(cs => 
-      cs.slots > 0
-        ? db
-            .select(selectFields)
-            .from(submissions)
-            .where(and(
-              eq(submissions.status, "active"),
-              eq(submissions.category, cs.category)
-            ))
-            .orderBy(baseOrderBy)
-            .limit(cs.slots + 5)
-        : Promise.resolve([])
-    );
-
-    const regularQuery = db
-      .select(selectFields)
-      .from(submissions)
-      .where(eq(submissions.status, "active"))
-      .orderBy(baseOrderBy)
-      .limit(limit * 2)
-      .offset(offset);
-
-    const countQuery = db
-      .select({ count: count() })
-      .from(submissions)
-      .where(and(...conditions));
-
-    const [categoryResults, regularResult, countResult] = await Promise.all([
-      Promise.all(categoryQueries),
-      regularQuery,
-      countQuery,
+    // Single query with proper offset/limit pagination
+    const [result, countResult] = await Promise.all([
+      db
+        .select(selectFields)
+        .from(submissions)
+        .where(and(...conditions))
+        .orderBy(orderByExpr)
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(submissions)
+        .where(and(...conditions)),
     ]);
 
-    const boostedPosts: Submission[] = [];
-    const usedIds = new Set<string>();
-
-    categoryResults.forEach((results, idx) => {
-      const targetSlots = categorySlots[idx].slots;
-      let added = 0;
-      for (const post of results as Submission[]) {
-        if (!usedIds.has(post.id) && added < targetSlots) {
-          boostedPosts.push(post);
-          usedIds.add(post.id);
-          added++;
-        }
-      }
-    });
-
-    const regularPosts: Submission[] = [];
-    for (const post of regularResult as Submission[]) {
-      if (!usedIds.has(post.id) && regularPosts.length < regularSlots) {
-        regularPosts.push(post);
-        usedIds.add(post.id);
-      }
-    }
-
-    const combined = [...boostedPosts, ...regularPosts];
-    
-    const categoryWeightMap = new Map(options.categoryBoosts.map(b => [b.category, b.weight]));
-    
-    if (sortType === "new") {
-      combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } else {
-      combined.sort((a, b) => {
-        const calculateCompositeScore = (post: Submission): number => {
-          // Relevance: category (3x) + denomination (2x)
-          const categoryWeight = categoryWeightMap.get(post.category as Category) || 0;
-          const categoryBoostFactor = (categoryWeight / 100) * 3;
-          const denominationMatch = denominationBoost && post.denomination === denominationBoost;
-          const denominationBoostFactor = denominationMatch ? 0.2 : 0;
-          const relevanceScore = 1 + categoryBoostFactor + denominationBoostFactor;
-          
-          // Recency: linear decay from 1 to 0.5 over 14 days, then clamp at 0.5
-          const ageInDays = (Date.now() - new Date(post.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-          const recencyScore = Math.max(0.5, 1 - (ageInDays / 28));
-          
-          // Engagement: (reactions + comments) / max(views, 1), capped at 2
-          const totalReactions = post.condemnCount + post.absolveCount + post.meTooCount;
-          const viewCount = Math.max(post.viewCount || 1, 1);
-          const commentCount = post.commentCount || 0;
-          const engagementRate = (totalReactions + commentCount) / viewCount;
-          const engagementScore = Math.min(engagementRate, 2);
-          
-          return relevanceScore * recencyScore * engagementScore;
-        };
-        
-        return calculateCompositeScore(b) - calculateCompositeScore(a);
-      });
-    }
-
     const total = countResult[0]?.count || 0;
-    const hasMore = offset + combined.length < total;
+    const hasMore = offset + result.length < total;
 
     return {
-      submissions: combined.slice(0, limit),
+      submissions: result as Submission[],
       total,
       hasMore,
     };
