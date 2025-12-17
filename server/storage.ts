@@ -224,11 +224,16 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
+    // Hot feed: prioritize content with engagement + trending velocity
+    // Includes engagement threshold to surface proven content
     const hotScoreExpression = sql`
-      (${submissions.condemnCount} + ${submissions.absolveCount}) / 
+      (${submissions.condemnCount} + ${submissions.absolveCount} + ${submissions.meTooCount} + ${submissions.commentCount}) / 
       POWER(EXTRACT(EPOCH FROM (NOW() - ${submissions.createdAt})) / 3600 + 2, 1.5)
     `;
 
+    // Feed differentiation through ranking algorithms (not filtering)
+    // Hot: engagement-weighted with time decay - surfaces trending, engaged content
+    // New: pure chronological - shows freshest content regardless of engagement
     const orderBy = sortType === "new" 
       ? desc(submissions.createdAt)
       : desc(hotScoreExpression);
