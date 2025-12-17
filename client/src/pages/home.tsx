@@ -357,9 +357,12 @@ export default function Home() {
       </section>
 
       {isMobile && (
+        <MobileHeader sortType={sortType} setSortType={setSortType} />
+      )}
+      {isMobile && false && (
         <div 
           className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
-          data-testid="mobile-sticky-tabs"
+          data-testid="mobile-sticky-tabs-old"
         >
           <div className="flex items-center justify-center px-4 py-3 border-b border-border/50">
             <Link href="/" data-testid="mobile-logo">
