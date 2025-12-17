@@ -69,6 +69,7 @@ export default function Home() {
   const [sortType, setSortType] = useState<SortType>("hot");
   const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const [logoExpanded, setLogoExpanded] = useState(false);
   const [highlightedSubmissionId, setHighlightedSubmissionId] = useState<string | null>(null);
   const [reactionsMap, setReactionsMap] = useState<Record<string, Record<string, number>>>({});
   const { toast } = useToast();
@@ -357,17 +358,26 @@ export default function Home() {
       </section>
 
       {isMobile && (
-        <MobileHeader sortType={sortType} setSortType={setSortType} />
-      )}
-      {isMobile && false && (
         <div 
           className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
-          data-testid="mobile-sticky-tabs-old"
+          data-testid="mobile-sticky-tabs"
         >
           <div className="flex items-center justify-center px-4 py-3 border-b border-border/50">
-            <Link href="/" data-testid="mobile-logo">
-              <h1 className="text-xl font-bold tracking-tight text-foreground">Heard</h1>
-            </Link>
+            <button
+              onClick={() => setLogoExpanded(!logoExpanded)}
+              className="flex items-center gap-2 hover-elevate rounded-md px-2 py-1.5 cursor-pointer transition-all"
+              data-testid="mobile-logo"
+            >
+              {logoExpanded ? (
+                <>
+                  <h1 className="text-xl font-bold tracking-tight text-foreground">Heard</h1>
+                  <span className="text-muted-foreground font-normal">|</span>
+                  <span className="text-sm text-muted-foreground">Your voice matters.</span>
+                </>
+              ) : (
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">H</h1>
+              )}
+            </button>
           </div>
           <div className="flex items-center px-4 py-2">
             <div className="flex-1 flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort posts">
