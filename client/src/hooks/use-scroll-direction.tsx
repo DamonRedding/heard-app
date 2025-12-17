@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 interface ScrollDirectionOptions {
   threshold?: number;
-  initialVisible?: boolean;
+  autoRevealDelay?: number;
 }
 
 interface ScrollDirectionState {
@@ -12,22 +12,41 @@ interface ScrollDirectionState {
 }
 
 export function useScrollDirection(options: ScrollDirectionOptions = {}): ScrollDirectionState {
-  const { threshold = 80, initialVisible = true } = options;
+  const { threshold = 80, autoRevealDelay = 400 } = options;
   
   const [state, setState] = useState<ScrollDirectionState>({
-    isVisible: initialVisible,
+    isVisible: true,
     scrollDirection: null,
     scrollY: 0,
   });
   
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
+  const autoRevealTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const clearAutoRevealTimer = useCallback(() => {
+    if (autoRevealTimer.current) {
+      clearTimeout(autoRevealTimer.current);
+      autoRevealTimer.current = null;
+    }
+  }, []);
+
+  const scheduleAutoReveal = useCallback(() => {
+    clearAutoRevealTimer();
+    autoRevealTimer.current = setTimeout(() => {
+      setState(prev => ({
+        ...prev,
+        isVisible: true,
+      }));
+    }, autoRevealDelay);
+  }, [autoRevealDelay, clearAutoRevealTimer]);
 
   const updateScrollState = useCallback(() => {
     const scrollY = window.scrollY;
     const delta = scrollY - lastScrollY.current;
     
     if (scrollY < threshold) {
+      clearAutoRevealTimer();
       setState({
         isVisible: true,
         scrollDirection: null,
@@ -38,6 +57,7 @@ export function useScrollDirection(options: ScrollDirectionOptions = {}): Scroll
     }
     
     if (Math.abs(delta) < 10) {
+      lastScrollY.current = scrollY;
       return;
     }
     
@@ -47,7 +67,9 @@ export function useScrollDirection(options: ScrollDirectionOptions = {}): Scroll
         scrollDirection: "down",
         scrollY,
       });
+      scheduleAutoReveal();
     } else if (delta < 0) {
+      clearAutoRevealTimer();
       setState({
         isVisible: true,
         scrollDirection: "up",
@@ -56,7 +78,7 @@ export function useScrollDirection(options: ScrollDirectionOptions = {}): Scroll
     }
     
     lastScrollY.current = scrollY;
-  }, [threshold]);
+  }, [threshold, scheduleAutoReveal, clearAutoRevealTimer]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -73,8 +95,9 @@ export function useScrollDirection(options: ScrollDirectionOptions = {}): Scroll
     
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      clearAutoRevealTimer();
     };
-  }, [updateScrollState]);
+  }, [updateScrollState, clearAutoRevealTimer]);
 
   return state;
 }
