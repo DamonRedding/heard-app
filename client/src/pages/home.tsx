@@ -726,14 +726,16 @@ export default function Home() {
       </main>
 
       {isMobile && allSubmissions.length > 3 && (
-        <button
+        <Button
+          size="icon"
+          variant="outline"
           onClick={scrollToTop}
-          className="fixed bottom-20 right-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-background border shadow-md hover-elevate active-elevate-2"
+          className="fixed bottom-20 right-4 z-30 rounded-full shadow-md"
           data-testid="button-scroll-to-top"
           aria-label="Scroll to top"
         >
           <ChevronUp className="h-5 w-5" />
-        </button>
+        </Button>
       )}
     </div>
   );
