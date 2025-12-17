@@ -43,11 +43,14 @@ export function MobileNavigation() {
               <Link key={item.href} href={item.href}>
                 <button
                   className={cn(
-                    "flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px] rounded-lg transition-colors",
+                    "relative flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px] rounded-xl transition-all duration-200",
                     isActive 
-                      ? "text-primary" 
+                      ? "text-primary bg-primary/10" 
                       : "text-muted-foreground hover-elevate active-elevate-2"
                   )}
+                  style={isActive ? {
+                    boxShadow: '0 0 12px 2px hsl(var(--primary) / 0.15)'
+                  } : undefined}
                   data-testid={item.testId}
                   aria-current={isActive ? "page" : undefined}
                   onClick={(e) => {
@@ -57,13 +60,22 @@ export function MobileNavigation() {
                     }
                   }}
                 >
-                  <Icon className={cn("h-5 w-5", isActive && "text-primary")} />
+                  <Icon className={cn(
+                    "h-5 w-5 transition-transform duration-200",
+                    isActive && "text-primary scale-110"
+                  )} />
                   <span className={cn(
-                    "text-xs font-medium",
+                    "text-xs font-medium transition-colors",
                     isActive ? "text-primary" : "text-muted-foreground"
                   )}>
                     {item.label}
                   </span>
+                  {isActive && (
+                    <span 
+                      className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"
+                      aria-hidden="true"
+                    />
+                  )}
                 </button>
               </Link>
             );
