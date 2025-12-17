@@ -359,7 +359,7 @@ export default function Home() {
               <h1 className="text-xl font-bold tracking-tight text-foreground">Heard</h1>
             </Link>
           </div>
-          <div className="flex items-center justify-between px-4 py-2">
+          <div className="flex items-center px-4 py-2">
             <div className="flex-1 flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort posts">
               <Button
                 variant={sortType === "hot" ? "default" : "ghost"}
@@ -386,17 +386,6 @@ export default function Home() {
                 New
               </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => refetch()}
-              disabled={isFetching}
-              aria-label="Refresh feed"
-              className="h-9 w-9 ml-2"
-              data-testid="button-refresh-sticky"
-            >
-              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-            </Button>
           </div>
           <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/20">
             <MobileFilterSheet
