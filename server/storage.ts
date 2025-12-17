@@ -172,6 +172,12 @@ export interface IStorage {
   updateViewCount(submissionId: string): Promise<void>;
 
   updateCommentCount(submissionId: string): Promise<void>;
+
+  getSearchSuggestions(query: string, limit?: number): Promise<{
+    submissions: { id: string; title: string | null; content: string; category: Category }[];
+    categories: { value: Category; label: string; count: number }[];
+    denominations: { value: string; count: number }[];
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1146,6 +1152,103 @@ export class DatabaseStorage implements IStorage {
       .update(submissions)
       .set({ commentCount: result?.count || 0 })
       .where(eq(submissions.id, submissionId));
+  }
+
+  async getSearchSuggestions(query: string, limit: number = 6): Promise<{
+    submissions: { id: string; title: string | null; content: string; category: Category }[];
+    categories: { value: Category; label: string; count: number }[];
+    denominations: { value: string; count: number }[];
+  }> {
+    const searchPattern = `%${query}%`;
+    
+    const categoryLabels: Record<Category, string> = {
+      leadership: "Leadership",
+      financial: "Financial",
+      culture: "Culture",
+      misconduct: "Misconduct",
+      spiritual_abuse: "Spiritual Abuse",
+      other: "Other",
+    };
+
+    const matchingSubmissions = await db
+      .select({
+        id: submissions.id,
+        title: submissions.title,
+        content: submissions.content,
+        category: submissions.category,
+      })
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.status, "active"),
+          or(
+            ilike(submissions.content, searchPattern),
+            ilike(submissions.title, searchPattern),
+            ilike(submissions.churchName, searchPattern),
+            ilike(submissions.denomination, searchPattern)
+          )
+        )
+      )
+      .orderBy(desc(sql`${submissions.condemnCount} + ${submissions.absolveCount}`))
+      .limit(limit);
+
+    const categoryCounts = await db
+      .select({
+        category: submissions.category,
+        count: count(),
+      })
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.status, "active"),
+          or(
+            ilike(submissions.content, searchPattern),
+            ilike(submissions.title, searchPattern),
+            ilike(submissions.churchName, searchPattern)
+          )
+        )
+      )
+      .groupBy(submissions.category);
+
+    const denominationCounts = await db
+      .select({
+        denomination: submissions.denomination,
+        count: count(),
+      })
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.status, "active"),
+          sql`${submissions.denomination} IS NOT NULL`,
+          or(
+            ilike(submissions.content, searchPattern),
+            ilike(submissions.title, searchPattern),
+            ilike(submissions.churchName, searchPattern)
+          )
+        )
+      )
+      .groupBy(submissions.denomination);
+
+    return {
+      submissions: matchingSubmissions as { id: string; title: string | null; content: string; category: Category }[],
+      categories: categoryCounts
+        .filter(c => c.count > 0)
+        .map(c => ({
+          value: c.category as Category,
+          label: categoryLabels[c.category as Category] || c.category,
+          count: c.count,
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3),
+      denominations: denominationCounts
+        .filter(d => d.denomination && d.count > 0)
+        .map(d => ({
+          value: d.denomination as string,
+          count: d.count,
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3),
+    };
   }
 }
 

@@ -614,6 +614,23 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/search/suggestions", async (req: Request, res: Response) => {
+    try {
+      const query = (req.query.query as string || "").trim();
+      const limit = Math.min(parseInt(req.query.limit as string) || 6, 10);
+
+      if (!query || query.length < 1) {
+        return res.json({ submissions: [], categories: [], denominations: [] });
+      }
+
+      const suggestions = await storage.getSearchSuggestions(query, limit);
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Error fetching search suggestions:", error);
+      res.status(500).json({ error: "Failed to fetch suggestions" });
+    }
+  });
+
   app.get("/api/categories", async (req: Request, res: Response) => {
     try {
       const categories = [
