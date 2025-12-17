@@ -958,6 +958,7 @@ export class DatabaseStorage implements IStorage {
 
     const selectFields = {
       id: submissions.id,
+      title: submissions.title,
       content: submissions.content,
       category: submissions.category,
       denomination: submissions.denomination,
