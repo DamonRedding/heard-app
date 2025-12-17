@@ -365,18 +365,20 @@ export default function Home() {
           <div className="flex items-center justify-center px-4 py-3 border-b border-border/50">
             <button
               onClick={() => setLogoExpanded(!logoExpanded)}
-              className="flex items-center gap-2 hover-elevate rounded-md px-2 py-1.5 cursor-pointer transition-all"
+              className="flex flex-col items-center gap-0.5 hover-elevate rounded-md px-3 py-1.5 cursor-pointer transition-all duration-200"
               data-testid="mobile-logo"
+              aria-expanded={logoExpanded}
+              aria-label={logoExpanded ? "Collapse brand info" : "Expand brand info"}
             >
-              {logoExpanded ? (
-                <>
-                  <h1 className="text-xl font-bold tracking-tight text-foreground">Heard</h1>
-                  <span className="text-muted-foreground font-normal">|</span>
-                  <span className="text-sm text-muted-foreground">Your voice matters.</span>
-                </>
-              ) : (
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">H</h1>
-              )}
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Heard</h1>
+              <div 
+                className={cn(
+                  "overflow-hidden transition-all duration-200 ease-out",
+                  logoExpanded ? "max-h-6 opacity-100" : "max-h-0 opacity-0"
+                )}
+              >
+                <span className="text-xs text-muted-foreground">Your voice matters.</span>
+              </div>
             </button>
           </div>
           <div className="flex items-center px-4 py-2">
