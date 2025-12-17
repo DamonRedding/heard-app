@@ -10,6 +10,8 @@ export function initPostHog() {
       person_profiles: 'identified_only',
       capture_pageview: true,
       capture_pageleave: true,
+      autocapture: true,
+      enable_heatmaps: true,
     });
   }
 }
