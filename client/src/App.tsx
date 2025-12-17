@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
-import { MobileHeader } from "@/components/mobile-header";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { ShareFAB } from "@/components/share-fab";
 import Home from "@/pages/home";
@@ -35,7 +34,6 @@ function App() {
         <TooltipProvider>
           <div className="min-h-screen bg-background text-foreground pb-16 md:pb-0 pt-14 md:pt-0">
             <Header />
-            <MobileHeader />
             <Router />
             <MobileNavigation />
           </div>
