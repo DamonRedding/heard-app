@@ -354,39 +354,38 @@ export default function Home() {
           className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
           data-testid="mobile-sticky-tabs"
         >
-          <div className="flex items-center justify-between px-4 py-2.5">
-            <div className="flex items-center gap-3">
-              <Link href="/" data-testid="mobile-logo">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                  <span className="text-sm font-bold text-primary-foreground">H</span>
-                </div>
-              </Link>
-              <div className="flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort posts">
-                <Button
-                  variant={sortType === "hot" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setSortType("hot")}
-                  className="gap-1.5 min-w-[70px] h-9 text-sm"
-                  role="tab"
-                  aria-selected={sortType === "hot"}
-                  data-testid="button-sort-hot-sticky"
-                >
-                  <Flame className="h-4 w-4" />
-                  Hot
-                </Button>
-                <Button
-                  variant={sortType === "new" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setSortType("new")}
-                  className="gap-1.5 min-w-[70px] h-9 text-sm"
-                  role="tab"
-                  aria-selected={sortType === "new"}
-                  data-testid="button-sort-new-sticky"
-                >
-                  <Clock className="h-4 w-4" />
-                  New
-                </Button>
-              </div>
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/50">
+            <Link href="/" data-testid="mobile-logo">
+              <h1 className="text-lg font-bold tracking-tight text-foreground">Heard</h1>
+            </Link>
+            <span className="text-xs text-muted-foreground">Anonymous Church Experiences</span>
+          </div>
+          <div className="flex items-center justify-between px-4 py-2">
+            <div className="flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort posts">
+              <Button
+                variant={sortType === "hot" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setSortType("hot")}
+                className="gap-1.5 min-w-[70px] h-8 text-sm"
+                role="tab"
+                aria-selected={sortType === "hot"}
+                data-testid="button-sort-hot-sticky"
+              >
+                <Flame className="h-4 w-4" />
+                Hot
+              </Button>
+              <Button
+                variant={sortType === "new" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setSortType("new")}
+                className="gap-1.5 min-w-[70px] h-8 text-sm"
+                role="tab"
+                aria-selected={sortType === "new"}
+                data-testid="button-sort-new-sticky"
+              >
+                <Clock className="h-4 w-4" />
+                New
+              </Button>
             </div>
             <Button
               variant="ghost"
@@ -394,7 +393,7 @@ export default function Home() {
               onClick={() => refetch()}
               disabled={isFetching}
               aria-label="Refresh feed"
-              className="h-9 w-9"
+              className="h-8 w-8"
               data-testid="button-refresh-sticky"
             >
               <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
