@@ -19,6 +19,7 @@ import { useFeedPersonalization } from "@/hooks/use-feed-personalization";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Submission, Category, VoteType, FlagReason } from "@shared/schema";
 import { DENOMINATIONS, CATEGORIES } from "@shared/schema";
+import { posthog } from "@/lib/posthog";
 import { cn } from "@/lib/utils";
 
 type SortType = "hot" | "new";
@@ -207,6 +208,12 @@ export default function Home() {
       return response.json();
     },
     onSuccess: (responseData) => {
+      posthog.capture('me too added', {
+        submission_id: responseData.id,
+        action: responseData.action,
+        me_too_count: responseData.meTooCount,
+      });
+      
       setAllSubmissions((prev) =>
         prev.map((s) =>
           s.id === responseData.id

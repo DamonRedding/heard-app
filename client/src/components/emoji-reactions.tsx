@@ -2,6 +2,7 @@ import { useState, useEffect, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { posthog } from "@/lib/posthog";
 import { cn } from "@/lib/utils";
 import { SmilePlus } from "lucide-react";
 
@@ -211,6 +212,15 @@ export function EmojiReactions({
     if (isReacting) return;
 
     const wasReacted = userReactions.includes(reactionType);
+    const action = wasReacted ? 'removed' : 'added';
+    
+    posthog.capture('reaction added', {
+      submission_id: submissionId,
+      reaction_type: reactionType,
+      action: action,
+      total_user_reactions: wasReacted ? userReactions.length - 1 : userReactions.length + 1,
+    });
+    
     let newUserReactions: string[];
     
     if (wasReacted) {

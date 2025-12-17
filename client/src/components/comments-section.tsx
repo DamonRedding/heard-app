@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MessageCircle, ChevronDown, Send, Loader2, Reply, X, ThumbsUp, ThumbsDown, ArrowUpDown } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { posthog } from "@/lib/posthog";
 import { formatDistanceToNow } from "date-fns";
 import type { Comment } from "@shared/schema";
 
@@ -182,7 +183,15 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
       });
       return response.json();
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
+      posthog.capture('comment created', {
+        submission_id: submissionId,
+        comment_id: data.id,
+        comment_length: variables.content.length,
+        is_reply: !!variables.parentId,
+        parent_comment_id: variables.parentId || null,
+      });
+      
       if (variables.parentId) {
         setReplyContent("");
         setReplyingTo(null);
@@ -210,6 +219,13 @@ export function CommentsSection({ submissionId }: CommentsSectionProps) {
       return response.json();
     },
     onSuccess: (data, variables) => {
+      posthog.capture('comment vote added', {
+        submission_id: submissionId,
+        comment_id: variables.commentId,
+        vote_type: variables.voteType,
+        action: data.action,
+      });
+      
       setUserVotes(prev => ({
         ...prev,
         [variables.commentId]: data.action === "removed" ? null : variables.voteType,

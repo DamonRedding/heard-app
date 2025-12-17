@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { posthog } from "@/lib/posthog";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import type { VoteType } from "@shared/schema";
 
@@ -57,6 +58,15 @@ export function VoteButtons({
     if (isVoting) return;
     
     const newVote = currentVote === voteType ? null : voteType;
+    const action = newVote === null ? 'removed' : (currentVote ? 'changed' : 'added');
+    
+    posthog.capture('vote added', {
+      submission_id: submissionId,
+      vote_type: voteType,
+      action: action,
+      previous_vote: currentVote,
+    });
+    
     setCurrentVote(newVote);
     setStoredVote(submissionId, newVote);
     

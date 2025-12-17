@@ -254,7 +254,14 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
         denomination: submittedSubmission.denomination,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, data) => {
+      posthog.capture('email subscribed', {
+        submission_id: submittedSubmission.id,
+        notify_on_engagement: data.notifyOnEngagement,
+        weekly_digest: data.weeklyDigest,
+        category: submittedSubmission.category,
+      });
+      
       toast({
         title: "Subscribed",
         description: "We'll keep you updated when your story resonates with others.",
@@ -287,6 +294,10 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
   };
 
   const handleSkipEmail = () => {
+    posthog.capture('email subscription skipped', {
+      submission_id: submittedSubmission.id,
+      category: submittedSubmission.category,
+    });
     onComplete();
   };
 

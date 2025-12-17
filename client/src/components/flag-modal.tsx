@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { posthog } from "@/lib/posthog";
 import { Flag, Loader2 } from "lucide-react";
 import type { FlagReason } from "@shared/schema";
 
@@ -44,6 +45,12 @@ export function FlagModal({ submissionId, onFlag, isFlagged = false }: FlagModal
     setIsSubmitting(true);
     try {
       await onFlag(selectedReason);
+      
+      posthog.capture('submission flagged', {
+        submission_id: submissionId,
+        flag_reason: selectedReason,
+      });
+      
       setHasSubmitted(true);
       setOpen(false);
     } catch (error) {
