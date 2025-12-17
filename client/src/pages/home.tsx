@@ -17,6 +17,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useFeedPersonalization } from "@/hooks/use-feed-personalization";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useScrollDirection } from "@/hooks/use-scroll-direction";
 import type { Submission, Category, VoteType, FlagReason } from "@shared/schema";
 import { DENOMINATIONS, CATEGORIES } from "@shared/schema";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,7 @@ export default function Home() {
   const { toast } = useToast();
   const searchParams = useSearch();
   const isMobile = useIsMobile();
+  const { isVisible: isHeaderVisible } = useScrollDirection({ threshold: 80 });
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
   const { trackEngagement, getPersonalizationLevel, getPersonalizationParams, totalEngagements } = useFeedPersonalization();
@@ -351,7 +353,13 @@ export default function Home() {
 
       {isMobile && (
         <div 
-          className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
+          className={cn(
+            "fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b",
+            "transition-transform duration-300 ease-in-out will-change-transform"
+          )}
+          style={{
+            transform: isHeaderVisible ? "translateY(0)" : "translateY(-100%)",
+          }}
           data-testid="mobile-sticky-tabs"
         >
           <div className="flex items-center justify-center px-4 py-3 border-b border-border/50">
@@ -388,6 +396,10 @@ export default function Home() {
             </div>
           </div>
         </div>
+      )}
+
+      {isMobile && (
+        <div className="h-[100px]" aria-hidden="true" />
       )}
 
       {showWelcomeBanner && (

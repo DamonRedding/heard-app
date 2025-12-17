@@ -32,7 +32,7 @@ function App() {
     <ThemeProvider defaultTheme="light" storageKey="sanctuary-voice-theme">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <div className="min-h-screen bg-background text-foreground pb-16 md:pb-0 pt-14 md:pt-0">
+          <div className="min-h-screen bg-background text-foreground pb-16 md:pb-0">
             <Header />
             <Router />
             <MobileNavigation />
