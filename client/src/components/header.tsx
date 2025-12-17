@@ -17,14 +17,10 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
         <Link href="/" data-testid="link-home">
-          <div className="flex items-center gap-3 hover-elevate rounded-md px-2 py-1 cursor-pointer">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">H</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold tracking-tight">Heard</h1>
-              <p className="text-xs text-muted-foreground">Anonymous Church Experiences</p>
-            </div>
+          <div className="flex items-center gap-2 hover-elevate rounded-md px-2 py-1.5 cursor-pointer">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Heard</h1>
+            <span className="text-muted-foreground font-normal">|</span>
+            <span className="text-sm text-muted-foreground">Anonymous Church Experiences</span>
           </div>
         </Link>
 
