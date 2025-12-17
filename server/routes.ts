@@ -440,6 +440,52 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/backfill-titles", async (req: Request, res: Response) => {
+    try {
+      const { password } = req.body;
+      if (password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const submissionsWithoutTitles = await storage.getSubmissionsWithoutTitles();
+      
+      if (submissionsWithoutTitles.length === 0) {
+        return res.json({ success: true, message: "All submissions already have titles", updated: 0 });
+      }
+
+      let updated = 0;
+      const errors: string[] = [];
+
+      for (const submission of submissionsWithoutTitles) {
+        try {
+          const title = await generateTitle(
+            submission.content,
+            submission.category,
+            submission.timeframe,
+            submission.churchName,
+            submission.denomination
+          );
+          await storage.updateSubmissionTitle(submission.id, title);
+          updated++;
+        } catch (err) {
+          console.error(`Failed to generate title for submission ${submission.id}:`, err);
+          errors.push(submission.id);
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Generated titles for ${updated} submissions`,
+        updated,
+        total: submissionsWithoutTitles.length,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error("Error backfilling titles:", error);
+      res.status(500).json({ error: "Failed to backfill titles" });
+    }
+  });
+
   app.post("/api/comments/:commentId/vote", async (req: Request, res: Response) => {
     try {
       const { commentId } = req.params;

@@ -291,6 +291,30 @@ export default function Admin() {
     },
   });
 
+  const backfillTitlesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/backfill-titles", { password });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/submissions"] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        typeof query.queryKey[0] === "string" && query.queryKey[0].startsWith("/api/submissions")
+      });
+      toast({
+        title: "Titles generated",
+        description: data.message || `Generated titles for ${data.updated} submissions.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Backfill failed",
+        description: "Unable to generate titles for submissions.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -359,18 +383,35 @@ export default function Admin() {
   return (
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/">
-            <Button variant="ghost" size="icon" data-testid="button-back">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage submissions and moderation
-            </p>
+        <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <Button variant="ghost" size="icon" data-testid="button-back">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
+              <p className="text-sm text-muted-foreground">
+                Manage submissions and moderation
+              </p>
+            </div>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => backfillTitlesMutation.mutate()}
+            disabled={backfillTitlesMutation.isPending}
+            data-testid="button-backfill-titles"
+          >
+            {backfillTitlesMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating Titles...
+              </>
+            ) : (
+              "Generate Missing Titles"
+            )}
+          </Button>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3 mb-8">

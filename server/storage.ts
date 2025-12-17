@@ -178,6 +178,10 @@ export interface IStorage {
     categories: { value: Category; label: string; count: number }[];
     denominations: { value: string; count: number }[];
   }>;
+
+  getSubmissionsWithoutTitles(): Promise<Submission[]>;
+
+  updateSubmissionTitle(id: string, title: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1249,6 +1253,21 @@ export class DatabaseStorage implements IStorage {
         .sort((a, b) => b.count - a.count)
         .slice(0, 3),
     };
+  }
+
+  async getSubmissionsWithoutTitles(): Promise<Submission[]> {
+    return db
+      .select()
+      .from(submissions)
+      .where(sql`${submissions.title} IS NULL OR ${submissions.title} = ''`)
+      .orderBy(desc(submissions.createdAt));
+  }
+
+  async updateSubmissionTitle(id: string, title: string): Promise<void> {
+    await db
+      .update(submissions)
+      .set({ title })
+      .where(eq(submissions.id, id));
   }
 }
 
