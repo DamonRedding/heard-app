@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SubmissionCard, SubmissionCardSkeleton } from "@/components/submission-card";
-import { Search, X, Clock, TrendingUp, ArrowLeft, Flame } from "lucide-react";
+import { Search, X, Clock, TrendingUp, Flame } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CATEGORIES, DENOMINATIONS, type Category, type Submission, type VoteType, type FlagReason } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 
 interface SubmissionsResponse {
   submissions: Submission[];
@@ -84,7 +85,7 @@ export default function SearchPage() {
 
   const searchUrl = buildSearchUrl();
 
-  const { data, isLoading, refetch } = useQuery<SubmissionsResponse>({
+  const { data, isLoading } = useQuery<SubmissionsResponse>({
     queryKey: [searchUrl],
     enabled: !!searchUrl,
   });
@@ -239,117 +240,131 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen pb-20">
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b">
-        <div className="flex items-center gap-3 px-4 py-3">
-          {hasActiveSearch && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClearSearch}
-              className="shrink-0"
-              data-testid="button-back-search"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          )}
-          <form onSubmit={handleSubmit} className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search experiences, churches..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-10 h-11"
-              data-testid="input-search"
-              autoFocus={!hasActiveSearch}
-            />
-            {searchQuery && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                data-testid="button-clear-input"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </form>
-        </div>
+      {isMobile && (
+        <div 
+          className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
+          data-testid="search-sticky-header"
+        >
+          <div className="flex items-center justify-center px-4 py-3 border-b border-border/50">
+            <Link href="/" data-testid="search-logo">
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Heard</h1>
+            </Link>
+          </div>
+          
+          <div className="px-4 py-2 space-y-2">
+            <form onSubmit={handleSubmit} className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search experiences, churches..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10 h-10"
+                data-testid="input-search"
+              />
+              {searchQuery && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                  data-testid="button-clear-input"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </form>
 
-        {hasActiveSearch && (
-          <div className="px-4 pb-3 space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center rounded-lg border bg-muted/30 p-0.5">
+            {hasActiveSearch && (
+              <div className="flex-1 flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort results">
                 <Button
                   variant={sortType === "hot" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setSortType("hot")}
-                  className="gap-1.5 h-8 text-xs"
+                  className="flex-1 gap-1.5 h-9 text-sm"
+                  role="tab"
+                  aria-selected={sortType === "hot"}
                   data-testid="search-sort-hot"
                 >
-                  <Flame className="h-3.5 w-3.5" />
+                  <Flame className="h-4 w-4" />
                   Top
                 </Button>
                 <Button
                   variant={sortType === "new" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setSortType("new")}
-                  className="gap-1.5 h-8 text-xs"
+                  className="flex-1 gap-1.5 h-9 text-sm"
+                  role="tab"
+                  aria-selected={sortType === "new"}
                   data-testid="search-sort-new"
                 >
-                  <Clock className="h-3.5 w-3.5" />
+                  <Clock className="h-4 w-4" />
                   Latest
                 </Button>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge
-                variant={selectedCategory === null ? "default" : "outline"}
-                className={cn(
-                  "cursor-pointer transition-all py-1.5 px-3",
-                  selectedCategory === null && "bg-primary text-primary-foreground"
-                )}
-                onClick={() => setSelectedCategory(null)}
-                data-testid="search-category-all"
-              >
-                All
-              </Badge>
-              {CATEGORIES.map((cat) => (
+            )}
+          </div>
+
+          {hasActiveSearch && (
+            <div className="px-4 pb-3 space-y-2 border-t border-border/50 pt-2">
+              <div className="flex flex-wrap gap-2">
                 <Badge
-                  key={cat.value}
-                  variant={selectedCategory === cat.value ? "default" : "outline"}
+                  variant={selectedCategory === null ? "default" : "outline"}
                   className={cn(
                     "cursor-pointer transition-all py-1.5 px-3",
-                    selectedCategory === cat.value && "bg-primary text-primary-foreground"
+                    selectedCategory === null && "bg-primary text-primary-foreground"
                   )}
-                  onClick={() => setSelectedCategory(cat.value)}
-                  data-testid={`search-category-${cat.value}`}
+                  onClick={() => setSelectedCategory(null)}
+                  data-testid="search-category-all"
                 >
-                  {cat.label}
+                  All
                 </Badge>
-              ))}
-            </div>
-            <Select
-              value={selectedDenomination || "all"}
-              onValueChange={(value) => setSelectedDenomination(value === "all" ? null : value)}
-            >
-              <SelectTrigger className="w-full h-9" data-testid="search-denomination">
-                <SelectValue placeholder="All Denominations" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Denominations</SelectItem>
-                {DENOMINATIONS.map((d) => (
-                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                {CATEGORIES.map((cat) => (
+                  <Badge
+                    key={cat.value}
+                    variant={selectedCategory === cat.value ? "default" : "outline"}
+                    className={cn(
+                      "cursor-pointer transition-all py-1.5 px-3",
+                      selectedCategory === cat.value && "bg-primary text-primary-foreground"
+                    )}
+                    onClick={() => setSelectedCategory(cat.value)}
+                    data-testid={`search-category-${cat.value}`}
+                  >
+                    {cat.label}
+                  </Badge>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </div>
+              </div>
+              <Select
+                value={selectedDenomination || "all"}
+                onValueChange={(value) => setSelectedDenomination(value === "all" ? null : value)}
+              >
+                <SelectTrigger className="w-full h-9" data-testid="search-denomination">
+                  <SelectValue placeholder="All Denominations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Denominations</SelectItem>
+                  {DENOMINATIONS.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearSearch}
+                className="w-full text-muted-foreground"
+                data-testid="button-clear-filters"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Clear search & filters
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
-      <div className="px-4 py-4">
+      <main className="container mx-auto px-4 py-4 sm:py-6">
         {!hasActiveSearch ? (
           <div className="space-y-6">
             {recentSearches.length > 0 && (
@@ -390,7 +405,7 @@ export default function SearchPage() {
                 <TrendingUp className="h-4 w-4" />
                 Browse by Category
               </h2>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {CATEGORIES.map((cat) => (
                   <Card
                     key={cat.value}
@@ -418,19 +433,19 @@ export default function SearchPage() {
             </p>
 
             {isLoading ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {[1, 2, 3].map((i) => (
                   <SubmissionCardSkeleton key={i} />
                 ))}
               </div>
             ) : data?.submissions && data.submissions.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {data.submissions.map((submission) => (
                   <SubmissionCard
                     key={submission.id}
                     submission={submission}
-                    onVote={(voteType) => handleVote(submission.id, voteType)}
-                    onFlag={(reason) => handleFlag(submission.id, reason)}
+                    onVote={(submissionId, voteType) => handleVote(submissionId, voteType)}
+                    onFlag={async (submissionId, reason) => { handleFlag(submissionId, reason); }}
                     reactions={reactionsMap[submission.id] || {}}
                     onReact={(reactionType) => handleReact(submission.id, reactionType)}
                     onMeToo={() => handleMeToo(submission.id)}
@@ -450,7 +465,7 @@ export default function SearchPage() {
             )}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
