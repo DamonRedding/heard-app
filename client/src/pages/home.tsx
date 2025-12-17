@@ -354,76 +354,76 @@ export default function Home() {
           className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
           data-testid="mobile-sticky-tabs"
         >
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/50">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
             <Link href="/" data-testid="mobile-logo">
-              <h1 className="text-lg font-bold tracking-tight text-foreground">Heard</h1>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Heard</h1>
             </Link>
-            <span className="text-xs text-muted-foreground">Anonymous Church Experiences</span>
-          </div>
-          <div className="flex items-center justify-between px-4 py-2">
-            <div className="flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort posts">
+            <div className="flex items-center gap-2">
+              <MobileFilterSheet
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                selectedDenomination={selectedDenomination}
+                onDenominationChange={setSelectedDenomination}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                categoryCounts={countsData?.counts}
+                hasActiveFilters={!!hasFilters}
+                onClearFilters={clearFilters}
+              />
               <Button
-                variant={sortType === "hot" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setSortType("hot")}
-                className="gap-1.5 min-w-[70px] h-8 text-sm"
-                role="tab"
-                aria-selected={sortType === "hot"}
-                data-testid="button-sort-hot-sticky"
+                variant="ghost"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                aria-label="Refresh feed"
+                className="h-9 w-9"
+                data-testid="button-refresh-sticky"
               >
-                <Flame className="h-4 w-4" />
-                Hot
-              </Button>
-              <Button
-                variant={sortType === "new" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setSortType("new")}
-                className="gap-1.5 min-w-[70px] h-8 text-sm"
-                role="tab"
-                aria-selected={sortType === "new"}
-                data-testid="button-sort-new-sticky"
-              >
-                <Clock className="h-4 w-4" />
-                New
+                <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
               </Button>
             </div>
+          </div>
+          <div className="flex w-full" role="tablist" aria-label="Sort posts">
             <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => refetch()}
-              disabled={isFetching}
-              aria-label="Refresh feed"
-              className="h-8 w-8"
-              data-testid="button-refresh-sticky"
+              variant={sortType === "hot" ? "default" : "ghost"}
+              onClick={() => setSortType("hot")}
+              className="flex-1 gap-2 h-11 text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+              data-state={sortType === "hot" ? "active" : "inactive"}
+              role="tab"
+              aria-selected={sortType === "hot"}
+              data-testid="button-sort-hot-sticky"
             >
-              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+              <Flame className="h-4 w-4" />
+              Hot
+            </Button>
+            <Button
+              variant={sortType === "new" ? "default" : "ghost"}
+              onClick={() => setSortType("new")}
+              className="flex-1 gap-2 h-11 text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+              data-state={sortType === "new" ? "active" : "inactive"}
+              role="tab"
+              aria-selected={sortType === "new"}
+              data-testid="button-sort-new-sticky"
+            >
+              <Clock className="h-4 w-4" />
+              New
             </Button>
           </div>
-          <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/20">
-            <MobileFilterSheet
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-              selectedDenomination={selectedDenomination}
-              onDenominationChange={setSelectedDenomination}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              categoryCounts={countsData?.counts}
-              hasActiveFilters={!!hasFilters}
-              onClearFilters={clearFilters}
-            />
-            {hasFilters && (
+          {hasFilters && (
+            <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-t">
+              <span className="text-xs text-muted-foreground">Filters applied</span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="text-muted-foreground text-xs h-8"
+                className="text-muted-foreground text-xs h-7"
                 data-testid="button-clear-filters-mobile"
               >
                 <X className="h-3.5 w-3.5 mr-1" />
-                Clear filters
+                Clear
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
