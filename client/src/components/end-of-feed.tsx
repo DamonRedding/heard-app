@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { RefreshCw, Clock, Flame, Sparkles, CheckCircle2 } from "lucide-react";
+import { RefreshCw, Clock, Flame, Sparkles, CheckCircle2, ArrowUp } from "lucide-react";
 
 type SortType = "hot" | "new";
 
@@ -21,6 +21,10 @@ export function EndOfFeed({
   totalShown 
 }: EndOfFeedProps) {
   const isHot = sortType === "hot";
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <Card className="border-dashed" data-testid="end-of-feed">
@@ -45,6 +49,17 @@ export function EndOfFeed({
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={scrollToTop}
+            className="gap-1.5"
+            data-testid="button-scroll-to-top"
+          >
+            <ArrowUp className="h-4 w-4" />
+            Back to Top
+          </Button>
+          
           {isHot ? (
             <Button
               variant="outline"

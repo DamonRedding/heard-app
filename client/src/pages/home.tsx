@@ -68,6 +68,7 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [sortType, setSortType] = useState<SortType>("hot");
   const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
+  const [hasMoreExhausted, setHasMoreExhausted] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [logoExpanded, setLogoExpanded] = useState(false);
   const [highlightedSubmissionId, setHighlightedSubmissionId] = useState<string | null>(null);
@@ -117,18 +118,23 @@ export default function Home() {
 
   useEffect(() => {
     setPage(1);
+    setHasMoreExhausted(false);
   }, [selectedCategory, selectedDenomination, debouncedSearch, sortType]);
 
   useEffect(() => {
     if (data?.submissions) {
       if (page === 1) {
         setAllSubmissions(data.submissions);
+        setHasMoreExhausted(data.hasMore === false);
       } else {
         setAllSubmissions((prev) => {
           const newIds = new Set(data.submissions.map((s) => s.id));
           const existing = prev.filter((s) => !newIds.has(s.id));
           return [...existing, ...data.submissions];
         });
+        if (data.hasMore === false) {
+          setHasMoreExhausted(true);
+        }
       }
 
       const submissionIds = data.submissions.map((s) => s.id);
@@ -672,7 +678,7 @@ export default function Home() {
                       <span className="text-sm">Loading more...</span>
                     </div>
                   )}
-                  {!data?.hasMore && allSubmissions.length > 0 && !isFetching && (
+                  {hasMoreExhausted && allSubmissions.length > 0 && !isFetching && (
                     <EndOfFeed
                       sortType={sortType}
                       onSwitchSort={setSortType}
@@ -684,7 +690,7 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-                  {data?.hasMore && (
+                  {!hasMoreExhausted && (
                     <div className="flex justify-center pt-4">
                       <Button
                         variant="outline"
@@ -703,7 +709,7 @@ export default function Home() {
                       </Button>
                     </div>
                   )}
-                  {!data?.hasMore && allSubmissions.length > 0 && !isFetching && (
+                  {hasMoreExhausted && allSubmissions.length > 0 && !isFetching && (
                     <div className="pt-4">
                       <EndOfFeed
                         sortType={sortType}
