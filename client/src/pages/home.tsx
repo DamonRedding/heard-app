@@ -118,6 +118,7 @@ export default function Home() {
 
   useEffect(() => {
     setPage(1);
+    setAllSubmissions([]);
     setHasMoreExhausted(false);
   }, [selectedCategory, selectedDenomination, debouncedSearch, sortType]);
 
