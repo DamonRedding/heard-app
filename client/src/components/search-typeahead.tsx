@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Search, X, Clock, TrendingUp, Tag, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Category } from "@shared/schema";
+import { posthog } from "@/lib/posthog";
 
 interface SearchSuggestion {
   id: string;
@@ -117,37 +118,70 @@ export function SearchTypeahead({
     staleTime: 30000,
   });
 
-  const handleSubmit = useCallback((query: string) => {
+  const handleSubmit = useCallback((query: string, source: 'typed' | 'recent' | 'suggestion' = 'typed') => {
     if (query.trim()) {
+      const resultsCount = suggestions?.submissions?.length ?? 0;
+      const categoriesCount = suggestions?.categories?.length ?? 0;
+      const denominationsCount = suggestions?.denominations?.length ?? 0;
+      
+      posthog.capture('search_performed', {
+        query: query.trim(),
+        query_length: query.trim().length,
+        results_count: resultsCount,
+        categories_count: categoriesCount,
+        denominations_count: denominationsCount,
+        has_results: resultsCount > 0 || categoriesCount > 0 || denominationsCount > 0,
+        source: source,
+      });
+      
       saveRecentSearch(query);
       setRecentSearches(getRecentSearches());
       onSubmit(query);
     }
     setIsOpen(false);
-  }, [onSubmit]);
+  }, [onSubmit, suggestions]);
 
   const handleCategoryClick = useCallback((category: Category) => {
+    posthog.capture('search_filter_applied', {
+      filter_type: 'category',
+      filter_value: category,
+      query: value.trim() || null,
+    });
+    
     if (onCategorySelect) {
       onCategorySelect(category, true);
     }
     setIsOpen(false);
-  }, [onCategorySelect]);
+  }, [onCategorySelect, value]);
 
   const handleDenominationClick = useCallback((denomination: string) => {
+    posthog.capture('search_filter_applied', {
+      filter_type: 'denomination',
+      filter_value: denomination,
+      query: value.trim() || null,
+    });
+    
     if (onDenominationSelect) {
       onDenominationSelect(denomination, true);
     }
     setIsOpen(false);
-  }, [onDenominationSelect]);
+  }, [onDenominationSelect, value]);
 
   const handleSubmissionClick = useCallback((submission: SearchSuggestion) => {
-    handleSubmit(value.trim() || (submission.title || truncateContent(submission.content, 40)));
+    posthog.capture('search_suggestion_clicked', {
+      suggestion_id: submission.id,
+      suggestion_type: 'submission',
+      suggestion_category: submission.category,
+      query: value.trim(),
+    });
+    
+    handleSubmit(value.trim() || (submission.title || truncateContent(submission.content, 40)), 'suggestion');
     setIsOpen(false);
   }, [handleSubmit, value]);
 
   const handleRecentClick = useCallback((query: string) => {
     onChange(query);
-    handleSubmit(query);
+    handleSubmit(query, 'recent');
   }, [onChange, handleSubmit]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
