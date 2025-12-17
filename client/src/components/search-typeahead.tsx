@@ -213,9 +213,9 @@ export function SearchTypeahead({
           e.preventDefault();
           handleSubmit(value);
         }}
-        className="relative"
+        className="relative flex items-center"
       >
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
         <Input
           ref={inputRef}
           type="text"
@@ -229,7 +229,7 @@ export function SearchTypeahead({
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          className="pl-10 pr-10 h-11"
+          className="pl-10 pr-10 h-11 w-full"
           autoFocus={autoFocus}
           data-testid="input-search-typeahead"
         />
@@ -242,7 +242,7 @@ export function SearchTypeahead({
               onChange("");
               inputRef.current?.focus();
             }}
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9"
+            className="absolute right-1 h-9 w-9"
             data-testid="button-clear-search"
           >
             <X className="h-4 w-4" />
