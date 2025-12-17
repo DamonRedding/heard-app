@@ -638,9 +638,9 @@ export default function Home() {
         </div>
 
         <div className="space-y-4 sm:space-y-6">
-          {isLoading && page === 1 ? (
+          {(isLoading && page === 1) || (page === 1 && !data) ? (
             Array.from({ length: 5 }).map((_, i) => <SubmissionCardSkeleton key={i} />)
-          ) : allSubmissions.length === 0 ? (
+          ) : allSubmissions.length === 0 && data?.submissions?.length === 0 ? (
             <div className="text-center py-12 sm:py-16">
               <p className="text-base sm:text-lg text-muted-foreground mb-4">
                 No experiences shared yet. Be the first.
