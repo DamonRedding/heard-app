@@ -188,9 +188,45 @@ Preferred communication style: Simple, everyday language.
 **Date Utilities**:
 - date-fns - Date formatting and manipulation
 
+**Animation Library**:
+- framer-motion - Smooth animations, transitions, and celebration effects for engagement flow
+
 **Notes**:
 - No authentication service required for public features (anonymous by design)
 - No email service integrated in MVP
 - No payment processing (Stripe listed but not actively used)
 - No file upload service (multer listed but not actively used)
 - Admin panel uses simple password authentication rather than full auth system
+
+## Recent Changes (December 2025)
+
+### Post-Submission Engagement Flow Redesign
+Completely redesigned the post-submission experience to reduce user abandonment using UX best practices:
+
+**Step 1 - Celebration Screen**:
+- Confetti animation for immediate positive reinforcement (Peak-End Rule)
+- Story preview showing what the user submitted
+- Community stats (stories shared, people supported) for social proof
+- 3-step progress indicator with meaningful labels
+
+**Step 2 - Quick Engagement**:
+- Limited to 3 related stories max (down from 5) per Hick's Law
+- One-tap "I Hear You" micro-engagement buttons
+- Real-time feedback counter showing impact
+- Graceful error handling when API fails
+
+**Step 3 - Email Capture**:
+- Reframed as "Get Notified When Your Story Resonates"
+- Trust messaging with lock icons and privacy emphasis
+- Clear value propositions with visual checkmarks
+- "Skip for now" option with neutral copy (no guilt-inducing language)
+
+**UX Principles Applied**:
+- Endowed Progress Effect via visual step indicator
+- Variable Reward through engagement feedback
+- Reciprocity by leading with value before asking for email
+- Low friction with one-tap interactions and clear skip options
+
+**Analytics Integration**:
+- PostHog tracking for funnel analysis
+- Events: post_submit_screen_viewed, post_submit_i_hear_you_tapped, email subscribed
