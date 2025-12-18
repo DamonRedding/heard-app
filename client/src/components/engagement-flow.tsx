@@ -1,39 +1,33 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import { 
   CheckCircle2, 
   Users, 
-  MessageCircle, 
-  ThumbsUp, 
-  ThumbsDown, 
-  ArrowRight, 
-  Mail, 
   Loader2, 
   Calendar, 
   Check,
   Sparkles,
   Heart,
-  Eye,
   Bell,
-  Gift
+  Lock,
+  Shield
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { posthog } from "@/lib/posthog";
 import { formatDistanceToNow } from "date-fns";
-import { CATEGORIES, type Submission, type Category } from "@shared/schema";
+import { CATEGORIES, type Submission } from "@shared/schema";
 
 interface EngagementFlowProps {
   submittedSubmission: Submission;
@@ -101,41 +95,6 @@ function CelebrationOverlay({ show }: { show: boolean }) {
   );
 }
 
-function StepIndicator({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) {
-  const progress = ((currentStep) / totalSteps) * 100;
-  
-  const stepLabels = [
-    { label: "Submitted", icon: CheckCircle2 },
-    { label: "Connect", icon: Heart },
-    { label: "Stay Updated", icon: Bell }
-  ];
-  
-  return (
-    <div className="w-full max-w-md mx-auto space-y-3">
-      <div className="flex justify-between text-xs text-muted-foreground">
-        {stepLabels.map((step, i) => {
-          const StepIcon = step.icon;
-          const isComplete = i + 1 < currentStep;
-          const isCurrent = i + 1 === currentStep;
-          
-          return (
-            <div 
-              key={i} 
-              className={`flex items-center gap-1.5 transition-colors ${
-                isComplete ? 'text-absolve' : isCurrent ? 'text-foreground font-medium' : ''
-              }`}
-            >
-              <StepIcon className={`h-3.5 w-3.5 ${isComplete ? 'text-absolve' : ''}`} />
-              <span className="hidden sm:inline">{step.label}</span>
-            </div>
-          );
-        })}
-      </div>
-      <Progress value={progress} className="h-2" />
-    </div>
-  );
-}
-
 function QuickEngageCard({ 
   submission, 
   onEngage,
@@ -149,83 +108,78 @@ function QuickEngageCard({
 }) {
   const categoryLabel = getCategoryLabel(submission.category);
   const timeAgo = formatDistanceToNow(new Date(submission.createdAt), { addSuffix: false });
-  const preview = submission.content.length > 100 
-    ? `"${submission.content.slice(0, 100)}..."` 
+  const preview = submission.content.length > 80 
+    ? `"${submission.content.slice(0, 80)}..."` 
     : `"${submission.content}"`;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.2 }}
     >
-      <Card className={`transition-all duration-300 ${isEngaged ? 'border-absolve/50 bg-absolve/5' : 'hover-elevate'}`}>
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <Badge variant="secondary" className="text-xs">
-              {categoryLabel}
-            </Badge>
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {timeAgo} ago
-            </span>
+      <div className={`p-3 rounded-lg border transition-all ${isEngaged ? 'border-absolve/50 bg-absolve/5' : 'hover-elevate'}`}>
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="secondary" className="text-xs shrink-0">
+                {categoryLabel}
+              </Badge>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {timeAgo}
+              </span>
+            </div>
+            <p className="font-serif text-xs leading-relaxed line-clamp-2 text-muted-foreground">
+              {preview}
+            </p>
           </div>
-          
-          <p className="font-serif text-sm leading-relaxed line-clamp-3">
-            {preview}
-          </p>
-          
           <Button 
-            className={`w-full gap-2 transition-all ${isEngaged ? 'bg-absolve hover:bg-absolve/90' : ''}`}
+            size="sm"
+            className={`shrink-0 gap-1.5 ${isEngaged ? 'bg-absolve hover:bg-absolve/90' : ''}`}
             variant={isEngaged ? "default" : "outline"}
             onClick={onEngage}
             disabled={isEngaged || isLoading}
             data-testid={`button-hear-${submission.id}`}
           >
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin" />
             ) : isEngaged ? (
-              <>
-                <Check className="h-4 w-4" />
-                You Heard Them
-              </>
+              <Check className="h-3 w-3" />
             ) : (
-              <>
-                <Heart className="h-4 w-4" />
-                I Hear You
-              </>
+              <Heart className="h-3 w-3" />
             )}
+            <span className="hidden sm:inline">{isEngaged ? 'Heard' : 'I Hear You'}</span>
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </motion.div>
   );
 }
 
 export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFlowProps) {
-  const [step, setStep] = useState(1);
   const [showCelebration, setShowCelebration] = useState(true);
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [engagedIds, setEngagedIds] = useState<Set<string>>(new Set());
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const { toast } = useToast();
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  const engagedCount = engagedIds.size;
-  const totalSteps = 3;
+  const categoryLabel = getCategoryLabel(submittedSubmission.category);
+  const storyPreview = submittedSubmission.content.length > 60
+    ? submittedSubmission.content.slice(0, 60) + "..."
+    : submittedSubmission.content;
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowCelebration(false), 2000);
+    const timer = setTimeout(() => setShowCelebration(false), 2500);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    posthog.capture('post_submit_screen_viewed', {
-      step,
-      step_name: step === 1 ? 'confirmation' : step === 2 ? 'quick_engage' : 'email_capture',
+    posthog.capture('post_submit_email_displayed', {
       submission_id: submittedSubmission.id,
       category: submittedSubmission.category,
     });
-  }, [step, submittedSubmission.id, submittedSubmission.category]);
+  }, [submittedSubmission.id, submittedSubmission.category]);
 
   const { data: stats } = useQuery<CommunityStats>({
     queryKey: ["/api/community/stats"],
@@ -248,7 +202,7 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
       }
       return response.json();
     },
-    enabled: step >= 2,
+    enabled: emailSubmitted,
     retry: 1,
   });
 
@@ -262,6 +216,11 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
       setLoadingId(null);
       queryClient.invalidateQueries({ 
         queryKey: ["/api/submissions/related", submittedSubmission.category, submittedSubmission.denomination] 
+      });
+      posthog.capture('post_submit_i_hear_you_tapped', {
+        submission_id: submittedSubmission.id,
+        voted_submission_id: submissionId,
+        category: submittedSubmission.category,
       });
     },
     onError: () => {
@@ -290,7 +249,7 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
       });
     },
     onSuccess: (_, data) => {
-      posthog.capture('email subscribed', {
+      posthog.capture('email_submitted', {
         submission_id: submittedSubmission.id,
         notify_on_engagement: data.notifyOnEngagement,
         weekly_digest: data.weeklyDigest,
@@ -301,407 +260,301 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
         description: (
           <span className="flex items-center gap-2">
             <Check className="h-4 w-4 text-absolve" />
-            You're all set! We'll keep you updated.
+            You're all set! We'll notify you when your story resonates.
           </span>
         ),
       });
-      onComplete();
+      setEmailSubmitted(true);
     },
     onError: () => {
       toast({
         title: "Something went wrong",
-        description: "Please try again later.",
+        description: "Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const handleVote = (submissionId: string) => {
-    if (!engagedIds.has(submissionId)) {
-      posthog.capture('post_submit_i_hear_you_tapped', {
-        submission_id: submittedSubmission.id,
-        voted_submission_id: submissionId,
-        category: submittedSubmission.category,
-        engagement_count: engagedCount + 1,
-      });
-      voteMutation.mutate(submissionId);
-    }
-  };
-
-  const handleEmailSubmit = async (data: EmailFormValues) => {
-    await emailMutation.mutateAsync(data);
+  const handleEmailSubmit = (data: EmailFormValues) => {
+    emailMutation.mutate(data);
   };
 
   const handleSkipEmail = () => {
-    posthog.capture('email subscription skipped', {
+    posthog.capture('email_skipped', {
       submission_id: submittedSubmission.id,
       category: submittedSubmission.category,
+    });
+    setEmailSubmitted(true);
+  };
+
+  const handleFinish = () => {
+    posthog.capture('post_submit_flow_completed', {
+      submission_id: submittedSubmission.id,
+      email_provided: emailMutation.isSuccess,
+      stories_engaged: engagedIds.size,
     });
     onComplete();
   };
 
-  const categoryLabel = getCategoryLabel(submittedSubmission.category);
-  const storyPreview = submittedSubmission.content.length > 80 
-    ? submittedSubmission.content.slice(0, 80) + "..." 
-    : submittedSubmission.content;
+  const relatedPosts = relatedData?.submissions?.slice(0, 3) || [];
+  const hasRelatedPosts = relatedPosts.length > 0 && !relatedError;
 
-  if (step === 1) {
-    return (
-      <div ref={containerRef} className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center px-4 py-8 relative">
+  return (
+    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-start px-4 py-6" data-testid="engagement-flow">
+      <motion.div 
+        className="w-full max-w-md space-y-5 relative"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
         <CelebrationOverlay show={showCelebration} />
         
-        <motion.div 
-          className="w-full max-w-lg space-y-8"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          data-testid="engagement-step-1"
-        >
-          <StepIndicator currentStep={1} totalSteps={totalSteps} />
-          
-          <Card className="border-absolve/30 overflow-hidden">
-            <div className="bg-gradient-to-r from-absolve/10 to-primary/5 p-6 text-center space-y-4">
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="bg-gradient-to-br from-absolve/20 to-primary/10 p-5 text-center relative">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", delay: 0.3 }}
+                transition={{ type: "spring", delay: 0.2 }}
+                className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-background shadow-md mb-3"
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-absolve/20">
-                  <Sparkles className="h-8 w-8 text-absolve" />
-                </div>
+                <Sparkles className="h-7 w-7 text-absolve" />
               </motion.div>
               
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="space-y-2"
+                transition={{ delay: 0.3 }}
               >
-                <h2 className="text-2xl font-semibold">Your Voice Has Been Heard</h2>
-                <p className="text-muted-foreground">
-                  Thank you for your courage in sharing.
+                <h2 className="text-xl font-semibold mb-1">Your Voice Has Been Heard</h2>
+                <p className="text-sm text-muted-foreground">
+                  Your story is now live and helping others feel less alone.
                 </p>
               </motion.div>
             </div>
             
-            <CardContent className="p-6 space-y-6">
-              <motion.div 
-                className="bg-muted/50 rounded-lg p-4 space-y-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-              >
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{categoryLabel}</Badge>
-                  <span className="text-xs text-muted-foreground">Just now</span>
-                </div>
-                <p className="font-serif text-sm italic text-muted-foreground">
-                  "{storyPreview}"
-                </p>
-              </motion.div>
-
-              <motion.div 
-                className="flex items-center justify-center gap-6 text-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center justify-center gap-1.5 text-primary">
-                    <Users className="h-4 w-4" />
-                    <span className="font-semibold">{stats?.totalSubmissions || 0}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Stories shared</p>
-                </div>
-                <div className="w-px h-10 bg-border" />
-                <div className="space-y-1">
-                  <div className="flex items-center justify-center gap-1.5 text-absolve">
-                    <Heart className="h-4 w-4" />
-                    <span className="font-semibold">{stats?.recentEngagementsThisMonth || 0}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Supported this month</p>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-              >
-                <Button 
-                  size="lg" 
-                  className="w-full gap-2 animate-pulse-subtle" 
-                  onClick={() => setStep(2)}
-                  data-testid="button-continue-step-1"
-                >
-                  Continue
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-                <p className="text-xs text-center text-muted-foreground mt-3">
-                  Takes less than 30 seconds
-                </p>
-              </motion.div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (step === 2) {
-    const relatedPosts = relatedData?.submissions?.slice(0, 3) || [];
-    const hasRelatedPosts = relatedPosts.length > 0;
-
-    return (
-      <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-start px-4 py-8" data-testid="engagement-step-2">
-        <div className="w-full max-w-lg space-y-6">
-          <StepIndicator currentStep={2} totalSteps={totalSteps} />
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center space-y-2"
-          >
-            <h2 className="text-xl font-semibold">One Tap Makes a Difference</h2>
-            <p className="text-sm text-muted-foreground">
-              Show these people they're not alone. It only takes a second.
-            </p>
-          </motion.div>
-
-          {relatedLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Card key={i}>
-                  <CardContent className="p-4 space-y-3">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : relatedError ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground mb-2">
-                  Your story is live and ready to be seen.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Continue to stay connected with your community.
-                </p>
-              </CardContent>
-            </Card>
-          ) : hasRelatedPosts ? (
-            <div className="space-y-4">
-              <AnimatePresence>
-                {relatedPosts.map((post, index) => (
-                  <motion.div
-                    key={post.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <QuickEngageCard 
-                      submission={post} 
-                      onEngage={() => handleVote(post.id)}
-                      isEngaged={engagedIds.has(post.id)}
-                      isLoading={loadingId === post.id}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  You're among the first in this category. Your story will help others feel less alone.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {engagedCount > 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-absolve/10 border border-absolve/20 rounded-lg p-4 text-center"
+            <motion.div 
+              className="p-4 border-b bg-muted/30"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
             >
-              <div className="flex items-center justify-center gap-2 text-absolve font-medium">
-                <Check className="h-5 w-5" />
-                <span>You supported {engagedCount} {engagedCount === 1 ? 'person' : 'people'}</span>
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="h-4 w-4 text-absolve shrink-0" />
+                <Badge variant="secondary" className="text-xs">{categoryLabel}</Badge>
+                <span className="text-xs text-muted-foreground">Just now</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Every tap shows someone they matter
+              <p className="font-serif text-sm italic text-muted-foreground line-clamp-2">
+                "{storyPreview}"
               </p>
             </motion.div>
-          )}
 
-          <div className="space-y-3 pt-4">
-            <Button 
-              className="w-full gap-2"
-              onClick={() => setStep(3)}
-              data-testid="button-continue-step-2"
+            <motion.div 
+              className="flex items-center justify-center gap-4 py-3 px-4 border-b text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
             >
-              {engagedCount > 0 ? "Continue" : "Skip for now"}
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 3) {
-    return (
-      <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center px-4 py-8" data-testid="engagement-step-3">
-        <motion.div 
-          className="w-full max-w-lg space-y-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <StepIndicator currentStep={3} totalSteps={totalSteps} />
-          
-          <Card>
-            <CardHeader className="text-center pb-4">
-              <motion.div 
-                className="flex justify-center mb-4"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring" }}
-              >
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10">
-                  <Gift className="h-7 w-7 text-primary" />
-                </div>
-              </motion.div>
-              <CardTitle className="text-xl">Get Notified When Your Story Resonates</CardTitle>
-              <p className="text-sm text-muted-foreground mt-2">
-                Be the first to know when someone connects with what you shared.
-              </p>
-            </CardHeader>
-            
-            <CardContent className="space-y-6">
-              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-absolve/20 shrink-0">
-                  <Eye className="h-5 w-5 text-absolve" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">Your story is now live</p>
-                  <p className="text-xs text-muted-foreground">
-                    Others can already see and support your experience
-                  </p>
-                </div>
+              <div className="flex items-center gap-1.5 text-xs">
+                <Users className="h-3.5 w-3.5 text-primary" />
+                <span className="font-medium">{stats?.totalSubmissions || 0}</span>
+                <span className="text-muted-foreground">stories shared</span>
               </div>
+              <div className="w-px h-4 bg-border" />
+              <div className="flex items-center gap-1.5 text-xs">
+                <Heart className="h-3.5 w-3.5 text-absolve" />
+                <span className="font-medium">{stats?.recentEngagementsThisMonth || 0}</span>
+                <span className="text-muted-foreground">supported this month</span>
+              </div>
+            </motion.div>
 
-              <Form {...emailForm}>
-                <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
-                  <FormField
-                    control={emailForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email address</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="your@email.com" 
-                            type="email"
-                            {...field} 
-                            data-testid="input-email"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="space-y-3">
-                    <FormField
-                      control={emailForm.control}
-                      name="notifyOnEngagement"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-3 rounded-lg bg-muted/30 hover-elevate">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              data-testid="checkbox-notify-engagement"
-                            />
-                          </FormControl>
-                          <div className="space-y-0.5 leading-none">
-                            <FormLabel className="cursor-pointer font-normal">
-                              Let me know when someone supports my story
-                            </FormLabel>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={emailForm.control}
-                      name="weeklyDigest"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-3 rounded-lg bg-muted/30 hover-elevate">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              data-testid="checkbox-weekly-digest"
-                            />
-                          </FormControl>
-                          <div className="space-y-0.5 leading-none">
-                            <FormLabel className="cursor-pointer font-normal">
-                              Weekly stories I might relate to
-                            </FormLabel>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
+            <AnimatePresence mode="wait">
+              {!emailSubmitted ? (
+                <motion.div
+                  key="email-form"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="p-5"
+                >
+                  <div className="text-center mb-4">
+                    <h3 className="font-semibold text-base mb-1">Get Notified When Your Story Resonates</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Be the first to know when someone connects with your experience.
+                    </p>
                   </div>
 
-                  <div className="flex flex-col gap-3 pt-2">
-                    <Button 
-                      type="submit"
-                      className="w-full gap-2"
-                      disabled={emailMutation.isPending}
-                      data-testid="button-get-updates"
-                    >
-                      {emailMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Setting up...
-                        </>
+                  <Form {...emailForm}>
+                    <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
+                      <FormField
+                        control={emailForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <div className="relative">
+                                <Input 
+                                  placeholder="your@email.com" 
+                                  type="email"
+                                  className="pr-10"
+                                  {...field} 
+                                  data-testid="input-email"
+                                />
+                                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="space-y-2">
+                        <FormField
+                          control={emailForm.control}
+                          name="notifyOnEngagement"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  data-testid="checkbox-notify-engagement"
+                                />
+                              </FormControl>
+                              <FormLabel className="text-xs font-normal cursor-pointer">
+                                Notify me when someone supports my story
+                              </FormLabel>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={emailForm.control}
+                          name="weeklyDigest"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  data-testid="checkbox-weekly-digest"
+                                />
+                              </FormControl>
+                              <FormLabel className="text-xs font-normal cursor-pointer">
+                                Weekly stories I might relate to
+                              </FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2 pt-1">
+                        <Button 
+                          type="submit"
+                          className="w-full gap-2"
+                          disabled={emailMutation.isPending}
+                          data-testid="button-get-updates"
+                        >
+                          {emailMutation.isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Setting up...
+                            </>
+                          ) : (
+                            <>
+                              <Bell className="h-4 w-4" />
+                              Keep Me Updated
+                            </>
+                          )}
+                        </Button>
+                        
+                        <Button 
+                          type="button"
+                          variant="ghost" 
+                          size="sm"
+                          className="w-full text-muted-foreground text-xs"
+                          onClick={handleSkipEmail}
+                          data-testid="button-skip-email"
+                        >
+                          Skip for now
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                  
+                  <div className="flex items-center justify-center gap-1.5 mt-3 text-xs text-muted-foreground">
+                    <Shield className="h-3 w-3" />
+                    <span>Your email stays private. Unsubscribe anytime.</span>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="post-email"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-5 space-y-4"
+                >
+                  {emailMutation.isSuccess && (
+                    <div className="bg-absolve/10 border border-absolve/20 rounded-lg p-3 text-center">
+                      <div className="flex items-center justify-center gap-2 text-absolve text-sm font-medium">
+                        <Check className="h-4 w-4" />
+                        <span>You're all set!</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {hasRelatedPosts && (
+                    <div className="space-y-3">
+                      <div className="text-center">
+                        <p className="text-sm font-medium">While you're here...</p>
+                        <p className="text-xs text-muted-foreground">Show others they're not alone</p>
+                      </div>
+                      
+                      {relatedLoading ? (
+                        <div className="space-y-2">
+                          {[1, 2].map((i) => (
+                            <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                          ))}
+                        </div>
                       ) : (
-                        <>
-                          <Bell className="h-4 w-4" />
-                          Keep Me Updated
-                        </>
+                        <div className="space-y-2">
+                          {relatedPosts.slice(0, 2).map((post) => (
+                            <QuickEngageCard 
+                              key={post.id}
+                              submission={post} 
+                              onEngage={() => voteMutation.mutate(post.id)}
+                              isEngaged={engagedIds.has(post.id)}
+                              isLoading={loadingId === post.id}
+                            />
+                          ))}
+                        </div>
                       )}
-                    </Button>
-                    
-                    <Button 
-                      type="button"
-                      variant="ghost" 
-                      className="w-full text-muted-foreground"
-                      onClick={handleSkipEmail}
-                      data-testid="button-maybe-later"
-                    >
-                      Maybe later
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-              
-              <p className="text-xs text-center text-muted-foreground">
-                Your email stays private. Unsubscribe anytime.
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
+                      
+                      {engagedIds.size > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="text-center text-xs text-muted-foreground"
+                        >
+                          You supported {engagedIds.size} {engagedIds.size === 1 ? 'person' : 'people'}
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
 
-  return null;
+                  <Button 
+                    className="w-full"
+                    onClick={handleFinish}
+                    data-testid="button-finish"
+                  >
+                    View All Stories
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  );
 }
