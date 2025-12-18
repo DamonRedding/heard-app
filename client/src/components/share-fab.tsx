@@ -32,7 +32,7 @@ export function ShareFAB() {
       }}
     >
       <Plus className="h-5 w-5" />
-      <span className="text-sm">Be Heard</span>
+      <span className="text-sm">Post Story</span>
     </button>,
     document.body
   );
