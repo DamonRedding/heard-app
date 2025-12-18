@@ -19,16 +19,18 @@ export function ShareFAB() {
   // - 48px minimum touch target height for accessibility
   // - Icon on left, text on right per industry standard
   // - Short, action-oriented label
+  // - Bottom-center placement for hand-agnostic accessibility (inclusive for left/right-handed users)
   return createPortal(
     <button
       onClick={handleClick}
       className="fixed z-[9999] flex items-center gap-2 h-12 px-4 rounded-full bg-primary text-primary-foreground font-medium shadow-lg hover-elevate active-elevate-2 border border-primary-border"
       data-testid="fab-share"
-      aria-label="Share your story"
+      aria-label="Post your story"
       style={{
         position: 'fixed',
         bottom: '5rem',
-        right: '1rem',
+        left: '50%',
+        transform: 'translateX(-50%)',
       }}
     >
       <Plus className="h-5 w-5" />
