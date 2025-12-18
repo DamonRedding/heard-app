@@ -181,7 +181,7 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
     });
   }, [submittedSubmission.id, submittedSubmission.category]);
 
-  const { data: stats } = useQuery<CommunityStats>({
+  const { data: stats, isLoading: statsLoading } = useQuery<CommunityStats>({
     queryKey: ["/api/community/stats"],
   });
 
@@ -356,13 +356,21 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
             >
               <div className="flex items-center gap-1.5 text-xs">
                 <Users className="h-3.5 w-3.5 text-primary" />
-                <span className="font-medium">{stats?.totalSubmissions || 0}</span>
+                {statsLoading ? (
+                  <Skeleton className="h-4 w-8" />
+                ) : (
+                  <span className="font-medium">{stats?.totalSubmissions || 0}</span>
+                )}
                 <span className="text-muted-foreground">stories shared</span>
               </div>
               <div className="w-px h-4 bg-border" />
               <div className="flex items-center gap-1.5 text-xs">
                 <Heart className="h-3.5 w-3.5 text-absolve" />
-                <span className="font-medium">{stats?.recentEngagementsThisMonth || 0}</span>
+                {statsLoading ? (
+                  <Skeleton className="h-4 w-6" />
+                ) : (
+                  <span className="font-medium">{stats?.recentEngagementsThisMonth || 0}</span>
+                )}
                 <span className="text-muted-foreground">supported this month</span>
               </div>
             </motion.div>
