@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,24 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Users, MessageCircle, ThumbsUp, ThumbsDown, ArrowRight, ArrowLeft, Mail, BookOpen, Loader2, Calendar, Check } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { 
+  CheckCircle2, 
+  Users, 
+  MessageCircle, 
+  ThumbsUp, 
+  ThumbsDown, 
+  ArrowRight, 
+  Mail, 
+  Loader2, 
+  Calendar, 
+  Check,
+  Sparkles,
+  Heart,
+  Eye,
+  Bell,
+  Gift
+} from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { posthog } from "@/lib/posthog";
@@ -41,197 +58,215 @@ function getCategoryLabel(value: string): string {
   return CATEGORIES.find((c) => c.value === value)?.label || value;
 }
 
-function RelatedPostCard({ 
-  submission, 
-  onVote,
-  isEngaged 
-}: { 
-  submission: Submission; 
-  onVote: (id: string) => void;
-  isEngaged: boolean;
-}) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const categoryLabel = getCategoryLabel(submission.category);
-  const timeAgo = formatDistanceToNow(new Date(submission.createdAt), { addSuffix: false });
-  const isTruncated = submission.content.length > 120;
-  const contentPreview = isExpanded || !isTruncated
-    ? `"${submission.content}"`
-    : `"${submission.content.slice(0, 120)}..."`;
-
-  const handleVote = () => {
-    if (!isEngaged) {
-      onVote(submission.id);
-    }
-  };
-
-  const handleToggleExpand = () => {
-    if (isTruncated) {
-      setIsExpanded(!isExpanded);
-    }
-  };
-
+function ConfettiParticle({ delay, x }: { delay: number; x: number }) {
+  const colors = ['#4CAF7A', '#C9A227', '#0D5C63', '#E8774D', '#F5F1E8'];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  
   return (
-    <Card 
-      className={`transition-opacity duration-300 ${isEngaged ? 'opacity-60' : 'hover-elevate'}`} 
-      data-testid={`related-post-${submission.id}`}
-    >
-      <CardContent className="p-4 space-y-3">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-medium">{categoryLabel}</span>
-            {submission.denomination && (
-              <>
-                <span className="text-muted-foreground">|</span>
-                <span className="text-muted-foreground">{submission.denomination}</span>
-              </>
-            )}
-          </div>
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Calendar className="h-3 w-3" />
-            {timeAgo} ago
-          </p>
-        </div>
-
-        <div 
-          className={isTruncated ? "cursor-pointer hover:bg-accent/5 rounded-md transition-colors -mx-2 px-2 -my-1 py-1" : ""}
-          onClick={handleToggleExpand}
-          role={isTruncated ? "button" : undefined}
-          tabIndex={isTruncated ? 0 : undefined}
-          onKeyDown={(e) => {
-            if (isTruncated && (e.key === "Enter" || e.key === " ")) {
-              e.preventDefault();
-              handleToggleExpand();
-            }
-          }}
-          data-testid={`related-content-area-${submission.id}`}
-        >
-          <p className="font-serif text-sm leading-relaxed" data-testid={`related-content-${submission.id}`}>
-            {contentPreview}
-          </p>
-          {isTruncated && (
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-primary hover:underline"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleExpand();
-              }}
-              data-testid={`button-toggle-expand-${submission.id}`}
-            >
-              {isExpanded ? "Show less" : "Read more"}
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <ThumbsUp className="h-3.5 w-3.5" />
-            {submission.absolveCount}
-          </span>
-          <span className="flex items-center gap-1">
-            <ThumbsDown className="h-3.5 w-3.5" />
-            {submission.condemnCount}
-          </span>
-          <span className="flex items-center gap-1">
-            <MessageCircle className="h-3.5 w-3.5" />
-            {submission.meTooCount}
-          </span>
-        </div>
-
-        <Button 
-          size="lg"
-          variant={isEngaged ? "secondary" : "default"}
-          onClick={handleVote}
-          disabled={isEngaged}
-          className={`w-full gap-2 h-11 ${isEngaged ? 'bg-absolve/20 text-absolve border-absolve/30 hover:bg-absolve/20' : ''}`}
-          data-testid={`button-hear-${submission.id}`}
-        >
-          {isEngaged ? (
-            <>
-              <Check className="h-4 w-4" />
-              Heard!
-            </>
-          ) : (
-            <>
-              <ThumbsUp className="h-4 w-4" />
-              I Hear You
-            </>
-          )}
-        </Button>
-      </CardContent>
-    </Card>
+    <motion.div
+      className="absolute w-2 h-2 rounded-full"
+      style={{ backgroundColor: color, left: `${x}%` }}
+      initial={{ y: -20, opacity: 1, scale: 0 }}
+      animate={{ 
+        y: 300, 
+        opacity: [1, 1, 0],
+        scale: [0, 1, 1],
+        rotate: [0, 360, 720],
+        x: [0, (Math.random() - 0.5) * 100]
+      }}
+      transition={{ 
+        duration: 2,
+        delay,
+        ease: "easeOut"
+      }}
+    />
   );
 }
 
-function getEngagementMessage(count: number): { text: string; emoji: string } {
-  if (count === 0) {
-    return { text: "Read stories and show support", emoji: "" };
-  } else if (count === 1) {
-    return { text: `Engaged with ${count} story`, emoji: "Nice work!" };
-  } else if (count === 2) {
-    return { text: `Engaged with ${count} stories`, emoji: "Keep going!" };
-  } else {
-    return { text: `Engaged with ${count} stories`, emoji: "You're amazing!" };
-  }
+function CelebrationOverlay({ show }: { show: boolean }) {
+  if (!show) return null;
+  
+  const particles = Array.from({ length: 30 }, (_, i) => ({
+    id: i,
+    delay: Math.random() * 0.5,
+    x: Math.random() * 100
+  }));
+  
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+      {particles.map(p => (
+        <ConfettiParticle key={p.id} delay={p.delay} x={p.x} />
+      ))}
+    </div>
+  );
+}
+
+function StepIndicator({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) {
+  const progress = ((currentStep) / totalSteps) * 100;
+  
+  const stepLabels = [
+    { label: "Submitted", icon: CheckCircle2 },
+    { label: "Connect", icon: Heart },
+    { label: "Stay Updated", icon: Bell }
+  ];
+  
+  return (
+    <div className="w-full max-w-md mx-auto space-y-3">
+      <div className="flex justify-between text-xs text-muted-foreground">
+        {stepLabels.map((step, i) => {
+          const StepIcon = step.icon;
+          const isComplete = i + 1 < currentStep;
+          const isCurrent = i + 1 === currentStep;
+          
+          return (
+            <div 
+              key={i} 
+              className={`flex items-center gap-1.5 transition-colors ${
+                isComplete ? 'text-absolve' : isCurrent ? 'text-foreground font-medium' : ''
+              }`}
+            >
+              <StepIcon className={`h-3.5 w-3.5 ${isComplete ? 'text-absolve' : ''}`} />
+              <span className="hidden sm:inline">{step.label}</span>
+            </div>
+          );
+        })}
+      </div>
+      <Progress value={progress} className="h-2" />
+    </div>
+  );
+}
+
+function QuickEngageCard({ 
+  submission, 
+  onEngage,
+  isEngaged,
+  isLoading 
+}: { 
+  submission: Submission; 
+  onEngage: () => void;
+  isEngaged: boolean;
+  isLoading: boolean;
+}) {
+  const categoryLabel = getCategoryLabel(submission.category);
+  const timeAgo = formatDistanceToNow(new Date(submission.createdAt), { addSuffix: false });
+  const preview = submission.content.length > 100 
+    ? `"${submission.content.slice(0, 100)}..."` 
+    : `"${submission.content}"`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card className={`transition-all duration-300 ${isEngaged ? 'border-absolve/50 bg-absolve/5' : 'hover-elevate'}`}>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Badge variant="secondary" className="text-xs">
+              {categoryLabel}
+            </Badge>
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {timeAgo} ago
+            </span>
+          </div>
+          
+          <p className="font-serif text-sm leading-relaxed line-clamp-3">
+            {preview}
+          </p>
+          
+          <Button 
+            className={`w-full gap-2 transition-all ${isEngaged ? 'bg-absolve hover:bg-absolve/90' : ''}`}
+            variant={isEngaged ? "default" : "outline"}
+            onClick={onEngage}
+            disabled={isEngaged || isLoading}
+            data-testid={`button-hear-${submission.id}`}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isEngaged ? (
+              <>
+                <Check className="h-4 w-4" />
+                You Heard Them
+              </>
+            ) : (
+              <>
+                <Heart className="h-4 w-4" />
+                I Hear You
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
 }
 
 export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFlowProps) {
   const [step, setStep] = useState(1);
+  const [showCelebration, setShowCelebration] = useState(true);
   const [engagedIds, setEngagedIds] = useState<Set<string>>(new Set());
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const { toast } = useToast();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const engagedCount = engagedIds.size;
+  const totalSteps = 3;
 
-  // Track post-submit flow screen views for funnel analysis
+  useEffect(() => {
+    const timer = setTimeout(() => setShowCelebration(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     posthog.capture('post_submit_screen_viewed', {
       step,
-      step_name: step === 1 ? 'confirmation' : step === 2 ? 'related_stories' : 'email_subscription',
+      step_name: step === 1 ? 'confirmation' : step === 2 ? 'quick_engage' : 'email_capture',
       submission_id: submittedSubmission.id,
       category: submittedSubmission.category,
     });
   }, [step, submittedSubmission.id, submittedSubmission.category]);
 
-  const { data: stats, isLoading: statsLoading } = useQuery<CommunityStats>({
+  const { data: stats } = useQuery<CommunityStats>({
     queryKey: ["/api/community/stats"],
   });
 
-  const { data: relatedData, isLoading: relatedLoading } = useQuery<{ submissions: Submission[] }>({
+  const { data: relatedData, isLoading: relatedLoading, isError: relatedError } = useQuery<{ submissions: Submission[] }>({
     queryKey: ["/api/submissions/related", submittedSubmission.category, submittedSubmission.denomination],
     queryFn: async () => {
       const params = new URLSearchParams({
         category: submittedSubmission.category,
         excludeId: submittedSubmission.id,
-        limit: "5",
+        limit: "3",
       });
       if (submittedSubmission.denomination) {
         params.set("denomination", submittedSubmission.denomination);
       }
       const response = await fetch(`/api/submissions/related?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch related stories');
+      }
       return response.json();
     },
     enabled: step >= 2,
+    retry: 1,
   });
 
   const voteMutation = useMutation({
     mutationFn: async (submissionId: string) => {
+      setLoadingId(submissionId);
       return apiRequest("POST", `/api/submissions/${submissionId}/metoo`, {});
     },
     onSuccess: (_, submissionId) => {
       setEngagedIds(prev => new Set(Array.from(prev).concat(submissionId)));
+      setLoadingId(null);
       queryClient.invalidateQueries({ 
         queryKey: ["/api/submissions/related", submittedSubmission.category, submittedSubmission.denomination] 
       });
-      toast({
-        description: (
-          <span className="flex items-center gap-2">
-            <Check className="h-4 w-4 text-absolve" />
-            They'll see your support!
-          </span>
-        ),
-        duration: 2000,
-      });
     },
+    onError: () => {
+      setLoadingId(null);
+    }
   });
 
   const emailForm = useForm<EmailFormValues>({
@@ -263,8 +298,12 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
       });
       
       toast({
-        title: "Subscribed",
-        description: "We'll keep you updated when your story resonates with others.",
+        description: (
+          <span className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-absolve" />
+            You're all set! We'll keep you updated.
+          </span>
+        ),
       });
       onComplete();
     },
@@ -301,177 +340,215 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
     onComplete();
   };
 
+  const categoryLabel = getCategoryLabel(submittedSubmission.category);
+  const storyPreview = submittedSubmission.content.length > 80 
+    ? submittedSubmission.content.slice(0, 80) + "..." 
+    : submittedSubmission.content;
+
   if (step === 1) {
     return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-8">
-        <Card className="border-absolve/30 bg-absolve/5 w-full max-w-2xl" data-testid="engagement-step-1">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center space-y-6">
-          <CheckCircle2 className="h-16 w-16 text-absolve" />
-          <div className="space-y-2">
-            <h3 className="text-xl font-semibold">Your story has been shared anonymously</h3>
-            <p className="text-muted-foreground max-w-md">
-              Thank you for your courage. You're not alone.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 text-sm">
-            {statsLoading ? (
-              <>
-                <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-6 w-48" />
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full border">
-                  <Users className="h-4 w-4 text-primary" />
-                  <span data-testid="text-total-submissions">
-                    <strong>{stats?.totalSubmissions || 0}</strong> others have shared their church experiences
-                  </span>
+      <div ref={containerRef} className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center px-4 py-8 relative">
+        <CelebrationOverlay show={showCelebration} />
+        
+        <motion.div 
+          className="w-full max-w-lg space-y-8"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          data-testid="engagement-step-1"
+        >
+          <StepIndicator currentStep={1} totalSteps={totalSteps} />
+          
+          <Card className="border-absolve/30 overflow-hidden">
+            <div className="bg-gradient-to-r from-absolve/10 to-primary/5 p-6 text-center space-y-4">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", delay: 0.3 }}
+              >
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-absolve/20">
+                  <Sparkles className="h-8 w-8 text-absolve" />
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full border">
-                  <MessageCircle className="h-4 w-4 text-primary" />
-                  <span data-testid="text-monthly-engagements">
-                    <strong>{stats?.recentEngagementsThisMonth || 0}</strong> people found support this month
-                  </span>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="space-y-2"
+              >
+                <h2 className="text-2xl font-semibold">Your Voice Has Been Heard</h2>
+                <p className="text-muted-foreground">
+                  Thank you for your courage in sharing.
+                </p>
+              </motion.div>
+            </div>
+            
+            <CardContent className="p-6 space-y-6">
+              <motion.div 
+                className="bg-muted/50 rounded-lg p-4 space-y-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+              >
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{categoryLabel}</Badge>
+                  <span className="text-xs text-muted-foreground">Just now</span>
                 </div>
-              </>
-            )}
-          </div>
+                <p className="font-serif text-sm italic text-muted-foreground">
+                  "{storyPreview}"
+                </p>
+              </motion.div>
 
-          <Button 
-            size="lg" 
-            className="mt-4 gap-2" 
-            onClick={() => setStep(2)}
-            data-testid="button-continue-step-1"
-          >
-            Continue
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </CardContent>
-        </Card>
+              <motion.div 
+                className="flex items-center justify-center gap-6 text-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-center gap-1.5 text-primary">
+                    <Users className="h-4 w-4" />
+                    <span className="font-semibold">{stats?.totalSubmissions || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Stories shared</p>
+                </div>
+                <div className="w-px h-10 bg-border" />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-center gap-1.5 text-absolve">
+                    <Heart className="h-4 w-4" />
+                    <span className="font-semibold">{stats?.recentEngagementsThisMonth || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Supported this month</p>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <Button 
+                  size="lg" 
+                  className="w-full gap-2 animate-pulse-subtle" 
+                  onClick={() => setStep(2)}
+                  data-testid="button-continue-step-1"
+                >
+                  Continue
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <p className="text-xs text-center text-muted-foreground mt-3">
+                  Takes less than 30 seconds
+                </p>
+              </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     );
   }
 
   if (step === 2) {
-    const relatedPosts = relatedData?.submissions || [];
+    const relatedPosts = relatedData?.submissions?.slice(0, 3) || [];
     const hasRelatedPosts = relatedPosts.length > 0;
-    const remainingPosts = relatedPosts.filter(p => !engagedIds.has(p.id)).length;
-    const engagementMsg = getEngagementMessage(engagedCount);
 
     return (
-      <div className="flex flex-col h-[calc(100vh-64px)] max-w-2xl mx-auto" data-testid="engagement-step-2">
-        <div className="bg-background border-b px-4 py-3 flex items-center justify-between h-[50px] shrink-0">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="gap-1.5" 
-            onClick={() => setStep(1)}
-            data-testid="button-back-step-2"
+      <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-start px-4 py-8" data-testid="engagement-step-2">
+        <div className="w-full max-w-lg space-y-6">
+          <StepIndicator currentStep={2} totalSteps={totalSteps} />
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center space-y-2"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <span className="text-sm text-muted-foreground font-medium">Step 2 of 3</span>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => setStep(3)}
-            data-testid="button-skip-step-2"
-          >
-            Skip
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
-          <div className="space-y-3">
-            <h2 className="text-xl font-semibold leading-tight">
-              While you're here, others need to hear from you too.
-            </h2>
-            
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <BookOpen className="h-4 w-4" />
-              <span className="text-sm">Stories from people like you:</span>
-            </div>
-          </div>
+            <h2 className="text-xl font-semibold">One Tap Makes a Difference</h2>
+            <p className="text-sm text-muted-foreground">
+              Show these people they're not alone. It only takes a second.
+            </p>
+          </motion.div>
 
           {relatedLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <Card key={i} className="animate-pulse">
+                <Card key={i}>
                   <CardContent className="p-4 space-y-3">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-3 w-20" />
-                    <Skeleton className="h-12 w-full" />
                     <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-11 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-10 w-full" />
                   </CardContent>
                 </Card>
               ))}
             </div>
-          ) : hasRelatedPosts ? (
-            <>
-              <div className="space-y-3" data-testid="related-posts-list">
-                {relatedPosts.map((post) => (
-                  <RelatedPostCard 
-                    key={post.id} 
-                    submission={post} 
-                    onVote={handleVote}
-                    isEngaged={engagedIds.has(post.id)}
-                  />
-                ))}
-              </div>
-
-              {remainingPosts > 0 && relatedPosts.length > 3 && (
-                <p className="text-sm text-muted-foreground text-center">
-                  [Scroll for {remainingPosts} more {remainingPosts === 1 ? 'story' : 'stories'}...]
+          ) : relatedError ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground mb-2">
+                  Your story is live and ready to be seen.
                 </p>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No similar stories found yet. You're helping build this community!</p>
+                <p className="text-xs text-muted-foreground">
+                  Continue to stay connected with your community.
+                </p>
+              </CardContent>
+            </Card>
+          ) : hasRelatedPosts ? (
+            <div className="space-y-4">
+              <AnimatePresence>
+                {relatedPosts.map((post, index) => (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <QuickEngageCard 
+                      submission={post} 
+                      onEngage={() => handleVote(post.id)}
+                      isEngaged={engagedIds.has(post.id)}
+                      isLoading={loadingId === post.id}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  You're among the first in this category. Your story will help others feel less alone.
+                </p>
+              </CardContent>
+            </Card>
           )}
 
-          <p className="text-sm text-muted-foreground text-center italic pt-2">
-            "They shared their pain just like you did. Show them they're heard."
-          </p>
+          {engagedCount > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-absolve/10 border border-absolve/20 rounded-lg p-4 text-center"
+            >
+              <div className="flex items-center justify-center gap-2 text-absolve font-medium">
+                <Check className="h-5 w-5" />
+                <span>You supported {engagedCount} {engagedCount === 1 ? 'person' : 'people'}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Every tap shows someone they matter
+              </p>
+            </motion.div>
+          )}
 
-          <Button 
-            variant="outline"
-            className="w-full h-11"
-            asChild
-          >
-            <a href="/" data-testid="button-see-more">
-              See More Stories
-            </a>
-          </Button>
-        </div>
-
-        <div className="bg-background border-t px-4 py-4 space-y-3 shrink-0">
-          <p 
-            className={`text-sm text-center flex items-center justify-center gap-2 ${engagedCount > 0 ? 'text-absolve font-medium' : 'text-muted-foreground'}`}
-            data-testid="text-engagement-status"
-          >
-            {engagementMsg.text}
-            {engagedCount > 0 && (
-              <>
-                <span>•</span>
-                <span>{engagementMsg.emoji}</span>
-                <Check className="h-4 w-4" />
-              </>
-            )}
-          </p>
-          
-          <Button 
-            className={`w-full h-11 ${engagedCount > 0 ? 'animate-pulse-subtle' : ''}`}
-            variant={engagedCount > 0 ? "default" : "outline"}
-            onClick={() => setStep(3)}
-            data-testid="button-continue-step-2"
-          >
-            Continue
-          </Button>
+          <div className="space-y-3 pt-4">
+            <Button 
+              className="w-full gap-2"
+              onClick={() => setStep(3)}
+              data-testid="button-continue-step-2"
+            >
+              {engagedCount > 0 ? "Continue" : "Skip for now"}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -479,116 +556,149 @@ export function EngagementFlow({ submittedSubmission, onComplete }: EngagementFl
 
   if (step === 3) {
     return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-8">
-        <Card className="w-full max-w-2xl" data-testid="engagement-step-3">
-          <CardHeader className="text-center pb-2">
-          <div className="flex justify-center mb-4">
-            <Mail className="h-12 w-12 text-primary" />
-          </div>
-          <CardTitle className="text-xl">We'll let you know when your story resonates with others</CardTitle>
-          <p className="text-sm text-muted-foreground mt-2">
-            Get notified when someone shows support for your story (optional).
-          </p>
-        </CardHeader>
-        <CardContent>
-          <Form {...emailForm}>
-            <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
-              <FormField
-                control={emailForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email address</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="your@email.com" 
-                        type="email"
-                        {...field} 
-                        data-testid="input-email"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="space-y-3 pt-2">
-                <FormField
-                  control={emailForm.control}
-                  name="notifyOnEngagement"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="checkbox-notify-engagement"
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="cursor-pointer">
-                          Notify me when someone engages with my story
-                        </FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={emailForm.control}
-                  name="weeklyDigest"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="checkbox-weekly-digest"
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="cursor-pointer">
-                          Weekly digest of new stories I might relate to
-                        </FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+      <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center px-4 py-8" data-testid="engagement-step-3">
+        <motion.div 
+          className="w-full max-w-lg space-y-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <StepIndicator currentStep={3} totalSteps={totalSteps} />
+          
+          <Card>
+            <CardHeader className="text-center pb-4">
+              <motion.div 
+                className="flex justify-center mb-4"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring" }}
+              >
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10">
+                  <Gift className="h-7 w-7 text-primary" />
+                </div>
+              </motion.div>
+              <CardTitle className="text-xl">Get Notified When Your Story Resonates</CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Be the first to know when someone connects with what you shared.
+              </p>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-absolve/20 shrink-0">
+                  <Eye className="h-5 w-5 text-absolve" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Your story is now live</p>
+                  <p className="text-xs text-muted-foreground">
+                    Others can already see and support your experience
+                  </p>
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={handleSkipEmail}
-                  data-testid="button-maybe-later"
-                >
-                  Maybe Later
-                </Button>
-                <Button 
-                  type="submit"
-                  className="flex-1 gap-2"
-                  disabled={emailMutation.isPending}
-                  data-testid="button-get-updates"
-                >
-                  {emailMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Subscribing...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="h-4 w-4" />
-                      Get Updates
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-        </Card>
+              <Form {...emailForm}>
+                <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
+                  <FormField
+                    control={emailForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email address</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="your@email.com" 
+                            type="email"
+                            {...field} 
+                            data-testid="input-email"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="space-y-3">
+                    <FormField
+                      control={emailForm.control}
+                      name="notifyOnEngagement"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-3 rounded-lg bg-muted/30 hover-elevate">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              data-testid="checkbox-notify-engagement"
+                            />
+                          </FormControl>
+                          <div className="space-y-0.5 leading-none">
+                            <FormLabel className="cursor-pointer font-normal">
+                              Let me know when someone supports my story
+                            </FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={emailForm.control}
+                      name="weeklyDigest"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-3 rounded-lg bg-muted/30 hover-elevate">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              data-testid="checkbox-weekly-digest"
+                            />
+                          </FormControl>
+                          <div className="space-y-0.5 leading-none">
+                            <FormLabel className="cursor-pointer font-normal">
+                              Weekly stories I might relate to
+                            </FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-3 pt-2">
+                    <Button 
+                      type="submit"
+                      className="w-full gap-2"
+                      disabled={emailMutation.isPending}
+                      data-testid="button-get-updates"
+                    >
+                      {emailMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Setting up...
+                        </>
+                      ) : (
+                        <>
+                          <Bell className="h-4 w-4" />
+                          Keep Me Updated
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      type="button"
+                      variant="ghost" 
+                      className="w-full text-muted-foreground"
+                      onClick={handleSkipEmail}
+                      data-testid="button-maybe-later"
+                    >
+                      Maybe later
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+              
+              <p className="text-xs text-center text-muted-foreground">
+                Your email stays private. Unsubscribe anytime.
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     );
   }
