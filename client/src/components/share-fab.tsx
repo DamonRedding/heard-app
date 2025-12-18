@@ -13,19 +13,26 @@ export function ShareFAB() {
     setLocation("/submit");
   };
 
+  // Extended FAB following Material Design best practices:
+  // - Icon + text label for clear context
+  // - Pill shape (rounded-full) for recognizable FAB styling
+  // - 48px minimum touch target height for accessibility
+  // - Icon on left, text on right per industry standard
+  // - Short, action-oriented label
   return createPortal(
     <button
       onClick={handleClick}
-      className="fixed bottom-20 right-4 z-[9999] flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover-elevate active-elevate-2"
+      className="fixed z-[9999] flex items-center gap-2 h-12 px-4 rounded-full bg-primary text-primary-foreground font-medium shadow-lg hover-elevate active-elevate-2 border border-primary-border"
       data-testid="fab-share"
-      aria-label="Share a story"
+      aria-label="Share your story"
       style={{
         position: 'fixed',
         bottom: '5rem',
         right: '1rem',
       }}
     >
-      <Plus className="h-6 w-6" />
+      <Plus className="h-5 w-5" />
+      <span className="text-sm">Share</span>
     </button>,
     document.body
   );
