@@ -5,9 +5,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 export function ShareFAB() {
   const isMobile = useIsMobile();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
-  if (!isMobile) return null;
+  // Hide FAB on mobile when not applicable, or when already on submit page
+  if (!isMobile || location === "/submit") return null;
 
   const handleClick = () => {
     setLocation("/submit");
