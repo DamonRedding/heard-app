@@ -12,7 +12,7 @@ interface MobileNavItem {
 
 const navItems: MobileNavItem[] = [
   { icon: Home, label: "Feed", href: "/", testId: "mobile-nav-feed" },
-  { icon: Building2, label: "Explore", href: "/churches", testId: "mobile-nav-explore" },
+  { icon: Building2, label: "Churches", href: "/churches", testId: "mobile-nav-churches" },
   { icon: Search, label: "Search", href: "/search", testId: "mobile-nav-search" },
   { icon: Settings, label: "Settings", href: "/settings", testId: "mobile-nav-settings" },
 ];

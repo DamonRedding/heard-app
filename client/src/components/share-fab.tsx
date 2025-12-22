@@ -7,7 +7,7 @@ export function ShareFAB() {
   const isMobile = useIsMobile();
   const [location, setLocation] = useLocation();
 
-  // Detect if we're in the Explore Churches flow
+  // Detect if we're in the Find Churches flow
   const isChurchProfilePage = location.startsWith("/churches/") && location !== "/churches";
   const isChurchListPage = location === "/churches";
   const isExploreFlow = isChurchProfilePage || isChurchListPage;

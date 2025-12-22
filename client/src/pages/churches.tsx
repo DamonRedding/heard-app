@@ -233,7 +233,7 @@ export default function Churches() {
             </Button>
           </Link>
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold">Explore Churches</h1>
+            <h1 className="text-2xl font-semibold">Find Churches</h1>
             <p className="text-sm text-muted-foreground">
               {total > 0 ? `${total} churches rated by the community` : "Browse churches with community ratings"}
             </p>

@@ -50,10 +50,10 @@ export function Header() {
               variant={location === "/churches" ? "secondary" : "ghost"}
               size="sm"
               className="gap-2"
-              data-testid="link-explore"
+              data-testid="link-churches"
             >
               <Building2 className="h-4 w-4" />
-              <span>Explore</span>
+              <span>Churches</span>
             </Button>
           </Link>
 
