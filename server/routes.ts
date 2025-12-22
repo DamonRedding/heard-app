@@ -980,10 +980,21 @@ export async function registerRoutes(
       // Decode slug back to church name (approximate match)
       // Slug format: church-name-city-state
       const parts = slug.split("-");
-      const searchName = parts.join(" ");
       
-      // Try to find church by searching
-      const searchResults = await storage.searchChurchNames(searchName, 5);
+      // Try progressively shorter search queries to find the church
+      let searchResults: Awaited<ReturnType<typeof storage.searchChurchNames>> = [];
+      
+      // Start with full slug, then progressively use fewer words
+      for (let len = parts.length; len >= 2 && searchResults.length === 0; len--) {
+        const searchName = parts.slice(0, len).join(" ");
+        searchResults = await storage.searchChurchNames(searchName, 5);
+      }
+      
+      // If still no results, try first 3 words (common church name pattern)
+      if (searchResults.length === 0) {
+        const searchName = parts.slice(0, Math.min(3, parts.length)).join(" ");
+        searchResults = await storage.searchChurchNames(searchName, 5);
+      }
       
       if (searchResults.length === 0) {
         return res.status(404).json({ error: "Church not found" });
@@ -1034,11 +1045,14 @@ export async function registerRoutes(
       const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
       const sortBy = req.query.sortBy as "newest" | "oldest" | "helpful" | undefined;
       
-      // Decode slug to church name
+      // Decode slug to church name - progressive search
       const parts = slug.split("-");
-      const searchName = parts.join(" ");
+      let searchResults: Awaited<ReturnType<typeof storage.searchChurchNames>> = [];
       
-      const searchResults = await storage.searchChurchNames(searchName, 1);
+      for (let len = parts.length; len >= 2 && searchResults.length === 0; len--) {
+        const searchName = parts.slice(0, len).join(" ");
+        searchResults = await storage.searchChurchNames(searchName, 5);
+      }
       
       if (searchResults.length === 0) {
         return res.status(404).json({ error: "Church not found" });
@@ -1063,11 +1077,14 @@ export async function registerRoutes(
       const { slug } = req.params;
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
       
-      // Decode slug to church name
+      // Decode slug to church name - progressive search
       const parts = slug.split("-");
-      const searchName = parts.join(" ");
+      let searchResults: Awaited<ReturnType<typeof storage.searchChurchNames>> = [];
       
-      const searchResults = await storage.searchChurchNames(searchName, 1);
+      for (let len = parts.length; len >= 2 && searchResults.length === 0; len--) {
+        const searchName = parts.slice(0, len).join(" ");
+        searchResults = await storage.searchChurchNames(searchName, 5);
+      }
       
       if (searchResults.length === 0) {
         return res.status(404).json({ error: "Church not found", stories: [] });
