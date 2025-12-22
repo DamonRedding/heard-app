@@ -468,3 +468,204 @@ export const DENOMINATIONS = [
   "Presbyterian",
   "Other",
 ];
+
+// Church Rating Enums
+export const churchConnectionEnum = pgEnum("church_connection", [
+  "attending_regularly",
+  "attending_occasionally",
+  "attended_past_year",
+  "attended_1_5_years_ago",
+  "attended_5_plus_years_ago",
+  "visited_never_regular"
+]);
+
+export const attendanceDurationEnum = pgEnum("attendance_duration", [
+  "less_than_6_months",
+  "6_months_to_2_years",
+  "2_to_5_years",
+  "5_to_10_years",
+  "more_than_10_years",
+  "not_applicable"
+]);
+
+export const belongingScaleEnum = pgEnum("belonging_scale", [
+  "never",
+  "rarely",
+  "sometimes",
+  "usually",
+  "always",
+  "prefer_not_to_answer"
+]);
+
+export const leadershipScaleEnum = pgEnum("leadership_scale", [
+  "deeply_concerning",
+  "concerning",
+  "neutral_mixed",
+  "trustworthy",
+  "exemplary",
+  "not_enough_interaction"
+]);
+
+export const conflictHandlingEnum = pgEnum("conflict_handling", [
+  "harmfully",
+  "poorly",
+  "inconsistently",
+  "constructively",
+  "very_well",
+  "did_not_observe"
+]);
+
+export const growthScaleEnum = pgEnum("growth_scale", [
+  "felt_stuck",
+  "minimal_growth",
+  "some_growth",
+  "significant_growth",
+  "profound_transformation",
+  "not_applicable"
+]);
+
+export const recommendScaleEnum = pgEnum("recommend_scale", [
+  "would_actively_discourage",
+  "probably_would_not",
+  "uncertain",
+  "probably_would",
+  "would_strongly_recommend"
+]);
+
+// Church Ratings Table
+export const churchRatings = pgTable("church_ratings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  churchName: text("church_name").notNull(),
+  location: text("location"),
+  denomination: text("denomination"),
+  
+  // Part 1: Your Experience
+  churchConnection: churchConnectionEnum("church_connection").notNull(),
+  attendanceDuration: attendanceDurationEnum("attendance_duration").notNull(),
+  
+  // Part 2: Sense of Belonging
+  belongingScale: belongingScaleEnum("belonging_scale").notNull(),
+  belongingComment: text("belonging_comment"),
+  
+  // Part 3: Leadership & Culture
+  leadershipScale: leadershipScaleEnum("leadership_scale").notNull(),
+  conflictHandling: conflictHandlingEnum("conflict_handling").notNull(),
+  
+  // Part 4: Personal Impact
+  growthScale: growthScaleEnum("growth_scale").notNull(),
+  
+  // Part 5: Overall Assessment
+  recommendScale: recommendScaleEnum("recommend_scale").notNull(),
+  additionalComment: text("additional_comment"),
+  
+  // Anonymous tracking
+  submitterHash: text("submitter_hash").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Rate limiting table for church ratings (IP limit 3/church/month)
+export const churchRatingLimits = pgTable("church_rating_limits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ipHash: text("ip_hash").notNull(),
+  churchNameNormalized: text("church_name_normalized").notNull(),
+  ratingId: varchar("rating_id").notNull().references(() => churchRatings.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  ipChurchIdx: uniqueIndex("rating_limits_ip_church_idx").on(table.ipHash, table.churchNameNormalized, table.ratingId),
+}));
+
+export const churchRatingsRelations = relations(churchRatings, ({ many }) => ({
+  rateLimits: many(churchRatingLimits),
+}));
+
+export const churchRatingLimitsRelations = relations(churchRatingLimits, ({ one }) => ({
+  rating: one(churchRatings, {
+    fields: [churchRatingLimits.ratingId],
+    references: [churchRatings.id],
+  }),
+}));
+
+export const insertChurchRatingSchema = createInsertSchema(churchRatings).omit({
+  id: true,
+  submitterHash: true,
+  createdAt: true,
+}).extend({
+  churchName: z.string().min(2, "Church name is required"),
+  belongingComment: z.string().max(280, "Comment must be 280 characters or less").optional().nullable(),
+  additionalComment: z.string().max(280, "Comment must be 280 characters or less").optional().nullable(),
+});
+
+export type InsertChurchRating = z.infer<typeof insertChurchRatingSchema>;
+export type ChurchRating = typeof churchRatings.$inferSelect;
+export type ChurchRatingLimit = typeof churchRatingLimits.$inferSelect;
+
+export type ChurchConnection = "attending_regularly" | "attending_occasionally" | "attended_past_year" | "attended_1_5_years_ago" | "attended_5_plus_years_ago" | "visited_never_regular";
+export type AttendanceDuration = "less_than_6_months" | "6_months_to_2_years" | "2_to_5_years" | "5_to_10_years" | "more_than_10_years" | "not_applicable";
+export type BelongingScale = "never" | "rarely" | "sometimes" | "usually" | "always" | "prefer_not_to_answer";
+export type LeadershipScale = "deeply_concerning" | "concerning" | "neutral_mixed" | "trustworthy" | "exemplary" | "not_enough_interaction";
+export type ConflictHandling = "harmfully" | "poorly" | "inconsistently" | "constructively" | "very_well" | "did_not_observe";
+export type GrowthScale = "felt_stuck" | "minimal_growth" | "some_growth" | "significant_growth" | "profound_transformation" | "not_applicable";
+export type RecommendScale = "would_actively_discourage" | "probably_would_not" | "uncertain" | "probably_would" | "would_strongly_recommend";
+
+// Church Rating Options for UI
+export const CHURCH_CONNECTION_OPTIONS = [
+  { value: "attending_regularly", label: "Currently attending regularly" },
+  { value: "attending_occasionally", label: "Currently attending occasionally" },
+  { value: "attended_past_year", label: "Attended in the past year" },
+  { value: "attended_1_5_years_ago", label: "Attended 1-5 years ago" },
+  { value: "attended_5_plus_years_ago", label: "Attended more than 5 years ago" },
+  { value: "visited_never_regular", label: "Visited but never became a regular attender" },
+];
+
+export const ATTENDANCE_DURATION_OPTIONS = [
+  { value: "less_than_6_months", label: "Less than 6 months" },
+  { value: "6_months_to_2_years", label: "6 months to 2 years" },
+  { value: "2_to_5_years", label: "2-5 years" },
+  { value: "5_to_10_years", label: "5-10 years" },
+  { value: "more_than_10_years", label: "More than 10 years" },
+  { value: "not_applicable", label: "Not applicable—I never attended regularly" },
+];
+
+export const BELONGING_SCALE_OPTIONS = [
+  { value: "never", label: "Never felt I belonged" },
+  { value: "rarely", label: "Rarely" },
+  { value: "sometimes", label: "Sometimes" },
+  { value: "usually", label: "Usually" },
+  { value: "always", label: "Always felt I belonged" },
+  { value: "prefer_not_to_answer", label: "Prefer not to answer" },
+];
+
+export const LEADERSHIP_SCALE_OPTIONS = [
+  { value: "deeply_concerning", label: "Deeply concerning" },
+  { value: "concerning", label: "Concerning" },
+  { value: "neutral_mixed", label: "Neutral/Mixed" },
+  { value: "trustworthy", label: "Trustworthy" },
+  { value: "exemplary", label: "Exemplary" },
+  { value: "not_enough_interaction", label: "Did not have enough interaction to assess" },
+];
+
+export const CONFLICT_HANDLING_OPTIONS = [
+  { value: "harmfully", label: "Harmfully" },
+  { value: "poorly", label: "Poorly" },
+  { value: "inconsistently", label: "Inconsistently" },
+  { value: "constructively", label: "Constructively" },
+  { value: "very_well", label: "Very well" },
+  { value: "did_not_observe", label: "Did not observe any conflicts" },
+];
+
+export const GROWTH_SCALE_OPTIONS = [
+  { value: "felt_stuck", label: "No, I felt stuck" },
+  { value: "minimal_growth", label: "Minimal growth" },
+  { value: "some_growth", label: "Some growth" },
+  { value: "significant_growth", label: "Significant growth" },
+  { value: "profound_transformation", label: "Profound transformation" },
+  { value: "not_applicable", label: "Not applicable to my experience" },
+];
+
+export const RECOMMEND_SCALE_OPTIONS = [
+  { value: "would_actively_discourage", label: "Would actively discourage" },
+  { value: "probably_would_not", label: "Probably would not recommend" },
+  { value: "uncertain", label: "Uncertain" },
+  { value: "probably_would", label: "Would probably recommend" },
+  { value: "would_strongly_recommend", label: "Would strongly recommend" },
+];

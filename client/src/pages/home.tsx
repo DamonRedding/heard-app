@@ -17,6 +17,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useFeedPersonalization } from "@/hooks/use-feed-personalization";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useStoryReadsContext } from "@/components/story-reads-provider";
 import type { Submission, Category, VoteType, FlagReason } from "@shared/schema";
 import { DENOMINATIONS, CATEGORIES } from "@shared/schema";
 import { posthog } from "@/lib/posthog";
@@ -80,6 +81,7 @@ export default function Home() {
   
   const { trackEngagement, getPersonalizationLevel, getPersonalizationParams, totalEngagements } = useFeedPersonalization();
   const personalizationLevel = getPersonalizationLevel();
+  const { trackStoryRead } = useStoryReadsContext();
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
@@ -675,6 +677,7 @@ export default function Home() {
                   onFlag={handleFlag}
                   onMeToo={handleMeToo}
                   onReact={handleReact}
+                  onStoryRead={trackStoryRead}
                   isVoting={voteMutation.isPending}
                   isMeTooing={meTooMutation.isPending}
                   isReacting={reactMutation.isPending}

@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSubmissionSchema, insertCommentSchema, insertEmailSubscriberSchema, type Category, type VoteType, type FlagReason, type Status, type ReactionType, type CommentVoteType } from "@shared/schema";
+import { insertSubmissionSchema, insertCommentSchema, insertEmailSubscriberSchema, insertChurchRatingSchema, type Category, type VoteType, type FlagReason, type Status, type ReactionType, type CommentVoteType } from "@shared/schema";
 import { sortByWilsonScore } from "@shared/wilson-score";
 import { z } from "zod";
 import { createHash } from "crypto";
@@ -831,6 +831,96 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error creating email subscriber:", error);
       res.status(500).json({ error: "Failed to create subscription" });
+    }
+  });
+
+  // Church Rating Routes
+  app.post("/api/church-ratings", async (req: Request, res: Response) => {
+    try {
+      const clientIP = getClientIP(req);
+      const ipHash = hashIP(clientIP);
+      
+      const parsed = insertChurchRatingSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid rating data",
+          details: parsed.error.errors,
+        });
+      }
+
+      // Normalize church name for rate limiting
+      const churchNameNormalized = parsed.data.churchName.toLowerCase().trim();
+      
+      // Check IP limit: 3 ratings per church per month
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      
+      const ratingCount = await storage.getChurchRatingCount(ipHash, churchNameNormalized, oneMonthAgo);
+      
+      if (ratingCount >= 3) {
+        return res.status(429).json({
+          error: "You have already submitted 3 ratings for this church this month. Please try again later.",
+        });
+      }
+
+      // Create the rating
+      const rating = await storage.createChurchRating({
+        ...parsed.data,
+        submitterHash: ipHash,
+      });
+
+      // Create rate limit record
+      await storage.createChurchRatingLimit({
+        ipHash,
+        churchNameNormalized,
+        ratingId: rating.id,
+      });
+
+      res.status(201).json({ success: true, rating });
+    } catch (error) {
+      console.error("Error creating church rating:", error);
+      res.status(500).json({ error: "Failed to submit rating" });
+    }
+  });
+
+  app.get("/api/church-ratings/:churchName", async (req: Request, res: Response) => {
+    try {
+      const { churchName } = req.params;
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const ratings = await storage.getChurchRatings(decodeURIComponent(churchName), limit);
+      res.json({ ratings });
+    } catch (error) {
+      console.error("Error fetching church ratings:", error);
+      res.status(500).json({ error: "Failed to fetch ratings" });
+    }
+  });
+
+  app.get("/api/church-ratings-check", async (req: Request, res: Response) => {
+    try {
+      const clientIP = getClientIP(req);
+      const ipHash = hashIP(clientIP);
+      const churchName = req.query.churchName as string;
+      
+      if (!churchName) {
+        return res.json({ canRate: true, remaining: 3 });
+      }
+
+      const churchNameNormalized = churchName.toLowerCase().trim();
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      
+      const ratingCount = await storage.getChurchRatingCount(ipHash, churchNameNormalized, oneMonthAgo);
+      const remaining = Math.max(0, 3 - ratingCount);
+      
+      res.json({ 
+        canRate: remaining > 0, 
+        remaining,
+        used: ratingCount,
+      });
+    } catch (error) {
+      console.error("Error checking rating limit:", error);
+      res.status(500).json({ error: "Failed to check rating limit" });
     }
   });
 

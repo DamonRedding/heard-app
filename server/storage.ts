@@ -10,6 +10,8 @@ import {
   notificationEvents,
   emailTracking,
   submissionViews,
+  churchRatings,
+  churchRatingLimits,
   type Submission,
   type InsertSubmission,
   type InsertSubmissionWithTitle,
@@ -37,6 +39,9 @@ import {
   type Category,
   type Status,
   type ReactionType,
+  type ChurchRating,
+  type InsertChurchRating,
+  type ChurchRatingLimit,
 } from "@shared/schema";
 import { sortByWilsonScore, withWilsonScore } from "@shared/wilson-score";
 import { db } from "./db";
@@ -182,6 +187,15 @@ export interface IStorage {
   getSubmissionsWithoutTitles(): Promise<Submission[]>;
 
   updateSubmissionTitle(id: string, title: string): Promise<void>;
+
+  // Church Rating methods
+  createChurchRating(rating: InsertChurchRating & { submitterHash: string }): Promise<ChurchRating>;
+
+  getChurchRatingCount(ipHash: string, churchNameNormalized: string, sinceDate: Date): Promise<number>;
+
+  createChurchRatingLimit(data: { ipHash: string; churchNameNormalized: string; ratingId: string }): Promise<ChurchRatingLimit>;
+
+  getChurchRatings(churchName: string, limit?: number): Promise<ChurchRating[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1183,6 +1197,46 @@ export class DatabaseStorage implements IStorage {
       .update(submissions)
       .set({ title })
       .where(eq(submissions.id, id));
+  }
+
+  async createChurchRating(rating: InsertChurchRating & { submitterHash: string }): Promise<ChurchRating> {
+    const [result] = await db
+      .insert(churchRatings)
+      .values(rating)
+      .returning();
+    return result;
+  }
+
+  async getChurchRatingCount(ipHash: string, churchNameNormalized: string, sinceDate: Date): Promise<number> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(churchRatingLimits)
+      .where(
+        and(
+          eq(churchRatingLimits.ipHash, ipHash),
+          eq(churchRatingLimits.churchNameNormalized, churchNameNormalized),
+          gte(churchRatingLimits.createdAt, sinceDate)
+        )
+      );
+    return result?.count || 0;
+  }
+
+  async createChurchRatingLimit(data: { ipHash: string; churchNameNormalized: string; ratingId: string }): Promise<ChurchRatingLimit> {
+    const [result] = await db
+      .insert(churchRatingLimits)
+      .values(data)
+      .returning();
+    return result;
+  }
+
+  async getChurchRatings(churchName: string, limit: number = 10): Promise<ChurchRating[]> {
+    const normalizedName = churchName.toLowerCase().trim();
+    return db
+      .select()
+      .from(churchRatings)
+      .where(sql`LOWER(TRIM(${churchRatings.churchName})) = ${normalizedName}`)
+      .orderBy(desc(churchRatings.createdAt))
+      .limit(limit);
   }
 }
 

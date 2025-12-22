@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { ShareFAB } from "@/components/share-fab";
+import { StoryReadsProvider } from "@/components/story-reads-provider";
 import Home from "@/pages/home";
 import Submit from "@/pages/submit";
 import About from "@/pages/about";
@@ -32,12 +33,14 @@ function App() {
     <ThemeProvider defaultTheme="light" storageKey="sanctuary-voice-theme">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <div className="min-h-screen bg-background text-foreground pb-16 md:pb-0">
-            <Header />
-            <Router />
-            <MobileNavigation />
-          </div>
-          <ShareFAB />
+          <StoryReadsProvider>
+            <div className="min-h-screen bg-background text-foreground pb-16 md:pb-0">
+              <Header />
+              <Router />
+              <MobileNavigation />
+            </div>
+            <ShareFAB />
+          </StoryReadsProvider>
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>

@@ -18,6 +18,7 @@ interface SubmissionCardProps {
   onFlag: (submissionId: string, reason: FlagReason) => Promise<void>;
   onMeToo: (submissionId: string) => void;
   onReact?: (submissionId: string, reactionType: string) => void;
+  onStoryRead?: (submissionId: string) => void;
   isVoting?: boolean;
   isMeTooing?: boolean;
   isReacting?: boolean;
@@ -124,6 +125,7 @@ export function SubmissionCard({
   onFlag,
   onMeToo,
   onReact,
+  onStoryRead,
   isVoting = false,
   isMeTooing = false,
   isReacting = false,
@@ -132,6 +134,7 @@ export function SubmissionCard({
   isHighlighted = false,
 }: SubmissionCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [hasTrackedRead, setHasTrackedRead] = useState(false);
   const isMobile = useIsMobile();
   
   const isTruncated = submission.content.length > TRUNCATE_LENGTH;
@@ -141,7 +144,15 @@ export function SubmissionCard({
 
   const handleToggleExpand = () => {
     if (isTruncated) {
-      setIsExpanded(!isExpanded);
+      const newExpanded = !isExpanded;
+      setIsExpanded(newExpanded);
+      if (newExpanded && !hasTrackedRead && onStoryRead) {
+        onStoryRead(submission.id);
+        setHasTrackedRead(true);
+      }
+    } else if (!hasTrackedRead && onStoryRead) {
+      onStoryRead(submission.id);
+      setHasTrackedRead(true);
     }
   };
 
