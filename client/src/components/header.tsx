@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { FeedbackButton } from "@/components/feedback-button";
 import { ChurchRatingModal } from "@/components/church-rating-modal";
-import { PenLine, Shield, Home, Star, Building2, Search, Settings } from "lucide-react";
+import { PenLine, Shield, Home, Star, Church, Search, Settings } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Header() {
@@ -52,7 +52,7 @@ export function Header() {
               className="gap-2"
               data-testid="link-churches"
             >
-              <Building2 className="h-4 w-4" />
+              <Church className="h-4 w-4" />
               <span>Churches</span>
             </Button>
           </Link>
