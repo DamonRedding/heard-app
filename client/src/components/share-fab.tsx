@@ -7,15 +7,15 @@ export function ShareFAB() {
   const isMobile = useIsMobile();
   const [location, setLocation] = useLocation();
 
-  // Detect if we're in the Explore Churches flow (list or profile)
-  const isExploreChurchesFlow = location === "/churches" || location.startsWith("/churches/");
+  // Detect if we're viewing a specific church profile (not just the list)
+  const isChurchProfilePage = location.startsWith("/churches/") && location !== "/churches";
 
   // Hide FAB on mobile when not applicable, or when already on submit page
   if (!isMobile || location === "/submit") return null;
 
   const handleClick = () => {
-    if (isExploreChurchesFlow) {
-      // Dispatch custom event to trigger rating modal on churches pages
+    if (isChurchProfilePage) {
+      // Dispatch custom event to trigger rating modal on church profile page
       window.dispatchEvent(new CustomEvent("open-church-rating-modal"));
     } else {
       setLocation("/submit");
@@ -33,8 +33,8 @@ export function ShareFAB() {
     <button
       onClick={handleClick}
       className="fixed z-[9999] flex items-center gap-2 h-12 px-4 rounded-full bg-primary text-primary-foreground font-medium shadow-lg hover-elevate active-elevate-2 border border-primary-border"
-      data-testid={isExploreChurchesFlow ? "fab-rate-church" : "fab-share"}
-      aria-label={isExploreChurchesFlow ? "Rate this church" : "Post your story"}
+      data-testid={isChurchProfilePage ? "fab-rate-church" : "fab-share"}
+      aria-label={isChurchProfilePage ? "Rate this church" : "Post your story"}
       style={{
         position: 'fixed',
         bottom: '5rem',
@@ -42,7 +42,7 @@ export function ShareFAB() {
         transform: 'translateX(-50%)',
       }}
     >
-      {isExploreChurchesFlow ? (
+      {isChurchProfilePage ? (
         <>
           <Star className="h-5 w-5" />
           <span className="text-sm">Rate This Church</span>

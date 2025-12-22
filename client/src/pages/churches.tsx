@@ -128,18 +128,6 @@ export default function Churches() {
   const [showFilters, setShowFilters] = useState(false);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
 
-  // Listen for FAB click event to open rating modal
-  useEffect(() => {
-    const handleOpenRatingModal = () => {
-      setRatingModalOpen(true);
-    };
-    
-    window.addEventListener("open-church-rating-modal", handleOpenRatingModal);
-    return () => {
-      window.removeEventListener("open-church-rating-modal", handleOpenRatingModal);
-    };
-  }, []);
-
   // Debounce search input with proper cleanup
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
