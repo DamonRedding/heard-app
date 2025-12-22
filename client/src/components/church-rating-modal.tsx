@@ -3,7 +3,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, ChevronLeft, ChevronRight, Check, Loader2, Search, MapPin, Church } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Check, Loader2, Search, MapPin, Church, CheckCircle2, Share2, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -78,6 +79,9 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedChurch, setSelectedChurch] = useState<ChurchSuggestion | null>(null);
   const [sessionToken] = useState(() => generateSessionToken());
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [submittedChurchId, setSubmittedChurchId] = useState<number | null>(null);
+  const autoCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Initialize selectedChurch when modal opens with a defaultChurchName
   useEffect(() => {
@@ -115,14 +119,14 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
       const response = await apiRequest("POST", "/api/church-ratings", data);
       return response.json();
     },
-    onSuccess: () => {
-      toast({
-        title: "Thank you for your feedback",
-        description: "Your anonymous rating has been submitted.",
-      });
-      onClose();
-      form.reset();
-      setStep(1);
+    onSuccess: (data) => {
+      setIsSuccess(true);
+      if (data?.churchId) {
+        setSubmittedChurchId(data.churchId);
+      }
+      autoCloseTimerRef.current = setTimeout(() => {
+        handleClose();
+      }, 5000);
     },
     onError: (error: Error) => {
       toast({
@@ -132,6 +136,14 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
       });
     },
   });
+
+  useEffect(() => {
+    return () => {
+      if (autoCloseTimerRef.current) {
+        clearTimeout(autoCloseTimerRef.current);
+      }
+    };
+  }, []);
 
   const progress = (step / TOTAL_STEPS) * 100;
 
@@ -172,11 +184,38 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
   });
 
   const handleClose = () => {
+    if (autoCloseTimerRef.current) {
+      clearTimeout(autoCloseTimerRef.current);
+    }
     onClose();
     setStep(1);
     form.reset();
     setSelectedChurch(null);
     setSearchQuery("");
+    setIsSuccess(false);
+    setSubmittedChurchId(null);
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: "Rate Your Church Experience",
+      text: "Help others discover great churches by sharing your experience",
+      url: window.location.origin,
+    };
+    
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // User cancelled or share failed
+      }
+    } else {
+      await navigator.clipboard.writeText(shareData.url);
+      toast({
+        title: "Link copied",
+        description: "Share link has been copied to your clipboard.",
+      });
+    }
   };
 
   // Debounce search query
@@ -276,24 +315,77 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-semibold">Rate Your Church Experience</DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClose}
-              className="h-8 w-8"
-              data-testid="button-close-rating-modal"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <Progress value={progress} className="mt-2" />
-          <p className="text-sm text-muted-foreground mt-1">Step {step} of {TOTAL_STEPS}</p>
-        </DialogHeader>
+        {isSuccess ? (
+          <div className="py-6 text-center space-y-6" data-testid="rating-success-view">
+            <div className="flex justify-center">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <CheckCircle2 className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold" data-testid="text-success-title">
+                Thanks! Your rating helps seekers find great churches
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Your anonymous feedback makes a difference.
+              </p>
+            </div>
 
-        <Form {...form}>
+            <div className="space-y-3">
+              <Button 
+                onClick={handleClose} 
+                className="w-full"
+                data-testid="button-done"
+              >
+                Done
+              </Button>
+              
+              {submittedChurchId && (
+                <Link 
+                  href={`/churches/${submittedChurchId}`}
+                  className="inline-flex items-center justify-center gap-2 text-sm text-primary hover:underline"
+                  onClick={handleClose}
+                  data-testid="link-view-rating"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  View your rating
+                </Link>
+              )}
+            </div>
+
+            <div className="pt-2 border-t">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                data-testid="button-share"
+              >
+                <Share2 className="h-4 w-4" />
+                Help others discover great churches
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle className="text-lg font-semibold">Rate Your Church Experience</DialogTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleClose}
+                  className="h-8 w-8"
+                  data-testid="button-close-rating-modal"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <Progress value={progress} className="mt-2" />
+              <p className="text-sm text-muted-foreground mt-1">Step {step} of {TOTAL_STEPS}</p>
+            </DialogHeader>
+
+            <Form {...form}>
           <form onSubmit={handleSubmit} className="space-y-4">
             {step === 1 && (
               <div className="space-y-4">
@@ -882,7 +974,9 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
               )}
             </div>
           </form>
-        </Form>
+            </Form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
