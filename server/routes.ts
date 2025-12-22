@@ -940,15 +940,145 @@ export async function registerRoutes(
     }
   });
 
-  // Get all rated churches
+  // Get all rated churches with filtering and sorting
   app.get("/api/churches", async (req: Request, res: Response) => {
     try {
-      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
-      const churches = await storage.getRatedChurches(limit);
-      res.json({ churches });
+      const search = req.query.search as string | undefined;
+      const denomination = req.query.denomination as string | undefined;
+      const minRating = req.query.minRating ? parseFloat(req.query.minRating as string) : undefined;
+      const sortBy = req.query.sortBy as "most_rated" | "highest_rated" | "most_controversial" | "recently_rated" | undefined;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+
+      // If any filter/sort params, use the filtered version
+      if (search || denomination || minRating || sortBy || page > 1) {
+        const result = await storage.getFilteredChurches({
+          search,
+          denomination,
+          minRating,
+          sortBy: sortBy || "most_rated",
+          page,
+          limit,
+        });
+        res.json(result);
+      } else {
+        // Default: simple list for backwards compatibility
+        const churches = await storage.getRatedChurches(limit);
+        res.json({ churches, total: churches.length, hasMore: false });
+      }
     } catch (error) {
       console.error("Error fetching churches:", error);
       res.status(500).json({ error: "Failed to fetch churches" });
+    }
+  });
+
+  // Get church profile by slug (name-location format)
+  app.get("/api/churches/profile/:slug", async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      
+      // Decode slug back to church name (approximate match)
+      // Slug format: church-name-city-state
+      const parts = slug.split("-");
+      const searchName = parts.join(" ");
+      
+      // Try to find church by searching
+      const searchResults = await storage.searchChurchNames(searchName, 5);
+      
+      if (searchResults.length === 0) {
+        return res.status(404).json({ error: "Church not found" });
+      }
+      
+      // Get the first match (best match)
+      const churchMatch = searchResults[0];
+      const profile = await storage.getChurchProfile(churchMatch.name, churchMatch.location);
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Church profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching church profile:", error);
+      res.status(500).json({ error: "Failed to fetch church profile" });
+    }
+  });
+
+  // Get church profile by exact name
+  app.get("/api/churches/by-name", async (req: Request, res: Response) => {
+    try {
+      const churchName = req.query.name as string;
+      
+      if (!churchName) {
+        return res.status(400).json({ error: "Church name is required" });
+      }
+      
+      const profile = await storage.getChurchProfile(churchName);
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Church not found" });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching church profile:", error);
+      res.status(500).json({ error: "Failed to fetch church profile" });
+    }
+  });
+
+  // Get paginated ratings for a specific church
+  app.get("/api/churches/:slug/ratings", async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+      const sortBy = req.query.sortBy as "newest" | "oldest" | "helpful" | undefined;
+      
+      // Decode slug to church name
+      const parts = slug.split("-");
+      const searchName = parts.join(" ");
+      
+      const searchResults = await storage.searchChurchNames(searchName, 1);
+      
+      if (searchResults.length === 0) {
+        return res.status(404).json({ error: "Church not found" });
+      }
+      
+      const result = await storage.getChurchRatingsPaginated(searchResults[0].name, {
+        page,
+        limit,
+        sortBy: sortBy || "newest",
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching church ratings:", error);
+      res.status(500).json({ error: "Failed to fetch church ratings" });
+    }
+  });
+
+  // Get stories mentioning a specific church
+  app.get("/api/churches/:slug/stories", async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+      
+      // Decode slug to church name
+      const parts = slug.split("-");
+      const searchName = parts.join(" ");
+      
+      const searchResults = await storage.searchChurchNames(searchName, 1);
+      
+      if (searchResults.length === 0) {
+        return res.status(404).json({ error: "Church not found", stories: [] });
+      }
+      
+      const stories = await storage.getStoriesByChurch(searchResults[0].name, limit);
+      
+      res.json({ stories });
+    } catch (error) {
+      console.error("Error fetching church stories:", error);
+      res.status(500).json({ error: "Failed to fetch church stories" });
     }
   });
 

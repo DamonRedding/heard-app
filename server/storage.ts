@@ -209,6 +209,54 @@ export interface IStorage {
     denomination: string | null;
     latestRatingAt: Date;
   }[]>;
+
+  getFilteredChurches(options: {
+    search?: string;
+    denomination?: string;
+    minRating?: number;
+    sortBy?: "most_rated" | "highest_rated" | "most_controversial" | "recently_rated";
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    churches: {
+      name: string;
+      location: string | null;
+      ratingCount: number;
+      googlePlaceId: string | null;
+      denomination: string | null;
+      latestRatingAt: Date;
+      averageRating: number;
+      isControversial: boolean;
+    }[];
+    total: number;
+    hasMore: boolean;
+  }>;
+
+  getChurchProfile(churchName: string, location?: string | null): Promise<{
+    name: string;
+    location: string | null;
+    denomination: string | null;
+    googlePlaceId: string | null;
+    totalRatings: number;
+    averageRating: number;
+    ratingDistribution: { rating: number; count: number; percentage: number }[];
+    categoryBreakdown: {
+      belonging: { average: number; count: number };
+      leadership: { average: number; count: number };
+      conflict: { average: number; count: number };
+      growth: { average: number; count: number };
+    };
+    isControversial: boolean;
+    ratingVariance: number;
+  } | null>;
+
+  getChurchRatingsPaginated(churchName: string, options: {
+    page?: number;
+    limit?: number;
+    sortBy?: "newest" | "oldest" | "helpful";
+  }): Promise<{ ratings: ChurchRating[]; total: number; hasMore: boolean }>;
+
+  getStoriesByChurch(churchName: string, limit?: number): Promise<Submission[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1313,6 +1361,430 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
     
     return results;
+  }
+
+  async getFilteredChurches(options: {
+    search?: string;
+    denomination?: string;
+    minRating?: number;
+    sortBy?: "most_rated" | "highest_rated" | "most_controversial" | "recently_rated";
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    churches: {
+      name: string;
+      location: string | null;
+      ratingCount: number;
+      googlePlaceId: string | null;
+      denomination: string | null;
+      latestRatingAt: Date;
+      averageRating: number;
+      isControversial: boolean;
+    }[];
+    total: number;
+    hasMore: boolean;
+  }> {
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const offset = (page - 1) * limit;
+    const sortBy = options.sortBy || "most_rated";
+
+    // Build the base query with aggregations
+    let baseQuery = db
+      .select({
+        name: churchRatings.churchName,
+        location: churchRatings.location,
+        ratingCount: count(),
+        googlePlaceId: churchRatings.googlePlaceId,
+        denomination: sql<string | null>`MAX(${churchRatings.denomination})`,
+        latestRatingAt: sql<Date>`MAX(${churchRatings.createdAt})`,
+        // Calculate average rating from recommend_scale (1-5)
+        averageRating: sql<number>`AVG(CASE 
+          WHEN ${churchRatings.recommendScale} = 'would_actively_discourage' THEN 1
+          WHEN ${churchRatings.recommendScale} = 'probably_would_not' THEN 2
+          WHEN ${churchRatings.recommendScale} = 'uncertain' THEN 3
+          WHEN ${churchRatings.recommendScale} = 'probably_would' THEN 4
+          WHEN ${churchRatings.recommendScale} = 'would_strongly_recommend' THEN 5
+          ELSE 3
+        END)`,
+        // Calculate variance for controversy detection
+        ratingVariance: sql<number>`VARIANCE(CASE 
+          WHEN ${churchRatings.recommendScale} = 'would_actively_discourage' THEN 1
+          WHEN ${churchRatings.recommendScale} = 'probably_would_not' THEN 2
+          WHEN ${churchRatings.recommendScale} = 'uncertain' THEN 3
+          WHEN ${churchRatings.recommendScale} = 'probably_would' THEN 4
+          WHEN ${churchRatings.recommendScale} = 'would_strongly_recommend' THEN 5
+          ELSE 3
+        END)`,
+      })
+      .from(churchRatings)
+      .groupBy(churchRatings.churchName, churchRatings.location, churchRatings.googlePlaceId);
+
+    // Apply filters via having clause
+    const havingConditions: ReturnType<typeof sql>[] = [];
+    
+    if (options.search) {
+      const searchPattern = `%${options.search.toLowerCase()}%`;
+      havingConditions.push(sql`LOWER(${churchRatings.churchName}) LIKE ${searchPattern} OR LOWER(${churchRatings.location}) LIKE ${searchPattern}`);
+    }
+    
+    if (options.denomination) {
+      havingConditions.push(sql`MAX(${churchRatings.denomination}) = ${options.denomination}`);
+    }
+    
+    if (options.minRating) {
+      havingConditions.push(sql`AVG(CASE 
+        WHEN ${churchRatings.recommendScale} = 'would_actively_discourage' THEN 1
+        WHEN ${churchRatings.recommendScale} = 'probably_would_not' THEN 2
+        WHEN ${churchRatings.recommendScale} = 'uncertain' THEN 3
+        WHEN ${churchRatings.recommendScale} = 'probably_would' THEN 4
+        WHEN ${churchRatings.recommendScale} = 'would_strongly_recommend' THEN 5
+        ELSE 3
+      END) >= ${options.minRating}`);
+    }
+
+    // Determine sort order
+    let orderByClause;
+    switch (sortBy) {
+      case "highest_rated":
+        orderByClause = desc(sql`AVG(CASE 
+          WHEN ${churchRatings.recommendScale} = 'would_actively_discourage' THEN 1
+          WHEN ${churchRatings.recommendScale} = 'probably_would_not' THEN 2
+          WHEN ${churchRatings.recommendScale} = 'uncertain' THEN 3
+          WHEN ${churchRatings.recommendScale} = 'probably_would' THEN 4
+          WHEN ${churchRatings.recommendScale} = 'would_strongly_recommend' THEN 5
+          ELSE 3
+        END)`);
+        // Add minimum ratings threshold for reliability
+        havingConditions.push(sql`COUNT(*) >= 5`);
+        break;
+      case "most_controversial":
+        orderByClause = desc(sql`VARIANCE(CASE 
+          WHEN ${churchRatings.recommendScale} = 'would_actively_discourage' THEN 1
+          WHEN ${churchRatings.recommendScale} = 'probably_would_not' THEN 2
+          WHEN ${churchRatings.recommendScale} = 'uncertain' THEN 3
+          WHEN ${churchRatings.recommendScale} = 'probably_would' THEN 4
+          WHEN ${churchRatings.recommendScale} = 'would_strongly_recommend' THEN 5
+          ELSE 3
+        END)`);
+        // Only show controversial (variance > 1.5)
+        havingConditions.push(sql`VARIANCE(CASE 
+          WHEN ${churchRatings.recommendScale} = 'would_actively_discourage' THEN 1
+          WHEN ${churchRatings.recommendScale} = 'probably_would_not' THEN 2
+          WHEN ${churchRatings.recommendScale} = 'uncertain' THEN 3
+          WHEN ${churchRatings.recommendScale} = 'probably_would' THEN 4
+          WHEN ${churchRatings.recommendScale} = 'would_strongly_recommend' THEN 5
+          ELSE 3
+        END) > 1.5`);
+        havingConditions.push(sql`COUNT(*) >= 3`);
+        break;
+      case "recently_rated":
+        orderByClause = desc(sql`MAX(${churchRatings.createdAt})`);
+        break;
+      case "most_rated":
+      default:
+        orderByClause = desc(count());
+        break;
+    }
+
+    // Use subquery approach for filtering and pagination
+    const subquery = db
+      .select({
+        name: churchRatings.churchName,
+        location: churchRatings.location,
+        ratingCount: count(),
+        googlePlaceId: churchRatings.googlePlaceId,
+        denomination: sql<string | null>`MAX(${churchRatings.denomination})`.as('denomination'),
+        latestRatingAt: sql<Date>`MAX(${churchRatings.createdAt})`.as('latestRatingAt'),
+        averageRating: sql<number>`AVG(CASE 
+          WHEN ${churchRatings.recommendScale} = 'would_actively_discourage' THEN 1
+          WHEN ${churchRatings.recommendScale} = 'probably_would_not' THEN 2
+          WHEN ${churchRatings.recommendScale} = 'uncertain' THEN 3
+          WHEN ${churchRatings.recommendScale} = 'probably_would' THEN 4
+          WHEN ${churchRatings.recommendScale} = 'would_strongly_recommend' THEN 5
+          ELSE 3
+        END)`.as('averageRating'),
+        ratingVariance: sql<number>`COALESCE(VARIANCE(CASE 
+          WHEN ${churchRatings.recommendScale} = 'would_actively_discourage' THEN 1
+          WHEN ${churchRatings.recommendScale} = 'probably_would_not' THEN 2
+          WHEN ${churchRatings.recommendScale} = 'uncertain' THEN 3
+          WHEN ${churchRatings.recommendScale} = 'probably_would' THEN 4
+          WHEN ${churchRatings.recommendScale} = 'would_strongly_recommend' THEN 5
+          ELSE 3
+        END), 0)`.as('ratingVariance'),
+      })
+      .from(churchRatings)
+      .groupBy(churchRatings.churchName, churchRatings.location, churchRatings.googlePlaceId);
+
+    // Execute with raw SQL for complex having + order + pagination
+    const results = await db.execute(sql`
+      WITH church_stats AS (
+        SELECT 
+          church_name as name,
+          location,
+          COUNT(*) as rating_count,
+          google_place_id as google_place_id,
+          MAX(denomination) as denomination,
+          MAX(created_at) as latest_rating_at,
+          AVG(CASE 
+            WHEN recommend_scale = 'would_actively_discourage' THEN 1
+            WHEN recommend_scale = 'probably_would_not' THEN 2
+            WHEN recommend_scale = 'uncertain' THEN 3
+            WHEN recommend_scale = 'probably_would' THEN 4
+            WHEN recommend_scale = 'would_strongly_recommend' THEN 5
+            ELSE 3
+          END) as average_rating,
+          COALESCE(VARIANCE(CASE 
+            WHEN recommend_scale = 'would_actively_discourage' THEN 1
+            WHEN recommend_scale = 'probably_would_not' THEN 2
+            WHEN recommend_scale = 'uncertain' THEN 3
+            WHEN recommend_scale = 'probably_would' THEN 4
+            WHEN recommend_scale = 'would_strongly_recommend' THEN 5
+            ELSE 3
+          END), 0) as rating_variance
+        FROM church_ratings
+        GROUP BY church_name, location, google_place_id
+      )
+      SELECT * FROM church_stats
+      WHERE 1=1
+        ${options.search ? sql`AND (LOWER(name) LIKE ${`%${options.search.toLowerCase()}%`} OR LOWER(location) LIKE ${`%${options.search.toLowerCase()}%`})` : sql``}
+        ${options.denomination ? sql`AND denomination = ${options.denomination}` : sql``}
+        ${options.minRating ? sql`AND average_rating >= ${options.minRating}` : sql``}
+        ${sortBy === "highest_rated" ? sql`AND rating_count >= 5` : sql``}
+        ${sortBy === "most_controversial" ? sql`AND rating_variance > 1.5 AND rating_count >= 3` : sql``}
+      ORDER BY ${sortBy === "highest_rated" ? sql`average_rating DESC` : 
+                sortBy === "most_controversial" ? sql`rating_variance DESC` :
+                sortBy === "recently_rated" ? sql`latest_rating_at DESC` :
+                sql`rating_count DESC`}
+      LIMIT ${limit} OFFSET ${offset}
+    `);
+
+    // Get total count
+    const countResult = await db.execute(sql`
+      WITH church_stats AS (
+        SELECT 
+          church_name as name,
+          location,
+          COUNT(*) as rating_count,
+          MAX(denomination) as denomination,
+          AVG(CASE 
+            WHEN recommend_scale = 'would_actively_discourage' THEN 1
+            WHEN recommend_scale = 'probably_would_not' THEN 2
+            WHEN recommend_scale = 'uncertain' THEN 3
+            WHEN recommend_scale = 'probably_would' THEN 4
+            WHEN recommend_scale = 'would_strongly_recommend' THEN 5
+            ELSE 3
+          END) as average_rating,
+          COALESCE(VARIANCE(CASE 
+            WHEN recommend_scale = 'would_actively_discourage' THEN 1
+            WHEN recommend_scale = 'probably_would_not' THEN 2
+            WHEN recommend_scale = 'uncertain' THEN 3
+            WHEN recommend_scale = 'probably_would' THEN 4
+            WHEN recommend_scale = 'would_strongly_recommend' THEN 5
+            ELSE 3
+          END), 0) as rating_variance
+        FROM church_ratings
+        GROUP BY church_name, location, google_place_id
+      )
+      SELECT COUNT(*) as total FROM church_stats
+      WHERE 1=1
+        ${options.search ? sql`AND (LOWER(name) LIKE ${`%${options.search.toLowerCase()}%`} OR LOWER(location) LIKE ${`%${options.search.toLowerCase()}%`})` : sql``}
+        ${options.denomination ? sql`AND denomination = ${options.denomination}` : sql``}
+        ${options.minRating ? sql`AND average_rating >= ${options.minRating}` : sql``}
+        ${sortBy === "highest_rated" ? sql`AND rating_count >= 5` : sql``}
+        ${sortBy === "most_controversial" ? sql`AND rating_variance > 1.5 AND rating_count >= 3` : sql``}
+    `);
+
+    const churches = (results.rows as any[]).map(row => ({
+      name: row.name,
+      location: row.location,
+      ratingCount: Number(row.rating_count),
+      googlePlaceId: row.google_place_id,
+      denomination: row.denomination,
+      latestRatingAt: new Date(row.latest_rating_at),
+      averageRating: Number(row.average_rating),
+      isControversial: Number(row.rating_variance) > 1.5,
+    }));
+
+    const total = Number((countResult.rows[0] as any)?.total || 0);
+
+    return {
+      churches,
+      total,
+      hasMore: offset + churches.length < total,
+    };
+  }
+
+  async getChurchProfile(churchName: string, location?: string | null): Promise<{
+    name: string;
+    location: string | null;
+    denomination: string | null;
+    googlePlaceId: string | null;
+    totalRatings: number;
+    averageRating: number;
+    ratingDistribution: { rating: number; count: number; percentage: number }[];
+    categoryBreakdown: {
+      belonging: { average: number; count: number };
+      leadership: { average: number; count: number };
+      conflict: { average: number; count: number };
+      growth: { average: number; count: number };
+    };
+    isControversial: boolean;
+    ratingVariance: number;
+  } | null> {
+    const normalizedName = churchName.toLowerCase().trim();
+    
+    // Get all ratings for this church
+    const ratings = await db
+      .select()
+      .from(churchRatings)
+      .where(sql`LOWER(TRIM(${churchRatings.churchName})) = ${normalizedName}`);
+
+    if (ratings.length === 0) return null;
+
+    // Calculate rating distribution based on recommendScale
+    const scaleToRating: Record<string, number> = {
+      'would_actively_discourage': 1,
+      'probably_would_not': 2,
+      'uncertain': 3,
+      'probably_would': 4,
+      'would_strongly_recommend': 5,
+    };
+
+    const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let totalRatingValue = 0;
+    const ratingValues: number[] = [];
+
+    for (const r of ratings) {
+      const rating = scaleToRating[r.recommendScale] || 3;
+      distribution[rating]++;
+      totalRatingValue += rating;
+      ratingValues.push(rating);
+    }
+
+    const averageRating = totalRatingValue / ratings.length;
+    
+    // Calculate variance
+    const variance = ratingValues.length > 1 
+      ? ratingValues.reduce((sum, val) => sum + Math.pow(val - averageRating, 2), 0) / ratingValues.length
+      : 0;
+
+    // Calculate category breakdowns
+    const belongingScale: Record<string, number> = {
+      'never': 1, 'rarely': 2, 'sometimes': 3, 'usually': 4, 'always': 5, 'prefer_not_to_answer': 0,
+    };
+    const leadershipScale: Record<string, number> = {
+      'deeply_concerning': 1, 'concerning': 2, 'neutral_mixed': 3, 'trustworthy': 4, 'exemplary': 5, 'not_enough_interaction': 0,
+    };
+    const conflictScale: Record<string, number> = {
+      'harmfully': 1, 'poorly': 2, 'inconsistently': 3, 'constructively': 4, 'very_well': 5, 'did_not_observe': 0,
+    };
+    const growthScale: Record<string, number> = {
+      'felt_stuck': 1, 'minimal_growth': 2, 'some_growth': 3, 'significant_growth': 4, 'profound_transformation': 5, 'not_applicable': 0,
+    };
+
+    const calcCategoryAvg = (values: number[]) => {
+      const validValues = values.filter(v => v > 0);
+      return validValues.length > 0 ? validValues.reduce((a, b) => a + b, 0) / validValues.length : 0;
+    };
+
+    const belongingValues = ratings.map(r => belongingScale[r.belongingScale] || 0);
+    const leadershipValues = ratings.map(r => leadershipScale[r.leadershipScale] || 0);
+    const conflictValues = ratings.map(r => conflictScale[r.conflictHandling] || 0);
+    const growthValues = ratings.map(r => growthScale[r.growthScale] || 0);
+
+    return {
+      name: ratings[0].churchName,
+      location: ratings[0].location,
+      denomination: ratings.find(r => r.denomination)?.denomination || null,
+      googlePlaceId: ratings[0].googlePlaceId,
+      totalRatings: ratings.length,
+      averageRating,
+      ratingDistribution: [5, 4, 3, 2, 1].map(rating => ({
+        rating,
+        count: distribution[rating],
+        percentage: (distribution[rating] / ratings.length) * 100,
+      })),
+      categoryBreakdown: {
+        belonging: { average: calcCategoryAvg(belongingValues), count: belongingValues.filter(v => v > 0).length },
+        leadership: { average: calcCategoryAvg(leadershipValues), count: leadershipValues.filter(v => v > 0).length },
+        conflict: { average: calcCategoryAvg(conflictValues), count: conflictValues.filter(v => v > 0).length },
+        growth: { average: calcCategoryAvg(growthValues), count: growthValues.filter(v => v > 0).length },
+      },
+      isControversial: variance > 2,
+      ratingVariance: variance,
+    };
+  }
+
+  async getChurchRatingsPaginated(churchName: string, options: {
+    page?: number;
+    limit?: number;
+    sortBy?: "newest" | "oldest" | "helpful";
+  }): Promise<{ ratings: ChurchRating[]; total: number; hasMore: boolean }> {
+    const page = options.page || 1;
+    const limit = options.limit || 10;
+    const offset = (page - 1) * limit;
+    const normalizedName = churchName.toLowerCase().trim();
+
+    const orderByClause = options.sortBy === "oldest" 
+      ? churchRatings.createdAt
+      : desc(churchRatings.createdAt);
+
+    const [ratings, countResult] = await Promise.all([
+      db
+        .select()
+        .from(churchRatings)
+        .where(sql`LOWER(TRIM(${churchRatings.churchName})) = ${normalizedName}`)
+        .orderBy(orderByClause)
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(churchRatings)
+        .where(sql`LOWER(TRIM(${churchRatings.churchName})) = ${normalizedName}`),
+    ]);
+
+    const total = countResult[0]?.count || 0;
+
+    return {
+      ratings,
+      total,
+      hasMore: offset + ratings.length < total,
+    };
+  }
+
+  async getStoriesByChurch(churchName: string, limit: number = 20): Promise<Submission[]> {
+    const normalizedName = churchName.toLowerCase().trim();
+    
+    return db
+      .select({
+        id: submissions.id,
+        title: submissions.title,
+        content: submissions.content,
+        category: submissions.category,
+        denomination: submissions.denomination,
+        timeframe: submissions.timeframe,
+        condemnCount: submissions.condemnCount,
+        absolveCount: submissions.absolveCount,
+        meTooCount: submissions.meTooCount,
+        flagCount: submissions.flagCount,
+        viewCount: submissions.viewCount,
+        commentCount: submissions.commentCount,
+        status: submissions.status,
+        churchName: sql<null>`NULL`.as('churchName'),
+        pastorName: sql<null>`NULL`.as('pastorName'),
+        location: sql<null>`NULL`.as('location'),
+        createdAt: submissions.createdAt,
+      })
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.status, "active"),
+          sql`LOWER(TRIM(${submissions.churchName})) = ${normalizedName}`
+        )
+      )
+      .orderBy(desc(submissions.createdAt))
+      .limit(limit) as unknown as Promise<Submission[]>;
   }
 }
 

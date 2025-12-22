@@ -11,6 +11,7 @@ import { StoryReadsProvider } from "@/components/story-reads-provider";
 import Home from "@/pages/home";
 import Submit from "@/pages/submit";
 import Churches from "@/pages/churches";
+import ChurchProfile from "@/pages/church-profile";
 import Settings from "@/pages/settings";
 import Admin from "@/pages/admin";
 import SearchPage from "@/pages/search";
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/submit" component={Submit} />
       <Route path="/churches" component={Churches} />
+      <Route path="/churches/:slug" component={ChurchProfile} />
       <Route path="/search" component={SearchPage} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
