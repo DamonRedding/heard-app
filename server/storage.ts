@@ -200,6 +200,15 @@ export interface IStorage {
   searchChurchNames(query: string, limit?: number): Promise<{ name: string; location: string | null; ratingCount: number; googlePlaceId: string | null }[]>;
 
   getChurchByGooglePlaceId(googlePlaceId: string): Promise<{ churchName: string; location: string | null } | null>;
+
+  getRatedChurches(limit?: number): Promise<{ 
+    name: string; 
+    location: string | null; 
+    ratingCount: number; 
+    googlePlaceId: string | null;
+    denomination: string | null;
+    latestRatingAt: Date;
+  }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1279,6 +1288,31 @@ export class DatabaseStorage implements IStorage {
       .where(eq(churchRatings.googlePlaceId, googlePlaceId))
       .limit(1);
     return result || null;
+  }
+
+  async getRatedChurches(limit: number = 50): Promise<{ 
+    name: string; 
+    location: string | null; 
+    ratingCount: number; 
+    googlePlaceId: string | null;
+    denomination: string | null;
+    latestRatingAt: Date;
+  }[]> {
+    const results = await db
+      .select({
+        name: churchRatings.churchName,
+        location: churchRatings.location,
+        ratingCount: count(),
+        googlePlaceId: churchRatings.googlePlaceId,
+        denomination: sql<string | null>`MAX(${churchRatings.denomination})`,
+        latestRatingAt: sql<Date>`MAX(${churchRatings.createdAt})`,
+      })
+      .from(churchRatings)
+      .groupBy(churchRatings.churchName, churchRatings.location, churchRatings.googlePlaceId)
+      .orderBy(desc(sql`MAX(${churchRatings.createdAt})`))
+      .limit(limit);
+    
+    return results;
   }
 }
 

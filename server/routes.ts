@@ -940,6 +940,18 @@ export async function registerRoutes(
     }
   });
 
+  // Get all rated churches
+  app.get("/api/churches", async (req: Request, res: Response) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      const churches = await storage.getRatedChurches(limit);
+      res.json({ churches });
+    } catch (error) {
+      console.error("Error fetching churches:", error);
+      res.status(500).json({ error: "Failed to fetch churches" });
+    }
+  });
+
   // Church search autocomplete
   app.get("/api/churches/search", async (req: Request, res: Response) => {
     try {

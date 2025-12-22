@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Compass, Search, Settings } from "lucide-react";
+import { Home, Building2, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -12,7 +12,7 @@ interface MobileNavItem {
 
 const navItems: MobileNavItem[] = [
   { icon: Home, label: "Feed", href: "/", testId: "mobile-nav-feed" },
-  { icon: Compass, label: "Explore", href: "/explore", testId: "mobile-nav-explore" },
+  { icon: Building2, label: "Explore", href: "/churches", testId: "mobile-nav-explore" },
   { icon: Search, label: "Search", href: "/search", testId: "mobile-nav-search" },
   { icon: Settings, label: "Settings", href: "/settings", testId: "mobile-nav-settings" },
 ];

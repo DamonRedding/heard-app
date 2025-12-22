@@ -1,0 +1,74 @@
+
+## P2-002: Church Profile Pages - Core Implementation
+
+**Owner:** Frontend Engineer + Backend Engineer
+**Priority:** P0 (blocks church response system)
+**Effort:** 4 days
+**Dependencies:** Rating API (P1-001), OG cards (P1-003)
+
+### Route Structure
+
+```yaml
+Route: /churches/:slug
+Example: /churches/first-baptist-chicago-il
+
+Slug_Format:
+  - Lowercase church name + city + state abbreviation
+  - Spaces → hyphens
+  - Remove special characters
+  - Max 100 chars
+  - Example: "First Baptist Church, Chicago IL" → "first-baptist-chicago-il"
+```
+
+### Page Layout
+
+```yaml
+Header:
+  - Church name (h1, text-3xl, font-bold)
+  - Location (text-lg, text-gray-600): "Chicago, Illinois"
+  - Overall rating (text-2xl): "⭐ 3.2 (47 ratings)"
+  - Claim status:
+      - Unclaimed: [Claim Your Church] button (prominent CTA)
+      - Claimed: "✓ Verified" badge + "Managed by church leadership"
+
+Tabs:
+  1. Overview (default)
+  2. Ratings (sortable, filterable)
+  3. Stories (all stories mentioning this church)
+  4. About (claimed churches only)
+```
+
+### Tab 1: Overview
+
+```yaml
+Content:
+  Rating_Distribution:
+    - Visual: Horizontal bar chart
+    - Breakdown: 5★ (10), 4★ (20), 3★ (12), 2★ (3), 1★ (2)
+    - Percentage: Show % for each star level
+
+  Category_Breakdown:
+    - Grid layout (2×2 on mobile, 4×1 on desktop)
+    - Each category:
+        - Name: "Teaching"
+        - Rating: "4.5★" (large, bold)
+        - Count: "(42 ratings)" (small, gray)
+        - Trend: "↗️ +0.2 from last month" (if enough data)
+
+    - Controversy indicator:
+        - If variance >2 stars: Show "💬 Varied experiences" badge
+        - Place below category with highest variance
+```
+
+### Acceptance Criteria
+
+- [ ] Church profile pages load in <2s (server-side rendered)
+- [ ] All 4 tabs functional (Overview, Ratings, Stories, About)
+- [ ] Rating distribution chart accurate
+- [ ] Controversy indicator shows when variance >2 stars
+- [ ] Sort and filter controls work on Ratings tab
+- [ ] "Helpful" button functional (upvote ratings)
+- [ ] Church response appears below ratings (if exists)
+- [ ] About tab only visible for claimed churches
+- [ ] OG meta tags generated correctly (social share preview)
+- [ ] Playwright test: Navigate all tabs, verify content loads
