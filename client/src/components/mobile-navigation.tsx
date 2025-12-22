@@ -1,8 +1,7 @@
 import { Link, useLocation } from "wouter";
-import { Home, Info, Sun, Moon, Search } from "lucide-react";
+import { Home, Compass, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useTheme } from "@/components/theme-provider";
 
 interface MobileNavItem {
   icon: typeof Home;
@@ -13,20 +12,16 @@ interface MobileNavItem {
 
 const navItems: MobileNavItem[] = [
   { icon: Home, label: "Feed", href: "/", testId: "mobile-nav-feed" },
+  { icon: Compass, label: "Explore", href: "/explore", testId: "mobile-nav-explore" },
   { icon: Search, label: "Search", href: "/search", testId: "mobile-nav-search" },
-  { icon: Info, label: "About", href: "/about", testId: "mobile-nav-about" },
+  { icon: Settings, label: "Settings", href: "/settings", testId: "mobile-nav-settings" },
 ];
 
 export function MobileNavigation() {
   const [location] = useLocation();
   const isMobile = useIsMobile();
-  const { theme, setTheme } = useTheme();
 
   if (!isMobile) return null;
-
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
 
   return (
     <nav 
@@ -81,21 +76,6 @@ export function MobileNavigation() {
               </Link>
             );
           })}
-          <button
-            onClick={toggleTheme}
-            className="flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px] rounded-lg transition-colors text-muted-foreground hover-elevate active-elevate-2"
-            data-testid="mobile-nav-theme"
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-            <span className="text-xs font-medium text-muted-foreground">
-              Theme
-            </span>
-          </button>
         </div>
     </nav>
   );

@@ -10,7 +10,8 @@ import { ShareFAB } from "@/components/share-fab";
 import { StoryReadsProvider } from "@/components/story-reads-provider";
 import Home from "@/pages/home";
 import Submit from "@/pages/submit";
-import About from "@/pages/about";
+import Explore from "@/pages/explore";
+import Settings from "@/pages/settings";
 import Admin from "@/pages/admin";
 import SearchPage from "@/pages/search";
 import NotFound from "@/pages/not-found";
@@ -20,8 +21,9 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/submit" component={Submit} />
+      <Route path="/explore" component={Explore} />
       <Route path="/search" component={SearchPage} />
-      <Route path="/about" component={About} />
+      <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>

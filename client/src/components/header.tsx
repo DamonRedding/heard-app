@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { FeedbackButton } from "@/components/feedback-button";
 import { ChurchRatingModal } from "@/components/church-rating-modal";
-import { PenLine, Info, Shield, Home, Star } from "lucide-react";
+import { PenLine, Shield, Home, Star, Compass, Search, Settings } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Header() {
@@ -45,6 +44,42 @@ export function Header() {
               <span>Feed</span>
             </Button>
           </Link>
+
+          <Link href="/explore">
+            <Button
+              variant={location === "/explore" ? "secondary" : "ghost"}
+              size="sm"
+              className="gap-2"
+              data-testid="link-explore"
+            >
+              <Compass className="h-4 w-4" />
+              <span>Explore</span>
+            </Button>
+          </Link>
+
+          <Link href="/search">
+            <Button
+              variant={location === "/search" ? "secondary" : "ghost"}
+              size="sm"
+              className="gap-2"
+              data-testid="link-search"
+            >
+              <Search className="h-4 w-4" />
+              <span>Search</span>
+            </Button>
+          </Link>
+
+          <Link href="/settings">
+            <Button
+              variant={location === "/settings" ? "secondary" : "ghost"}
+              size="sm"
+              className="gap-2"
+              data-testid="link-settings"
+            >
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </Button>
+          </Link>
           
           <Link href="/submit">
             <Button
@@ -69,18 +104,6 @@ export function Header() {
             <span>Rate</span>
           </Button>
 
-          <Link href="/about">
-            <Button
-              variant={location === "/about" ? "secondary" : "ghost"}
-              size="sm"
-              className="gap-2"
-              data-testid="link-about"
-            >
-              <Info className="h-4 w-4" />
-              <span>About</span>
-            </Button>
-          </Link>
-
           <Link href="/admin">
             <Button
               variant={location === "/admin" ? "secondary" : "ghost"}
@@ -92,7 +115,6 @@ export function Header() {
           </Link>
 
           <FeedbackButton />
-          <ThemeToggle />
         </nav>
       </div>
 
