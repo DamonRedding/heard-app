@@ -1312,22 +1312,35 @@ export class DatabaseStorage implements IStorage {
       .replace(/_/g, '\\_');
     const searchPattern = `%${escapedQuery}%`;
     
-    // Group by normalized church name to merge duplicates
-    // Use MAX to prefer entries with googlePlaceId and location
-    const results = await db
-      .select({
-        name: sql<string>`MAX(${churchRatings.churchName})`,
-        location: sql<string | null>`MAX(${churchRatings.location})`,
-        ratingCount: count(),
-        googlePlaceId: sql<string | null>`MAX(${churchRatings.googlePlaceId})`,
-      })
-      .from(churchRatings)
-      .where(sql`LOWER(${churchRatings.churchName}) LIKE ${searchPattern}`)
-      .groupBy(sql`LOWER(TRIM(${churchRatings.churchName}))`)
-      .orderBy(desc(count()))
-      .limit(limit);
+    // Smart de-duplication:
+    // 1. Group by googlePlaceId if present
+    // 2. For entries without googlePlaceId, check if another entry with same name HAS a googlePlaceId
+    // 3. Otherwise, group by name + location (to keep different locations separate)
+    const results = await db.execute(sql`
+      SELECT 
+        MAX(church_name) as name,
+        MAX(location) as location,
+        COUNT(*) as rating_count,
+        MAX(google_place_id) as google_place_id
+      FROM church_ratings
+      WHERE LOWER(church_name) LIKE ${searchPattern}
+      GROUP BY COALESCE(
+        google_place_id,
+        (SELECT MAX(cr2.google_place_id) FROM church_ratings cr2 
+         WHERE LOWER(TRIM(cr2.church_name)) = LOWER(TRIM(church_ratings.church_name)) 
+         AND cr2.google_place_id IS NOT NULL),
+        LOWER(TRIM(church_name)) || '|' || COALESCE(LOWER(TRIM(location)), '')
+      )
+      ORDER BY COUNT(*) DESC
+      LIMIT ${limit}
+    `);
     
-    return results;
+    return (results.rows as any[]).map(row => ({
+      name: row.name,
+      location: row.location,
+      ratingCount: Number(row.rating_count),
+      googlePlaceId: row.google_place_id,
+    }));
   }
 
   async getChurchByGooglePlaceId(googlePlaceId: string): Promise<{ churchName: string; location: string | null; googlePlaceId: string | null } | null> {
@@ -1370,23 +1383,38 @@ export class DatabaseStorage implements IStorage {
     denomination: string | null;
     latestRatingAt: Date;
   }[]> {
-    // Group by normalized church name to merge duplicates
-    // Use MAX to prefer entries with googlePlaceId and location
-    const results = await db
-      .select({
-        name: sql<string>`MAX(${churchRatings.churchName})`,
-        location: sql<string | null>`MAX(${churchRatings.location})`,
-        ratingCount: count(),
-        googlePlaceId: sql<string | null>`MAX(${churchRatings.googlePlaceId})`,
-        denomination: sql<string | null>`MAX(${churchRatings.denomination})`,
-        latestRatingAt: sql<Date>`MAX(${churchRatings.createdAt})`,
-      })
-      .from(churchRatings)
-      .groupBy(sql`LOWER(TRIM(${churchRatings.churchName}))`)
-      .orderBy(desc(sql`MAX(${churchRatings.createdAt})`))
-      .limit(limit);
+    // Smart de-duplication:
+    // 1. Group by googlePlaceId if present
+    // 2. For entries without googlePlaceId, check if another entry with same name HAS a googlePlaceId
+    // 3. Otherwise, group by name + location (to keep different locations separate)
+    const results = await db.execute(sql`
+      SELECT 
+        MAX(church_name) as name,
+        MAX(location) as location,
+        COUNT(*) as rating_count,
+        MAX(google_place_id) as google_place_id,
+        MAX(denomination) as denomination,
+        MAX(created_at) as latest_rating_at
+      FROM church_ratings
+      GROUP BY COALESCE(
+        google_place_id,
+        (SELECT MAX(cr2.google_place_id) FROM church_ratings cr2 
+         WHERE LOWER(TRIM(cr2.church_name)) = LOWER(TRIM(church_ratings.church_name)) 
+         AND cr2.google_place_id IS NOT NULL),
+        LOWER(TRIM(church_name)) || '|' || COALESCE(LOWER(TRIM(location)), '')
+      )
+      ORDER BY MAX(created_at) DESC
+      LIMIT ${limit}
+    `);
     
-    return results;
+    return (results.rows as any[]).map(row => ({
+      name: row.name,
+      location: row.location,
+      ratingCount: Number(row.rating_count),
+      googlePlaceId: row.google_place_id,
+      denomination: row.denomination,
+      latestRatingAt: new Date(row.latest_rating_at),
+    }));
   }
 
   async getFilteredChurches(options: {
@@ -1544,7 +1572,10 @@ export class DatabaseStorage implements IStorage {
       .groupBy(churchRatings.churchName, churchRatings.location, churchRatings.googlePlaceId);
 
     // Execute with raw SQL for complex having + order + pagination
-    // Group by normalized church name to merge duplicates
+    // Smart de-duplication: 
+    // 1. Group by googlePlaceId if present (most reliable)
+    // 2. For entries without googlePlaceId, check if another entry with same name HAS a googlePlaceId
+    // 3. Otherwise, group by normalized name + location (to keep different locations separate)
     const results = await db.execute(sql`
       WITH church_stats AS (
         SELECT 
@@ -1571,7 +1602,13 @@ export class DatabaseStorage implements IStorage {
             ELSE 3
           END), 0) as rating_variance
         FROM church_ratings
-        GROUP BY LOWER(TRIM(church_name))
+        GROUP BY COALESCE(
+          google_place_id,
+          (SELECT MAX(cr2.google_place_id) FROM church_ratings cr2 
+           WHERE LOWER(TRIM(cr2.church_name)) = LOWER(TRIM(church_ratings.church_name)) 
+           AND cr2.google_place_id IS NOT NULL),
+          LOWER(TRIM(church_name)) || '|' || COALESCE(LOWER(TRIM(location)), '')
+        )
       )
       SELECT * FROM church_stats
       WHERE 1=1
@@ -1587,7 +1624,7 @@ export class DatabaseStorage implements IStorage {
       LIMIT ${limit} OFFSET ${offset}
     `);
 
-    // Get total count - also group by normalized church name
+    // Get total count - use same smart de-duplication logic
     const countResult = await db.execute(sql`
       WITH church_stats AS (
         SELECT 
@@ -1612,7 +1649,13 @@ export class DatabaseStorage implements IStorage {
             ELSE 3
           END), 0) as rating_variance
         FROM church_ratings
-        GROUP BY LOWER(TRIM(church_name))
+        GROUP BY COALESCE(
+          google_place_id,
+          (SELECT MAX(cr2.google_place_id) FROM church_ratings cr2 
+           WHERE LOWER(TRIM(cr2.church_name)) = LOWER(TRIM(church_ratings.church_name)) 
+           AND cr2.google_place_id IS NOT NULL),
+          LOWER(TRIM(church_name)) || '|' || COALESCE(LOWER(TRIM(location)), '')
+        )
       )
       SELECT COUNT(*) as total FROM church_stats
       WHERE 1=1
