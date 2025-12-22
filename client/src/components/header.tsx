@@ -1,13 +1,16 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FeedbackButton } from "@/components/feedback-button";
-import { PenLine, Info, Shield, Home } from "lucide-react";
+import { ChurchRatingModal } from "@/components/church-rating-modal";
+import { PenLine, Info, Shield, Home, Star } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Header() {
   const [location] = useLocation();
   const isMobile = useIsMobile();
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
 
   if (isMobile) {
     return null;
@@ -55,6 +58,17 @@ export function Header() {
             </Button>
           </Link>
 
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={() => setRatingModalOpen(true)}
+            data-testid="button-rate-church"
+          >
+            <Star className="h-4 w-4" />
+            <span>Rate</span>
+          </Button>
+
           <Link href="/about">
             <Button
               variant={location === "/about" ? "secondary" : "ghost"}
@@ -81,6 +95,11 @@ export function Header() {
           <ThemeToggle />
         </nav>
       </div>
+
+      <ChurchRatingModal
+        open={ratingModalOpen}
+        onClose={() => setRatingModalOpen(false)}
+      />
     </header>
   );
 }
