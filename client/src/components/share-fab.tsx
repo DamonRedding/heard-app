@@ -7,20 +7,36 @@ export function ShareFAB() {
   const isMobile = useIsMobile();
   const [location, setLocation] = useLocation();
 
-  // Detect if we're viewing a specific church profile (not just the list)
+  // Detect if we're in the Explore Churches flow
   const isChurchProfilePage = location.startsWith("/churches/") && location !== "/churches";
+  const isChurchListPage = location === "/churches";
+  const isExploreFlow = isChurchProfilePage || isChurchListPage;
 
   // Hide FAB on mobile when not applicable, or when already on submit page
   if (!isMobile || location === "/submit") return null;
 
   const handleClick = () => {
-    if (isChurchProfilePage) {
-      // Dispatch custom event to trigger rating modal on church profile page
+    if (isExploreFlow) {
+      // Dispatch custom event to trigger rating modal on churches pages
       window.dispatchEvent(new CustomEvent("open-church-rating-modal"));
     } else {
       setLocation("/submit");
     }
   };
+
+  // Determine FAB label based on context
+  const getFabContent = () => {
+    if (isChurchProfilePage) {
+      return { icon: Star, label: "Rate This Church", testId: "fab-rate-church", ariaLabel: "Rate this church" };
+    } else if (isChurchListPage) {
+      return { icon: Star, label: "Rate a Church", testId: "fab-rate-church", ariaLabel: "Rate a church" };
+    } else {
+      return { icon: Plus, label: "Post Story", testId: "fab-share", ariaLabel: "Post your story" };
+    }
+  };
+
+  const fabContent = getFabContent();
+  const IconComponent = fabContent.icon;
 
   // Extended FAB following Material Design best practices:
   // - Icon + text label for clear context
@@ -33,8 +49,8 @@ export function ShareFAB() {
     <button
       onClick={handleClick}
       className="fixed z-[9999] flex items-center gap-2 h-12 px-4 rounded-full bg-primary text-primary-foreground font-medium shadow-lg hover-elevate active-elevate-2 border border-primary-border"
-      data-testid={isChurchProfilePage ? "fab-rate-church" : "fab-share"}
-      aria-label={isChurchProfilePage ? "Rate this church" : "Post your story"}
+      data-testid={fabContent.testId}
+      aria-label={fabContent.ariaLabel}
       style={{
         position: 'fixed',
         bottom: '5rem',
@@ -42,17 +58,8 @@ export function ShareFAB() {
         transform: 'translateX(-50%)',
       }}
     >
-      {isChurchProfilePage ? (
-        <>
-          <Star className="h-5 w-5" />
-          <span className="text-sm">Rate This Church</span>
-        </>
-      ) : (
-        <>
-          <Plus className="h-5 w-5" />
-          <span className="text-sm">Post Story</span>
-        </>
-      )}
+      <IconComponent className="h-5 w-5" />
+      <span className="text-sm">{fabContent.label}</span>
     </button>,
     document.body
   );
