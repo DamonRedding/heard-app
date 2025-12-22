@@ -16,7 +16,7 @@ import {
 import { ChurchRatingModal } from "@/components/church-rating-modal";
 import { 
   ArrowLeft, 
-  Building2, 
+  Church, 
   MapPin, 
   Users, 
   Star, 
@@ -352,7 +352,7 @@ export default function Churches() {
           <section>
             <div className="flex items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" />
+                <Church className="h-5 w-5 text-primary" />
                 <h2 className="text-lg font-semibold">
                   {hasFilters ? "Results" : "Recently Rated"}
                 </h2>
@@ -382,7 +382,7 @@ export default function Churches() {
                           <CardContent className="p-4">
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                                <Building2 className="h-6 w-6 text-primary" />
+                                <Church className="h-6 w-6 text-primary" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h3 className="font-medium text-base truncate">{church.name}</h3>
@@ -445,7 +445,7 @@ export default function Churches() {
             ) : (
               <Card>
                 <CardContent className="p-8 text-center">
-                  <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                  <Church className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
                   <h3 className="font-medium mb-2">
                     {hasFilters ? "No churches match your filters" : "No churches rated yet"}
                   </h3>

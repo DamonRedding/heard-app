@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { ChurchRatingModal } from "@/components/church-rating-modal";
 import { 
   ArrowLeft, 
-  Building2, 
+  Church, 
   MapPin, 
   Star, 
   Users, 
@@ -553,7 +553,7 @@ export default function ChurchProfile() {
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <Building2 className="h-10 w-10 text-primary" />
+                  <Church className="h-10 w-10 text-primary" />
                   <div>
                     <h3 className="font-semibold text-lg">{profile.name}</h3>
                     {profile.location && (
@@ -589,7 +589,7 @@ export default function ChurchProfile() {
 
                 <div className="mt-6 pt-4 border-t">
                   <Button variant="outline" className="w-full" data-testid="button-claim-church">
-                    <Building2 className="h-4 w-4 mr-2" />
+                    <Church className="h-4 w-4 mr-2" />
                     Claim This Church
                   </Button>
                   <p className="text-xs text-muted-foreground text-center mt-2">
