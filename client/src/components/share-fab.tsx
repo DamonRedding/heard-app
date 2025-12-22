@@ -1,17 +1,25 @@
 import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
-import { Plus } from "lucide-react";
+import { Plus, Star } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function ShareFAB() {
   const isMobile = useIsMobile();
   const [location, setLocation] = useLocation();
 
+  // Detect if we're on a church profile page
+  const isChurchProfilePage = location.startsWith("/churches/");
+
   // Hide FAB on mobile when not applicable, or when already on submit page
   if (!isMobile || location === "/submit") return null;
 
   const handleClick = () => {
-    setLocation("/submit");
+    if (isChurchProfilePage) {
+      // Dispatch custom event to trigger rating modal on church profile page
+      window.dispatchEvent(new CustomEvent("open-church-rating-modal"));
+    } else {
+      setLocation("/submit");
+    }
   };
 
   // Extended FAB following Material Design best practices:
@@ -25,8 +33,8 @@ export function ShareFAB() {
     <button
       onClick={handleClick}
       className="fixed z-[9999] flex items-center gap-2 h-12 px-4 rounded-full bg-primary text-primary-foreground font-medium shadow-lg hover-elevate active-elevate-2 border border-primary-border"
-      data-testid="fab-share"
-      aria-label="Post your story"
+      data-testid={isChurchProfilePage ? "fab-review-church" : "fab-share"}
+      aria-label={isChurchProfilePage ? "Review this church" : "Post your story"}
       style={{
         position: 'fixed',
         bottom: '5rem',
@@ -34,8 +42,17 @@ export function ShareFAB() {
         transform: 'translateX(-50%)',
       }}
     >
-      <Plus className="h-5 w-5" />
-      <span className="text-sm">Post Story</span>
+      {isChurchProfilePage ? (
+        <>
+          <Star className="h-5 w-5" />
+          <span className="text-sm">Review Church</span>
+        </>
+      ) : (
+        <>
+          <Plus className="h-5 w-5" />
+          <span className="text-sm">Post Story</span>
+        </>
+      )}
     </button>,
     document.body
   );

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -209,6 +209,18 @@ export default function ChurchProfile() {
   const [ratingsPage, setRatingsPage] = useState(1);
   const [ratingsSortBy, setRatingsSortBy] = useState<"newest" | "oldest">("newest");
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
+
+  // Listen for FAB click event to open rating modal
+  useEffect(() => {
+    const handleOpenRatingModal = () => {
+      setRatingModalOpen(true);
+    };
+    
+    window.addEventListener("open-church-rating-modal", handleOpenRatingModal);
+    return () => {
+      window.removeEventListener("open-church-rating-modal", handleOpenRatingModal);
+    };
+  }, []);
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<ChurchProfile>({
     queryKey: [`/api/churches/profile/${slug}`],
