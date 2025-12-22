@@ -929,8 +929,79 @@ export async function registerRoutes(
     try {
       const query = req.query.q as string || "";
       const limit = Math.min(parseInt(req.query.limit as string) || 10, 20);
+      const sessionToken = req.query.sessionToken as string || "";
       
-      const churches = await storage.searchChurchNames(query, limit);
+      // Get local churches from database
+      const localChurches = await storage.searchChurchNames(query, limit);
+      
+      // If we have a Google Maps API key, also search Google Places
+      const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+      let googleResults: Array<{
+        name: string;
+        location: string | null;
+        ratingCount: number;
+        googlePlaceId: string;
+        source: "google";
+      }> = [];
+      
+      if (googleApiKey && query.length >= 2) {
+        try {
+          const placesUrl = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
+          placesUrl.searchParams.set("input", query);
+          placesUrl.searchParams.set("types", "church");
+          placesUrl.searchParams.set("key", googleApiKey);
+          if (sessionToken) {
+            placesUrl.searchParams.set("sessiontoken", sessionToken);
+          }
+          
+          const placesResponse = await fetch(placesUrl.toString());
+          const placesData = await placesResponse.json() as {
+            status: string;
+            predictions?: Array<{
+              place_id: string;
+              description: string;
+              structured_formatting?: {
+                main_text: string;
+                secondary_text?: string;
+              };
+            }>;
+          };
+          
+          if (placesData.status === "OK" && placesData.predictions) {
+            // Get place_ids that already exist in local results
+            const existingPlaceIds = new Set(
+              localChurches
+                .filter((c: { googlePlaceId?: string | null }) => c.googlePlaceId)
+                .map((c: { googlePlaceId?: string | null }) => c.googlePlaceId)
+            );
+            
+            googleResults = placesData.predictions
+              .filter(p => !existingPlaceIds.has(p.place_id))
+              .slice(0, 5)
+              .map(prediction => ({
+                name: prediction.structured_formatting?.main_text || prediction.description.split(",")[0],
+                location: prediction.structured_formatting?.secondary_text || 
+                         prediction.description.split(",").slice(1).join(",").trim() || null,
+                ratingCount: 0,
+                googlePlaceId: prediction.place_id,
+                source: "google" as const,
+              }));
+          }
+        } catch (googleError) {
+          console.error("Google Places API error:", googleError);
+          // Continue with just local results
+        }
+      }
+      
+      // Mark local results with source
+      const localWithSource = localChurches.map((c: { name: string; location: string | null; ratingCount: number; googlePlaceId?: string | null }) => ({
+        ...c,
+        source: "local" as const,
+      }));
+      
+      // Combine: local first (already rated), then Google results
+      const churches = [...localWithSource, ...googleResults].slice(0, limit);
+      
       res.json({ churches });
     } catch (error) {
       console.error("Error searching churches:", error);

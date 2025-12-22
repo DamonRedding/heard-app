@@ -538,6 +538,7 @@ export const churchRatings = pgTable("church_ratings", {
   churchName: text("church_name").notNull(),
   location: text("location"),
   denomination: text("denomination"),
+  googlePlaceId: text("google_place_id"),
   
   // Part 1: Your Experience
   churchConnection: churchConnectionEnum("church_connection").notNull(),
@@ -593,6 +594,7 @@ export const insertChurchRatingSchema = createInsertSchema(churchRatings).omit({
   churchName: z.string().min(2, "Church name is required"),
   belongingComment: z.string().max(280, "Comment must be 280 characters or less").optional().nullable(),
   additionalComment: z.string().max(280, "Comment must be 280 characters or less").optional().nullable(),
+  googlePlaceId: z.string().optional().nullable(),
 });
 
 export type InsertChurchRating = z.infer<typeof insertChurchRatingSchema>;

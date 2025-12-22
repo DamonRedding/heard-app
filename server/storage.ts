@@ -1241,7 +1241,7 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  async searchChurchNames(query: string, limit: number = 10): Promise<{ name: string; location: string | null; ratingCount: number }[]> {
+  async searchChurchNames(query: string, limit: number = 10): Promise<{ name: string; location: string | null; ratingCount: number; googlePlaceId: string | null }[]> {
     if (!query.trim()) return [];
     
     // Escape special SQL LIKE characters to prevent pattern injection
@@ -1256,10 +1256,11 @@ export class DatabaseStorage implements IStorage {
         name: churchRatings.churchName,
         location: churchRatings.location,
         ratingCount: count(),
+        googlePlaceId: churchRatings.googlePlaceId,
       })
       .from(churchRatings)
       .where(sql`LOWER(${churchRatings.churchName}) LIKE ${searchPattern}`)
-      .groupBy(churchRatings.churchName, churchRatings.location)
+      .groupBy(churchRatings.churchName, churchRatings.location, churchRatings.googlePlaceId)
       .orderBy(desc(count()))
       .limit(limit);
     
