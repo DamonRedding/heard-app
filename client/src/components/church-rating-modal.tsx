@@ -315,10 +315,10 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0">
         {isSuccess ? (
-          <div className="py-6 text-center space-y-6" data-testid="rating-success-view">
-            <div className="flex justify-center">
+          <div className="p-6 text-center space-y-6" data-testid="rating-success-view">
+            <div className="flex justify-center pt-2">
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <CheckCircle2 className="h-8 w-8 text-primary" />
               </div>
@@ -333,7 +333,7 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 pt-2">
               <Button 
                 onClick={handleClose} 
                 className="w-full"
@@ -355,7 +355,7 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
               )}
             </div>
 
-            <div className="pt-2 border-t">
+            <div className="pt-4 border-t">
               <button
                 type="button"
                 onClick={handleShare}
@@ -369,16 +369,16 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
           </div>
         ) : (
           <>
-            <DialogHeader>
-              <DialogTitle className="text-lg font-semibold">Rate Your Church Experience</DialogTitle>
-              <div className="flex items-center gap-3 pt-2">
-                <Progress value={progress} className="flex-1" />
-                <span className="text-sm text-muted-foreground whitespace-nowrap">Step {step} of {TOTAL_STEPS}</span>
+            <DialogHeader className="p-6 pb-0">
+              <DialogTitle className="text-lg font-semibold pr-6">Rate Your Church Experience</DialogTitle>
+              <div className="flex items-center gap-3 pt-3">
+                <Progress value={progress} className="flex-1 h-2" />
+                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Step {step}/{TOTAL_STEPS}</span>
               </div>
             </DialogHeader>
 
             <Form {...form}>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form id="church-rating-form" onSubmit={handleSubmit} className="space-y-5 px-6 pb-2">
             {step === 1 && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">Help others by sharing your experience at a church. All responses are anonymous.</p>
@@ -607,7 +607,7 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
 
             {step === 2 && (
               <div className="space-y-6">
-                <h3 className="font-medium">Part 1: Your Experience</h3>
+                <p className="text-sm font-medium text-muted-foreground">Part 1: Your Experience</p>
                 
                 <FormField
                   control={form.control}
@@ -619,22 +619,21 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                         <RadioGroup
                           onValueChange={field.onChange}
                           value={field.value}
-                          className="space-y-2"
+                          className="space-y-1 pt-1"
                         >
                           {CHURCH_CONNECTION_OPTIONS.map((option) => (
-                            <div key={option.value} className="flex items-center space-x-2">
+                            <label 
+                              key={option.value}
+                              htmlFor={`connection-${option.value}`} 
+                              className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-md cursor-pointer hover-elevate"
+                            >
                               <RadioGroupItem 
                                 value={option.value} 
                                 id={`connection-${option.value}`}
                                 data-testid={`radio-connection-${option.value}`}
                               />
-                              <label 
-                                htmlFor={`connection-${option.value}`} 
-                                className="text-sm cursor-pointer"
-                              >
-                                {option.label}
-                              </label>
-                            </div>
+                              <span className="text-sm">{option.label}</span>
+                            </label>
                           ))}
                         </RadioGroup>
                       </FormControl>
@@ -653,22 +652,21 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                         <RadioGroup
                           onValueChange={field.onChange}
                           value={field.value}
-                          className="space-y-2"
+                          className="space-y-1 pt-1"
                         >
                           {ATTENDANCE_DURATION_OPTIONS.map((option) => (
-                            <div key={option.value} className="flex items-center space-x-2">
+                            <label 
+                              key={option.value}
+                              htmlFor={`duration-${option.value}`} 
+                              className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-md cursor-pointer hover-elevate"
+                            >
                               <RadioGroupItem 
                                 value={option.value} 
                                 id={`duration-${option.value}`}
                                 data-testid={`radio-duration-${option.value}`}
                               />
-                              <label 
-                                htmlFor={`duration-${option.value}`} 
-                                className="text-sm cursor-pointer"
-                              >
-                                {option.label}
-                              </label>
-                            </div>
+                              <span className="text-sm">{option.label}</span>
+                            </label>
                           ))}
                         </RadioGroup>
                       </FormControl>
@@ -681,7 +679,7 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
 
             {step === 3 && (
               <div className="space-y-6">
-                <h3 className="font-medium">Part 2: Sense of Belonging</h3>
+                <p className="text-sm font-medium text-muted-foreground">Part 2: Sense of Belonging</p>
                 
                 <FormField
                   control={form.control}
@@ -693,22 +691,21 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                         <RadioGroup
                           onValueChange={field.onChange}
                           value={field.value}
-                          className="space-y-2"
+                          className="space-y-1 pt-1"
                         >
                           {BELONGING_SCALE_OPTIONS.map((option) => (
-                            <div key={option.value} className="flex items-center space-x-2">
+                            <label 
+                              key={option.value}
+                              htmlFor={`belonging-${option.value}`} 
+                              className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-md cursor-pointer hover-elevate"
+                            >
                               <RadioGroupItem 
                                 value={option.value} 
                                 id={`belonging-${option.value}`}
                                 data-testid={`radio-belonging-${option.value}`}
                               />
-                              <label 
-                                htmlFor={`belonging-${option.value}`} 
-                                className="text-sm cursor-pointer"
-                              >
-                                {option.label}
-                              </label>
-                            </div>
+                              <span className="text-sm">{option.label}</span>
+                            </label>
                           ))}
                         </RadioGroup>
                       </FormControl>
@@ -743,7 +740,7 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
 
             {step === 4 && (
               <div className="space-y-6">
-                <h3 className="font-medium">Part 3: Leadership & Culture</h3>
+                <p className="text-sm font-medium text-muted-foreground">Part 3: Leadership & Culture</p>
                 
                 <FormField
                   control={form.control}
@@ -755,22 +752,21 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                         <RadioGroup
                           onValueChange={field.onChange}
                           value={field.value}
-                          className="space-y-2"
+                          className="space-y-1 pt-1"
                         >
                           {LEADERSHIP_SCALE_OPTIONS.map((option) => (
-                            <div key={option.value} className="flex items-center space-x-2">
+                            <label 
+                              key={option.value}
+                              htmlFor={`leadership-${option.value}`} 
+                              className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-md cursor-pointer hover-elevate"
+                            >
                               <RadioGroupItem 
                                 value={option.value} 
                                 id={`leadership-${option.value}`}
                                 data-testid={`radio-leadership-${option.value}`}
                               />
-                              <label 
-                                htmlFor={`leadership-${option.value}`} 
-                                className="text-sm cursor-pointer"
-                              >
-                                {option.label}
-                              </label>
-                            </div>
+                              <span className="text-sm">{option.label}</span>
+                            </label>
                           ))}
                         </RadioGroup>
                       </FormControl>
@@ -789,22 +785,21 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                         <RadioGroup
                           onValueChange={field.onChange}
                           value={field.value}
-                          className="space-y-2"
+                          className="space-y-1 pt-1"
                         >
                           {CONFLICT_HANDLING_OPTIONS.map((option) => (
-                            <div key={option.value} className="flex items-center space-x-2">
+                            <label 
+                              key={option.value}
+                              htmlFor={`conflict-${option.value}`} 
+                              className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-md cursor-pointer hover-elevate"
+                            >
                               <RadioGroupItem 
                                 value={option.value} 
                                 id={`conflict-${option.value}`}
                                 data-testid={`radio-conflict-${option.value}`}
                               />
-                              <label 
-                                htmlFor={`conflict-${option.value}`} 
-                                className="text-sm cursor-pointer"
-                              >
-                                {option.label}
-                              </label>
-                            </div>
+                              <span className="text-sm">{option.label}</span>
+                            </label>
                           ))}
                         </RadioGroup>
                       </FormControl>
@@ -817,7 +812,7 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
 
             {step === 5 && (
               <div className="space-y-6">
-                <h3 className="font-medium">Part 4: Personal Impact</h3>
+                <p className="text-sm font-medium text-muted-foreground">Part 4: Personal Impact</p>
                 
                 <FormField
                   control={form.control}
@@ -825,27 +820,26 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Did you experience personal growth during your time there? *</FormLabel>
-                      <p className="text-sm text-muted-foreground mb-2">This could be spiritual, emotional, relational, or other areas.</p>
+                      <p className="text-xs text-muted-foreground mt-1">This could be spiritual, emotional, relational, or other areas.</p>
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
                           value={field.value}
-                          className="space-y-2"
+                          className="space-y-1 pt-1"
                         >
                           {GROWTH_SCALE_OPTIONS.map((option) => (
-                            <div key={option.value} className="flex items-center space-x-2">
+                            <label 
+                              key={option.value}
+                              htmlFor={`growth-${option.value}`} 
+                              className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-md cursor-pointer hover-elevate"
+                            >
                               <RadioGroupItem 
                                 value={option.value} 
                                 id={`growth-${option.value}`}
                                 data-testid={`radio-growth-${option.value}`}
                               />
-                              <label 
-                                htmlFor={`growth-${option.value}`} 
-                                className="text-sm cursor-pointer"
-                              >
-                                {option.label}
-                              </label>
-                            </div>
+                              <span className="text-sm">{option.label}</span>
+                            </label>
                           ))}
                         </RadioGroup>
                       </FormControl>
@@ -858,7 +852,7 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
 
             {step === 6 && (
               <div className="space-y-6">
-                <h3 className="font-medium">Part 5: Overall Assessment</h3>
+                <p className="text-sm font-medium text-muted-foreground">Part 5: Overall Assessment</p>
                 
                 <FormField
                   control={form.control}
@@ -870,22 +864,21 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                         <RadioGroup
                           onValueChange={field.onChange}
                           value={field.value}
-                          className="space-y-2"
+                          className="space-y-1 pt-1"
                         >
                           {RECOMMEND_SCALE_OPTIONS.map((option) => (
-                            <div key={option.value} className="flex items-center space-x-2">
+                            <label 
+                              key={option.value}
+                              htmlFor={`recommend-${option.value}`} 
+                              className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-md cursor-pointer hover-elevate"
+                            >
                               <RadioGroupItem 
                                 value={option.value} 
                                 id={`recommend-${option.value}`}
                                 data-testid={`radio-recommend-${option.value}`}
                               />
-                              <label 
-                                htmlFor={`recommend-${option.value}`} 
-                                className="text-sm cursor-pointer"
-                              >
-                                {option.label}
-                              </label>
-                            </div>
+                              <span className="text-sm">{option.label}</span>
+                            </label>
                           ))}
                         </RadioGroup>
                       </FormControl>
@@ -917,8 +910,10 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                 />
               </div>
             )}
+          </form>
+        </Form>
 
-            <div className="flex justify-between pt-4 gap-2">
+            <div className="flex justify-between gap-3 p-6 pt-4 border-t">
               {step > 1 ? (
                 <Button
                   type="button"
@@ -953,6 +948,7 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
               ) : (
                 <Button
                   type="submit"
+                  form="church-rating-form"
                   disabled={!canProceed() || submitMutation.isPending}
                   data-testid="button-submit-rating"
                 >
@@ -965,8 +961,6 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                 </Button>
               )}
             </div>
-          </form>
-            </Form>
           </>
         )}
       </DialogContent>
