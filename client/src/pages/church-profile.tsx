@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { ChurchRatingModal } from "@/components/church-rating-modal";
 import { 
   ArrowLeft, 
   Building2, 
@@ -207,6 +208,7 @@ export default function ChurchProfile() {
   const [activeTab, setActiveTab] = useState("overview");
   const [ratingsPage, setRatingsPage] = useState(1);
   const [ratingsSortBy, setRatingsSortBy] = useState<"newest" | "oldest">("newest");
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<ChurchProfile>({
     queryKey: [`/api/churches/profile/${slug}`],
@@ -418,12 +420,10 @@ export default function ChurchProfile() {
             </div>
 
             <div className="flex justify-center">
-              <Link href="/">
-                <Button size="lg" data-testid="button-rate-church">
-                  <Star className="h-4 w-4 mr-2" />
-                  Rate This Church
-                </Button>
-              </Link>
+              <Button size="lg" onClick={() => setRatingModalOpen(true)} data-testid="button-rate-church">
+                <Star className="h-4 w-4 mr-2" />
+                Rate This Church
+              </Button>
             </div>
           </TabsContent>
 
@@ -497,12 +497,10 @@ export default function ChurchProfile() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Be the first to rate this church.
                   </p>
-                  <Link href="/">
-                    <Button data-testid="button-rate-first">
-                      <Star className="h-4 w-4 mr-2" />
-                      Rate This Church
-                    </Button>
-                  </Link>
+                  <Button onClick={() => setRatingModalOpen(true)} data-testid="button-rate-first">
+                    <Star className="h-4 w-4 mr-2" />
+                    Rate This Church
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -591,6 +589,12 @@ export default function ChurchProfile() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <ChurchRatingModal 
+        open={ratingModalOpen} 
+        onClose={() => setRatingModalOpen(false)}
+        defaultChurchName={profile.name}
+      />
     </div>
   );
 }
