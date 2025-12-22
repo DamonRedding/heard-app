@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -369,20 +370,11 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
         ) : (
           <>
             <DialogHeader>
-              <div className="flex items-center justify-between">
-                <DialogTitle className="text-lg font-semibold">Rate Your Church Experience</DialogTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleClose}
-                  className="h-8 w-8"
-                  data-testid="button-close-rating-modal"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+              <DialogTitle className="text-lg font-semibold">Rate Your Church Experience</DialogTitle>
+              <div className="flex items-center gap-3 pt-2">
+                <Progress value={progress} className="flex-1" />
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Step {step} of {TOTAL_STEPS}</span>
               </div>
-              <Progress value={progress} className="mt-2" />
-              <p className="text-sm text-muted-foreground mt-1">Step {step} of {TOTAL_STEPS}</p>
             </DialogHeader>
 
             <Form {...form}>
@@ -593,18 +585,18 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Denomination (optional)</FormLabel>
-                          <FormControl>
-                            <select
-                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                              {...field}
-                              data-testid="select-denomination"
-                            >
-                              <option value="">Select denomination</option>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-denomination">
+                                <SelectValue placeholder="Select denomination" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
                               {DENOMINATIONS.map((denom) => (
-                                <option key={denom} value={denom}>{denom}</option>
+                                <SelectItem key={denom} value={denom}>{denom}</SelectItem>
                               ))}
-                            </select>
-                          </FormControl>
+                            </SelectContent>
+                          </Select>
                         </FormItem>
                       )}
                     />
@@ -942,9 +934,9 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                   type="button"
                   variant="ghost"
                   onClick={handleClose}
-                  data-testid="button-skip"
+                  data-testid="button-cancel"
                 >
-                  Skip
+                  Cancel
                 </Button>
               )}
 
