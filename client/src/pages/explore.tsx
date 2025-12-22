@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -8,8 +7,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, TrendingUp, Hash, Users, Clock, ChevronRight } from "lucide-react";
 import type { Submission, Category } from "@shared/schema";
 
+interface SubmissionsResponse {
+  submissions: Submission[];
+  total: number;
+  hasMore: boolean;
+}
+
 export default function Explore() {
-  const { data: submissions, isLoading: loadingSubmissions } = useQuery<Submission[]>({
+  const { data: submissionsData, isLoading: loadingSubmissions } = useQuery<SubmissionsResponse>({
     queryKey: ["/api/submissions"],
   });
 
@@ -18,9 +23,10 @@ export default function Explore() {
   });
 
   const isLoading = loadingSubmissions || loadingCategories;
+  const submissions = submissionsData?.submissions ?? [];
 
   const getCategoryStats = () => {
-    if (!submissions || !categories) return [];
+    if (!submissions.length || !categories) return [];
     
     const stats = categories.map(category => {
       const count = submissions.filter(s => s.category === category.name).length;
@@ -31,14 +37,14 @@ export default function Explore() {
   };
 
   const getTopSubmissions = () => {
-    if (!submissions) return [];
+    if (!submissions.length) return [];
     return [...submissions]
       .sort((a, b) => (b.condemnCount + b.absolveCount) - (a.condemnCount + a.absolveCount))
       .slice(0, 5);
   };
 
   const getRecentSubmissions = () => {
-    if (!submissions) return [];
+    if (!submissions.length) return [];
     return [...submissions]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5);
@@ -180,7 +186,7 @@ export default function Explore() {
               <Card>
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {submissions?.length ?? 0}
+                    {submissionsData?.total ?? submissions.length}
                   </div>
                   <p className="text-sm text-muted-foreground">Stories Shared</p>
                 </CardContent>
@@ -188,7 +194,7 @@ export default function Explore() {
               <Card>
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {submissions?.reduce((acc, s) => acc + s.condemnCount + s.absolveCount, 0) ?? 0}
+                    {submissions.reduce((acc, s) => acc + s.condemnCount + s.absolveCount, 0)}
                   </div>
                   <p className="text-sm text-muted-foreground">Total Votes</p>
                 </CardContent>
