@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ChurchRatingModal } from "@/components/church-rating-modal";
 import { 
   ArrowLeft, 
   Building2, 
@@ -125,6 +126,7 @@ export default function Churches() {
   const [sortBy, setSortBy] = useState<SortOption>("most_rated");
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
 
   // Debounce search input with proper cleanup
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -446,12 +448,10 @@ export default function Churches() {
                       Clear Filters
                     </Button>
                   ) : (
-                    <Link href="/">
-                      <Button data-testid="button-rate-first-church">
-                        <Star className="h-4 w-4 mr-2" />
-                        Rate a Church
-                      </Button>
-                    </Link>
+                    <Button onClick={() => setRatingModalOpen(true)} data-testid="button-rate-first-church">
+                      <Star className="h-4 w-4 mr-2" />
+                      Rate a Church
+                    </Button>
                   )}
                 </CardContent>
               </Card>
@@ -459,6 +459,11 @@ export default function Churches() {
           </section>
         </div>
       </div>
+
+      <ChurchRatingModal 
+        open={ratingModalOpen} 
+        onClose={() => setRatingModalOpen(false)}
+      />
     </div>
   );
 }
