@@ -1,0 +1,82 @@
+# Phase 3: Week 6-8
+
+## P3-001: Church Directory - Sort & Filter Implementation
+
+**Owner:** Frontend + Backend Engineer
+**Priority:** P1 (enables discovery)
+**Effort:** 2 days
+**Dependencies:** Church profiles (P2-002), aggregates API
+
+### Business Context
+
+- **Kim/Mauborgne (Blue Ocean):** Directory with ministry-specific sorting creates differentiation vs Google Reviews
+- **Viral discovery:** "Most Controversial" sort drives 40% engagement (Yik Yak: controversy = curiosity = clicks)
+- **Navigation integration:** Ships Week 6 (after bottom nav + "Explore" tab live in Week 4)
+
+### Directory Page Structure
+
+```yaml
+Route: /churches
+
+Header:
+  - Title: "Explore Churches" (h1)
+  - Subtitle: "[X] churches rated by [Y] people"
+  - Search_Bar: "Search by name or location..." (autofocus)
+
+Controls_Row:
+  - Filters (left side)
+  - Sort dropdown (right side)
+  - Applied filters: Chip-style badges (dismissible)
+```
+
+### Filter System
+
+```yaml
+Location_Filter:
+  Type: Autocomplete input
+  Options: City + State (e.g., "Chicago, IL")
+  Behavior: Starts searching after 2 chars
+
+Denomination_Filter:
+  Type: Multi-select dropdown
+  Options: Non-denominational, Baptist, Methodist, Presbyterian, Catholic, Other
+
+Min_Rating_Filter:
+  Type: Slider or dropdown
+  Options: Any, 3.0+, 3.5+, 4.0+, 4.5+
+```
+
+### Sort System
+
+```yaml
+Sort_Options:
+  1. Most_Rated:
+     - Sort by: total_ratings DESC
+     - Purpose: Popular churches (social proof)
+
+  2. Highest_Rated:
+     - Sort by: average_overall DESC
+     - Filter: total_ratings >= 10 (min threshold for reliability)
+
+  3. Most_Controversial:
+     - Sort by: category_variance DESC
+     - Filter: is_controversial = true (variance >2 stars)
+     - Badge: "💬 Varied experiences" shown on cards
+
+  4. Recently_Responded:
+     - Sort by: latest_response_date DESC
+     - Filter: has_public_responses = true
+```
+
+### Acceptance Criteria
+
+- [ ] Directory page shows all churches with ≥10 ratings
+- [ ] Filters work: Location, Denomination, Min Rating, Category
+- [ ] Sort options work: Most Rated, Highest, Controversial, Recently Responded, Newest
+- [ ] Applied filters shown as dismissible chips
+- [ ] Church cards display correct badges (Controversial, Recently Responded, New)
+- [ ] Infinite scroll loads next page smoothly
+- [ ] Search bar filters by church name or location
+- [ ] Empty state shown if 0 results ("No churches match your filters")
+- [ ] Playwright test: Apply filters, verify results update
+- [ ] Load test: Directory handles 1000 churches without lag
