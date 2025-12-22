@@ -196,6 +196,8 @@ export interface IStorage {
   createChurchRatingLimit(data: { ipHash: string; churchNameNormalized: string; ratingId: string }): Promise<ChurchRatingLimit>;
 
   getChurchRatings(churchName: string, limit?: number): Promise<ChurchRating[]>;
+
+  searchChurchNames(query: string, limit?: number): Promise<{ name: string; location: string | null; ratingCount: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1237,6 +1239,31 @@ export class DatabaseStorage implements IStorage {
       .where(sql`LOWER(TRIM(${churchRatings.churchName})) = ${normalizedName}`)
       .orderBy(desc(churchRatings.createdAt))
       .limit(limit);
+  }
+
+  async searchChurchNames(query: string, limit: number = 10): Promise<{ name: string; location: string | null; ratingCount: number }[]> {
+    if (!query.trim()) return [];
+    
+    // Escape special SQL LIKE characters to prevent pattern injection
+    const escapedQuery = query.toLowerCase().trim()
+      .replace(/\\/g, '\\\\')
+      .replace(/%/g, '\\%')
+      .replace(/_/g, '\\_');
+    const searchPattern = `%${escapedQuery}%`;
+    
+    const results = await db
+      .select({
+        name: churchRatings.churchName,
+        location: churchRatings.location,
+        ratingCount: count(),
+      })
+      .from(churchRatings)
+      .where(sql`LOWER(${churchRatings.churchName}) LIKE ${searchPattern}`)
+      .groupBy(churchRatings.churchName, churchRatings.location)
+      .orderBy(desc(count()))
+      .limit(limit);
+    
+    return results;
   }
 }
 

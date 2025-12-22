@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Check, Loader2, Search, MapPin, Church } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 import {
   CHURCH_CONNECTION_OPTIONS,
   ATTENDANCE_DURATION_OPTIONS,
@@ -56,8 +57,29 @@ interface ChurchRatingModalProps {
 
 const TOTAL_STEPS = 6;
 
+interface ChurchSuggestion {
+  name: string;
+  location: string | null;
+  ratingCount: number;
+}
+
 export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: ChurchRatingModalProps) {
   const [step, setStep] = useState(1);
+  const [searchQuery, setSearchQuery] = useState(defaultChurchName);
+  const [debouncedQuery, setDebouncedQuery] = useState(defaultChurchName);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedChurch, setSelectedChurch] = useState<ChurchSuggestion | null>(null);
+  
+  // Initialize selectedChurch when modal opens with a defaultChurchName
+  useEffect(() => {
+    if (open && defaultChurchName) {
+      setSelectedChurch({ name: defaultChurchName, location: null, ratingCount: 0 });
+      setSearchQuery(defaultChurchName);
+    }
+  }, [open, defaultChurchName]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const form = useForm<RatingFormData>({
@@ -107,7 +129,7 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
     const values = form.getValues();
     switch (step) {
       case 1:
-        return values.churchName?.length >= 2;
+        return selectedChurch !== null && values.churchName?.length >= 2;
       case 2:
         return values.churchConnection && values.attendanceDuration;
       case 3:
@@ -143,7 +165,100 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
     onClose();
     setStep(1);
     form.reset();
+    setSelectedChurch(null);
+    setSearchQuery("");
   };
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset selected index on query change
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [searchQuery]);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Fetch church suggestions
+  const { data: suggestionsData, isLoading: isSearching } = useQuery<{ churches: ChurchSuggestion[] }>({
+    queryKey: ["/api/churches/search", debouncedQuery],
+    queryFn: async () => {
+      if (!debouncedQuery.trim() || debouncedQuery.length < 2) {
+        return { churches: [] };
+      }
+      const res = await fetch(`/api/churches/search?q=${encodeURIComponent(debouncedQuery)}&limit=8`);
+      if (!res.ok) throw new Error("Failed to search churches");
+      return res.json();
+    },
+    enabled: debouncedQuery.length >= 2 && showSuggestions,
+    staleTime: 30000,
+  });
+
+  const suggestions = suggestionsData?.churches || [];
+
+  const handleSelectChurch = useCallback((church: ChurchSuggestion) => {
+    setSelectedChurch(church);
+    setSearchQuery(church.name);
+    form.setValue("churchName", church.name);
+    if (church.location) {
+      form.setValue("location", church.location);
+    }
+    setShowSuggestions(false);
+  }, [form]);
+
+  const handleUseCustomChurch = useCallback(() => {
+    if (searchQuery.trim().length >= 2) {
+      const customChurch: ChurchSuggestion = { name: searchQuery.trim(), location: null, ratingCount: 0 };
+      setSelectedChurch(customChurch);
+      form.setValue("churchName", searchQuery.trim());
+      setShowSuggestions(false);
+    }
+  }, [searchQuery, form]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const totalItems = suggestions.length + (searchQuery.trim().length >= 2 ? 1 : 0);
+    
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.min(prev + 1, totalItems - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.max(prev - 1, -1));
+    } else if (e.key === "Enter" && showSuggestions) {
+      e.preventDefault();
+      if (selectedIndex === 0 && searchQuery.trim().length >= 2) {
+        handleUseCustomChurch();
+      } else if (selectedIndex > 0 && suggestions[selectedIndex - 1]) {
+        handleSelectChurch(suggestions[selectedIndex - 1]);
+      } else if (searchQuery.trim().length >= 2) {
+        handleUseCustomChurch();
+      }
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  }, [suggestions, selectedIndex, searchQuery, showSuggestions, handleSelectChurch, handleUseCustomChurch]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedChurch(null);
+    setSearchQuery("");
+    form.setValue("churchName", "");
+    form.setValue("location", "");
+    inputRef.current?.focus();
+  }, [form]);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
@@ -171,62 +286,187 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">Help others by sharing your experience at a church. All responses are anonymous.</p>
                 
-                <FormField
-                  control={form.control}
-                  name="churchName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Church Name *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Enter the church name" 
-                          {...field} 
-                          data-testid="input-church-name"
+                <div className="space-y-2">
+                  <FormLabel>Search for a Church *</FormLabel>
+                  
+                  {selectedChurch ? (
+                    <div 
+                      className="flex items-center justify-between p-3 rounded-md border bg-muted/50"
+                      data-testid="selected-church-display"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Church className="h-5 w-5 text-primary shrink-0" />
+                        <div>
+                          <p className="font-medium text-sm">{selectedChurch.name}</p>
+                          {selectedChurch.location && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {selectedChurch.location}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={clearSelection}
+                        data-testid="button-clear-church"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div ref={searchContainerRef} className="relative">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Input
+                          ref={inputRef}
+                          type="text"
+                          placeholder="Type to search churches..."
+                          value={searchQuery}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setShowSuggestions(true);
+                          }}
+                          onFocus={() => setShowSuggestions(true)}
+                          onKeyDown={handleKeyDown}
+                          className="pl-10"
+                          autoComplete="off"
+                          data-testid="input-church-search"
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        {isSearching && (
+                          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                        )}
+                      </div>
 
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location (optional)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="City, State" 
-                          {...field} 
-                          data-testid="input-location"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="denomination"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Denomination (optional)</FormLabel>
-                      <FormControl>
-                        <select
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                          {...field}
-                          data-testid="select-denomination"
+                      {showSuggestions && searchQuery.trim().length >= 2 && (
+                        <div 
+                          className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 max-h-[300px] overflow-y-auto"
+                          role="listbox"
+                          data-testid="church-suggestions-dropdown"
                         >
-                          <option value="">Select denomination</option>
-                          {DENOMINATIONS.map((denom) => (
-                            <option key={denom} value={denom}>{denom}</option>
-                          ))}
-                        </select>
-                      </FormControl>
-                    </FormItem>
+                          <button
+                            type="button"
+                            onClick={handleUseCustomChurch}
+                            className={cn(
+                              "flex items-center gap-3 w-full px-3 py-3 text-left border-b",
+                              selectedIndex === 0 ? "bg-accent" : "hover-elevate"
+                            )}
+                            role="option"
+                            aria-selected={selectedIndex === 0}
+                            data-testid="button-use-custom-church"
+                          >
+                            <Church className="h-4 w-4 text-primary shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium">Use "{searchQuery.trim()}"</p>
+                              <p className="text-xs text-muted-foreground">Add as new church</p>
+                            </div>
+                          </button>
+
+                          {isSearching && (
+                            <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Searching...
+                            </div>
+                          )}
+
+                          {!isSearching && suggestions.length > 0 && (
+                            <div className="py-1">
+                              <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">Existing churches</p>
+                              {suggestions.map((church, idx) => (
+                                <button
+                                  key={`${church.name}-${church.location || idx}`}
+                                  type="button"
+                                  onClick={() => handleSelectChurch(church)}
+                                  className={cn(
+                                    "flex items-center gap-3 w-full px-3 py-2.5 text-left",
+                                    selectedIndex === idx + 1 ? "bg-accent" : "hover-elevate"
+                                  )}
+                                  role="option"
+                                  aria-selected={selectedIndex === idx + 1}
+                                  data-testid={`suggestion-church-${idx}`}
+                                >
+                                  <Church className="h-4 w-4 text-muted-foreground shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{church.name}</p>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      {church.location && (
+                                        <span className="flex items-center gap-1 truncate">
+                                          <MapPin className="h-3 w-3 shrink-0" />
+                                          {church.location}
+                                        </span>
+                                      )}
+                                      <span>{church.ratingCount} rating{church.ratingCount !== 1 ? 's' : ''}</span>
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {!isSearching && suggestions.length === 0 && (
+                            <p className="px-3 py-3 text-sm text-muted-foreground text-center">
+                              No existing churches found. You can add a new one.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="churchName"
+                    render={() => (
+                      <FormItem className="hidden">
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {selectedChurch && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Location (optional)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="City, State" 
+                              {...field} 
+                              data-testid="input-location"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="denomination"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Denomination (optional)</FormLabel>
+                          <FormControl>
+                            <select
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                              {...field}
+                              data-testid="select-denomination"
+                            >
+                              <option value="">Select denomination</option>
+                              {DENOMINATIONS.map((denom) => (
+                                <option key={denom} value={denom}>{denom}</option>
+                              ))}
+                            </select>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
               </div>
             )}
 
@@ -570,9 +810,9 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                   type="button"
                   onClick={handleNext}
                   disabled={!canProceed()}
-                  data-testid="button-next"
+                  data-testid={step === 1 ? "button-continue" : "button-next"}
                 >
-                  Next
+                  {step === 1 ? "Continue" : "Next"}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (

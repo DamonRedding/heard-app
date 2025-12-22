@@ -924,5 +924,19 @@ export async function registerRoutes(
     }
   });
 
+  // Church search autocomplete
+  app.get("/api/churches/search", async (req: Request, res: Response) => {
+    try {
+      const query = req.query.q as string || "";
+      const limit = Math.min(parseInt(req.query.limit as string) || 10, 20);
+      
+      const churches = await storage.searchChurchNames(query, limit);
+      res.json({ churches });
+    } catch (error) {
+      console.error("Error searching churches:", error);
+      res.status(500).json({ error: "Failed to search churches" });
+    }
+  });
+
   return httpServer;
 }
