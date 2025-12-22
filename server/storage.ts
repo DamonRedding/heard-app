@@ -199,7 +199,9 @@ export interface IStorage {
 
   searchChurchNames(query: string, limit?: number): Promise<{ name: string; location: string | null; ratingCount: number; googlePlaceId: string | null }[]>;
 
-  getChurchByGooglePlaceId(googlePlaceId: string): Promise<{ churchName: string; location: string | null } | null>;
+  getChurchByGooglePlaceId(googlePlaceId: string): Promise<{ churchName: string; location: string | null; googlePlaceId: string | null } | null>;
+
+  getChurchByNormalizedName(churchName: string): Promise<{ churchName: string; location: string | null; googlePlaceId: string | null } | null>;
 
   getRatedChurches(limit?: number): Promise<{ 
     name: string; 
@@ -1310,30 +1312,52 @@ export class DatabaseStorage implements IStorage {
       .replace(/_/g, '\\_');
     const searchPattern = `%${escapedQuery}%`;
     
+    // Group by normalized church name to merge duplicates
+    // Use MAX to prefer entries with googlePlaceId and location
     const results = await db
       .select({
-        name: churchRatings.churchName,
-        location: churchRatings.location,
+        name: sql<string>`MAX(${churchRatings.churchName})`,
+        location: sql<string | null>`MAX(${churchRatings.location})`,
         ratingCount: count(),
-        googlePlaceId: churchRatings.googlePlaceId,
+        googlePlaceId: sql<string | null>`MAX(${churchRatings.googlePlaceId})`,
       })
       .from(churchRatings)
       .where(sql`LOWER(${churchRatings.churchName}) LIKE ${searchPattern}`)
-      .groupBy(churchRatings.churchName, churchRatings.location, churchRatings.googlePlaceId)
+      .groupBy(sql`LOWER(TRIM(${churchRatings.churchName}))`)
       .orderBy(desc(count()))
       .limit(limit);
     
     return results;
   }
 
-  async getChurchByGooglePlaceId(googlePlaceId: string): Promise<{ churchName: string; location: string | null } | null> {
+  async getChurchByGooglePlaceId(googlePlaceId: string): Promise<{ churchName: string; location: string | null; googlePlaceId: string | null } | null> {
     const [result] = await db
       .select({
         churchName: churchRatings.churchName,
         location: churchRatings.location,
+        googlePlaceId: churchRatings.googlePlaceId,
       })
       .from(churchRatings)
       .where(eq(churchRatings.googlePlaceId, googlePlaceId))
+      .limit(1);
+    return result || null;
+  }
+
+  async getChurchByNormalizedName(churchName: string): Promise<{ churchName: string; location: string | null; googlePlaceId: string | null } | null> {
+    const normalizedName = churchName.toLowerCase().trim();
+    // Prefer entries with googlePlaceId, then those with location
+    const [result] = await db
+      .select({
+        churchName: churchRatings.churchName,
+        location: churchRatings.location,
+        googlePlaceId: churchRatings.googlePlaceId,
+      })
+      .from(churchRatings)
+      .where(sql`LOWER(TRIM(${churchRatings.churchName})) = ${normalizedName}`)
+      .orderBy(
+        sql`CASE WHEN ${churchRatings.googlePlaceId} IS NOT NULL THEN 0 ELSE 1 END`,
+        sql`CASE WHEN ${churchRatings.location} IS NOT NULL THEN 0 ELSE 1 END`
+      )
       .limit(1);
     return result || null;
   }
@@ -1346,17 +1370,19 @@ export class DatabaseStorage implements IStorage {
     denomination: string | null;
     latestRatingAt: Date;
   }[]> {
+    // Group by normalized church name to merge duplicates
+    // Use MAX to prefer entries with googlePlaceId and location
     const results = await db
       .select({
-        name: churchRatings.churchName,
-        location: churchRatings.location,
+        name: sql<string>`MAX(${churchRatings.churchName})`,
+        location: sql<string | null>`MAX(${churchRatings.location})`,
         ratingCount: count(),
-        googlePlaceId: churchRatings.googlePlaceId,
+        googlePlaceId: sql<string | null>`MAX(${churchRatings.googlePlaceId})`,
         denomination: sql<string | null>`MAX(${churchRatings.denomination})`,
         latestRatingAt: sql<Date>`MAX(${churchRatings.createdAt})`,
       })
       .from(churchRatings)
-      .groupBy(churchRatings.churchName, churchRatings.location, churchRatings.googlePlaceId)
+      .groupBy(sql`LOWER(TRIM(${churchRatings.churchName}))`)
       .orderBy(desc(sql`MAX(${churchRatings.createdAt})`))
       .limit(limit);
     
@@ -1390,12 +1416,13 @@ export class DatabaseStorage implements IStorage {
     const sortBy = options.sortBy || "most_rated";
 
     // Build the base query with aggregations
+    // Group by normalized church name to merge duplicates
     let baseQuery = db
       .select({
-        name: churchRatings.churchName,
-        location: churchRatings.location,
+        name: sql<string>`MAX(${churchRatings.churchName})`,
+        location: sql<string | null>`MAX(${churchRatings.location})`,
         ratingCount: count(),
-        googlePlaceId: churchRatings.googlePlaceId,
+        googlePlaceId: sql<string | null>`MAX(${churchRatings.googlePlaceId})`,
         denomination: sql<string | null>`MAX(${churchRatings.denomination})`,
         latestRatingAt: sql<Date>`MAX(${churchRatings.createdAt})`,
         // Calculate average rating from recommend_scale (1-5)
@@ -1418,7 +1445,7 @@ export class DatabaseStorage implements IStorage {
         END)`,
       })
       .from(churchRatings)
-      .groupBy(churchRatings.churchName, churchRatings.location, churchRatings.googlePlaceId);
+      .groupBy(sql`LOWER(TRIM(${churchRatings.churchName}))`);
 
     // Apply filters via having clause
     const havingConditions: ReturnType<typeof sql>[] = [];
@@ -1517,13 +1544,14 @@ export class DatabaseStorage implements IStorage {
       .groupBy(churchRatings.churchName, churchRatings.location, churchRatings.googlePlaceId);
 
     // Execute with raw SQL for complex having + order + pagination
+    // Group by normalized church name to merge duplicates
     const results = await db.execute(sql`
       WITH church_stats AS (
         SELECT 
-          church_name as name,
-          location,
+          MAX(church_name) as name,
+          MAX(location) as location,
           COUNT(*) as rating_count,
-          google_place_id as google_place_id,
+          MAX(google_place_id) as google_place_id,
           MAX(denomination) as denomination,
           MAX(created_at) as latest_rating_at,
           AVG(CASE 
@@ -1543,7 +1571,7 @@ export class DatabaseStorage implements IStorage {
             ELSE 3
           END), 0) as rating_variance
         FROM church_ratings
-        GROUP BY church_name, location, google_place_id
+        GROUP BY LOWER(TRIM(church_name))
       )
       SELECT * FROM church_stats
       WHERE 1=1
@@ -1559,12 +1587,12 @@ export class DatabaseStorage implements IStorage {
       LIMIT ${limit} OFFSET ${offset}
     `);
 
-    // Get total count
+    // Get total count - also group by normalized church name
     const countResult = await db.execute(sql`
       WITH church_stats AS (
         SELECT 
-          church_name as name,
-          location,
+          MAX(church_name) as name,
+          MAX(location) as location,
           COUNT(*) as rating_count,
           MAX(denomination) as denomination,
           AVG(CASE 
@@ -1584,7 +1612,7 @@ export class DatabaseStorage implements IStorage {
             ELSE 3
           END), 0) as rating_variance
         FROM church_ratings
-        GROUP BY church_name, location, google_place_id
+        GROUP BY LOWER(TRIM(church_name))
       )
       SELECT COUNT(*) as total FROM church_stats
       WHERE 1=1

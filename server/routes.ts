@@ -850,14 +850,25 @@ export async function registerRoutes(
 
       let { churchName, location, googlePlaceId } = parsed.data;
 
-      // If we have a google place ID, check for existing canonical data
+      // De-duplication logic: Check for existing canonical data
       // This ensures consistent naming across all ratings for the same church
       if (googlePlaceId) {
+        // First, try to match by Google Place ID
         const existingChurch = await storage.getChurchByGooglePlaceId(googlePlaceId);
         if (existingChurch) {
           // Force canonical name/location from existing ratings - override any user edits
           churchName = existingChurch.churchName;
           location = existingChurch.location;
+        }
+      } else {
+        // No googlePlaceId provided - try to match by normalized church name
+        // This handles cases where users manually type the church name
+        const existingChurch = await storage.getChurchByNormalizedName(churchName);
+        if (existingChurch) {
+          // Use canonical data from existing entry (prefer one with googlePlaceId)
+          churchName = existingChurch.churchName;
+          location = existingChurch.location || location;
+          googlePlaceId = existingChurch.googlePlaceId;
         }
       }
 
