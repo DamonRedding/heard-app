@@ -36,6 +36,7 @@ const ratingFormSchema = z.object({
   churchName: z.string().min(2, "Church name is required"),
   location: z.string().optional(),
   denomination: z.string().optional(),
+  googlePlaceId: z.string().optional().nullable(),
   churchConnection: z.enum(["attending_regularly", "attending_occasionally", "attended_past_year", "attended_1_5_years_ago", "attended_5_plus_years_ago", "visited_never_regular"] as const),
   attendanceDuration: z.enum(["less_than_6_months", "6_months_to_2_years", "2_to_5_years", "5_to_10_years", "more_than_10_years", "not_applicable"] as const),
   belongingScale: z.enum(["never", "rarely", "sometimes", "usually", "always", "prefer_not_to_answer"] as const),
@@ -61,6 +62,13 @@ interface ChurchSuggestion {
   name: string;
   location: string | null;
   ratingCount: number;
+  googlePlaceId?: string | null;
+  source?: "local" | "google";
+}
+
+// Generate a unique session token for Google Places API cost optimization
+function generateSessionToken(): string {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
 export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: ChurchRatingModalProps) {
@@ -69,6 +77,7 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
   const [debouncedQuery, setDebouncedQuery] = useState(defaultChurchName);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedChurch, setSelectedChurch] = useState<ChurchSuggestion | null>(null);
+  const [sessionToken] = useState(() => generateSessionToken());
   
   // Initialize selectedChurch when modal opens with a defaultChurchName
   useEffect(() => {
@@ -88,6 +97,7 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
       churchName: defaultChurchName,
       location: "",
       denomination: "",
+      googlePlaceId: null,
       churchConnection: undefined,
       attendanceDuration: undefined,
       belongingScale: undefined,
@@ -195,12 +205,12 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
 
   // Fetch church suggestions
   const { data: suggestionsData, isLoading: isSearching } = useQuery<{ churches: ChurchSuggestion[] }>({
-    queryKey: ["/api/churches/search", debouncedQuery],
+    queryKey: ["/api/churches/search", debouncedQuery, sessionToken],
     queryFn: async () => {
       if (!debouncedQuery.trim() || debouncedQuery.length < 2) {
         return { churches: [] };
       }
-      const res = await fetch(`/api/churches/search?q=${encodeURIComponent(debouncedQuery)}&limit=8`);
+      const res = await fetch(`/api/churches/search?q=${encodeURIComponent(debouncedQuery)}&limit=8&sessionToken=${encodeURIComponent(sessionToken)}`);
       if (!res.ok) throw new Error("Failed to search churches");
       return res.json();
     },
@@ -216,6 +226,9 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
     form.setValue("churchName", church.name);
     if (church.location) {
       form.setValue("location", church.location);
+    }
+    if (church.googlePlaceId) {
+      form.setValue("googlePlaceId", church.googlePlaceId);
     }
     setShowSuggestions(false);
   }, [form]);
@@ -373,35 +386,69 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
 
                           {!isSearching && suggestions.length > 0 && (
                             <div className="py-1">
-                              <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">Existing churches</p>
-                              {suggestions.map((church, idx) => (
-                                <button
-                                  key={`${church.name}-${church.location || idx}`}
-                                  type="button"
-                                  onClick={() => handleSelectChurch(church)}
-                                  className={cn(
-                                    "flex items-center gap-3 w-full px-3 py-2.5 text-left",
-                                    selectedIndex === idx + 1 ? "bg-accent" : "hover-elevate"
-                                  )}
-                                  role="option"
-                                  aria-selected={selectedIndex === idx + 1}
-                                  data-testid={`suggestion-church-${idx}`}
-                                >
-                                  <Church className="h-4 w-4 text-muted-foreground shrink-0" />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{church.name}</p>
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      {church.location && (
-                                        <span className="flex items-center gap-1 truncate">
-                                          <MapPin className="h-3 w-3 shrink-0" />
-                                          {church.location}
-                                        </span>
+                              {suggestions.filter(c => c.source === "local").length > 0 && (
+                                <>
+                                  <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">Churches with ratings</p>
+                                  {suggestions.filter(c => c.source === "local").map((church, idx) => (
+                                    <button
+                                      key={`local-${church.name}-${church.location || idx}`}
+                                      type="button"
+                                      onClick={() => handleSelectChurch(church)}
+                                      className={cn(
+                                        "flex items-center gap-3 w-full px-3 py-2.5 text-left",
+                                        selectedIndex === idx + 1 ? "bg-accent" : "hover-elevate"
                                       )}
-                                      <span>{church.ratingCount} rating{church.ratingCount !== 1 ? 's' : ''}</span>
-                                    </div>
-                                  </div>
-                                </button>
-                              ))}
+                                      role="option"
+                                      aria-selected={selectedIndex === idx + 1}
+                                      data-testid={`suggestion-church-local-${idx}`}
+                                    >
+                                      <Church className="h-4 w-4 text-primary shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{church.name}</p>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                          {church.location && (
+                                            <span className="flex items-center gap-1 truncate">
+                                              <MapPin className="h-3 w-3 shrink-0" />
+                                              {church.location}
+                                            </span>
+                                          )}
+                                          <span>{church.ratingCount} rating{church.ratingCount !== 1 ? 's' : ''}</span>
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </>
+                              )}
+                              {suggestions.filter(c => c.source === "google").length > 0 && (
+                                <>
+                                  <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground border-t mt-1 pt-2">From Google Maps</p>
+                                  {suggestions.filter(c => c.source === "google").map((church, idx) => {
+                                    const localCount = suggestions.filter(c => c.source === "local").length;
+                                    return (
+                                      <button
+                                        key={`google-${church.googlePlaceId || idx}`}
+                                        type="button"
+                                        onClick={() => handleSelectChurch(church)}
+                                        className={cn(
+                                          "flex items-center gap-3 w-full px-3 py-2.5 text-left",
+                                          selectedIndex === localCount + idx + 1 ? "bg-accent" : "hover-elevate"
+                                        )}
+                                        role="option"
+                                        aria-selected={selectedIndex === localCount + idx + 1}
+                                        data-testid={`suggestion-church-google-${idx}`}
+                                      >
+                                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-medium truncate">{church.name}</p>
+                                          {church.location && (
+                                            <p className="text-xs text-muted-foreground truncate">{church.location}</p>
+                                          )}
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </>
+                              )}
                             </div>
                           )}
 
@@ -432,14 +479,18 @@ export function ChurchRatingModal({ open, onClose, defaultChurchName = "" }: Chu
                       name="location"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Location (optional)</FormLabel>
+                          <FormLabel>Location {selectedChurch.googlePlaceId ? "" : "(optional)"}</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="City, State" 
                               {...field} 
+                              disabled={!!selectedChurch.googlePlaceId}
                               data-testid="input-location"
                             />
                           </FormControl>
+                          {selectedChurch.googlePlaceId && (
+                            <p className="text-xs text-muted-foreground">Location from Google Maps</p>
+                          )}
                         </FormItem>
                       )}
                     />

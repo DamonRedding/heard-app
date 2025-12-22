@@ -848,8 +848,21 @@ export async function registerRoutes(
         });
       }
 
-      // Normalize church name for rate limiting
-      const churchNameNormalized = parsed.data.churchName.toLowerCase().trim();
+      let { churchName, location, googlePlaceId } = parsed.data;
+
+      // If we have a google place ID, check for existing canonical data
+      // This ensures consistent naming across all ratings for the same church
+      if (googlePlaceId) {
+        const existingChurch = await storage.getChurchByGooglePlaceId(googlePlaceId);
+        if (existingChurch) {
+          // Force canonical name/location from existing ratings - override any user edits
+          churchName = existingChurch.churchName;
+          location = existingChurch.location;
+        }
+      }
+
+      // Normalize church name for rate limiting (use googlePlaceId if available for consistency)
+      const churchNameNormalized = googlePlaceId || churchName.toLowerCase().trim();
       
       // Check IP limit: 3 ratings per church per month
       const oneMonthAgo = new Date();
@@ -863,9 +876,12 @@ export async function registerRoutes(
         });
       }
 
-      // Create the rating
+      // Create the rating with canonicalized church data
       const rating = await storage.createChurchRating({
         ...parsed.data,
+        churchName,
+        location: location || null,
+        googlePlaceId: googlePlaceId || null,
         submitterHash: ipHash,
       });
 
@@ -975,17 +991,28 @@ export async function registerRoutes(
                 .map((c: { googlePlaceId?: string | null }) => c.googlePlaceId)
             );
             
-            googleResults = placesData.predictions
+            // Filter to new predictions and extract location reliably
+            const newPredictions = placesData.predictions
               .filter(p => !existingPlaceIds.has(p.place_id))
-              .slice(0, 5)
-              .map(prediction => ({
-                name: prediction.structured_formatting?.main_text || prediction.description.split(",")[0],
-                location: prediction.structured_formatting?.secondary_text || 
-                         prediction.description.split(",").slice(1).join(",").trim() || null,
+              .slice(0, 5);
+            
+            googleResults = newPredictions.map(prediction => {
+              // Extract location from description - more reliable than structured_formatting
+              const descParts = prediction.description.split(",");
+              const name = prediction.structured_formatting?.main_text || descParts[0].trim();
+              // Location is everything after the name
+              const location = descParts.length > 1 
+                ? descParts.slice(1).join(",").trim() 
+                : (prediction.structured_formatting?.secondary_text || null);
+              
+              return {
+                name,
+                location,
                 ratingCount: 0,
                 googlePlaceId: prediction.place_id,
                 source: "google" as const,
-              }));
+              };
+            });
           }
         } catch (googleError) {
           console.error("Google Places API error:", googleError);

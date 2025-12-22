@@ -197,7 +197,9 @@ export interface IStorage {
 
   getChurchRatings(churchName: string, limit?: number): Promise<ChurchRating[]>;
 
-  searchChurchNames(query: string, limit?: number): Promise<{ name: string; location: string | null; ratingCount: number }[]>;
+  searchChurchNames(query: string, limit?: number): Promise<{ name: string; location: string | null; ratingCount: number; googlePlaceId: string | null }[]>;
+
+  getChurchByGooglePlaceId(googlePlaceId: string): Promise<{ churchName: string; location: string | null } | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1265,6 +1267,18 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
     
     return results;
+  }
+
+  async getChurchByGooglePlaceId(googlePlaceId: string): Promise<{ churchName: string; location: string | null } | null> {
+    const [result] = await db
+      .select({
+        churchName: churchRatings.churchName,
+        location: churchRatings.location,
+      })
+      .from(churchRatings)
+      .where(eq(churchRatings.googlePlaceId, googlePlaceId))
+      .limit(1);
+    return result || null;
   }
 }
 
