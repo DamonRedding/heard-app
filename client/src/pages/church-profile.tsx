@@ -209,6 +209,7 @@ export default function ChurchProfile() {
   const [ratingsPage, setRatingsPage] = useState(1);
   const [ratingsSortBy, setRatingsSortBy] = useState<"newest" | "oldest">("newest");
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [hasTriggeredByScroll, setHasTriggeredByScroll] = useState(false);
 
   // Listen for FAB click event to open rating modal
   useEffect(() => {
@@ -221,6 +222,27 @@ export default function ChurchProfile() {
       window.removeEventListener("open-church-rating-modal", handleOpenRatingModal);
     };
   }, []);
+
+  // Trigger modal on scroll depth (50% of page)
+  useEffect(() => {
+    if (hasTriggeredByScroll) return;
+
+    const handleScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollPercentage = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+
+      if (scrollPercentage >= 50 && !hasTriggeredByScroll) {
+        setHasTriggeredByScroll(true);
+        setRatingModalOpen(true);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [hasTriggeredByScroll]);
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<ChurchProfile>({
     queryKey: [`/api/churches/profile/${slug}`],
