@@ -9,8 +9,50 @@ import { CommentsSection } from "@/components/comments-section";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CATEGORIES, TIMEFRAMES, type Submission, type VoteType, type FlagReason } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { Users, Heart, Phone, ExternalLink, ChevronDown, ChevronUp, Calendar, Clock } from "lucide-react";
+import { Users, Heart, Phone, ExternalLink, ChevronDown, ChevronUp, Calendar, Clock, Youtube } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+
+const YOUTUBE_REGEX = /(https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]+(?:\S*)?)/gi;
+
+function parseContentWithLinks(text: string): (string | JSX.Element)[] {
+  const parts: (string | JSX.Element)[] = [];
+  let lastIndex = 0;
+  let match;
+  let keyCounter = 0;
+  
+  const regex = new RegExp(YOUTUBE_REGEX.source, 'gi');
+  
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    
+    const url = match[1];
+    parts.push(
+      <a
+        key={`youtube-link-${keyCounter++}`}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-primary hover:underline break-all"
+        onClick={(e) => e.stopPropagation()}
+        data-testid={`link-youtube-${keyCounter}`}
+      >
+        <Youtube className="h-3.5 w-3.5 flex-shrink-0" />
+        <span className="break-all">{url}</span>
+        <ExternalLink className="h-3 w-3 flex-shrink-0" />
+      </a>
+    );
+    
+    lastIndex = regex.lastIndex;
+  }
+  
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  
+  return parts.length > 0 ? parts : [text];
+}
 
 interface SubmissionCardProps {
   submission: Submission;
@@ -224,7 +266,7 @@ export function SubmissionCard({
             className="font-serif text-base leading-relaxed whitespace-pre-wrap break-words"
             data-testid={`text-content-${submission.id}`}
           >
-            {contentPreview}
+            {parseContentWithLinks(contentPreview)}
           </p>
           {isTruncated && (
             <button
