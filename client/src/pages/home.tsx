@@ -17,6 +17,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useFeedPersonalization } from "@/hooks/use-feed-personalization";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLogoExperienceState } from "@/hooks/use-logo-experience";
 import { useStoryReadsContext } from "@/components/story-reads-provider";
 import type { Submission, Category, VoteType, FlagReason } from "@shared/schema";
 import { DENOMINATIONS, CATEGORIES } from "@shared/schema";
@@ -71,7 +72,6 @@ export default function Home() {
   const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
   const [hasMoreExhausted, setHasMoreExhausted] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
-  const [logoExpanded, setLogoExpanded] = useState(false);
   const [highlightedSubmissionId, setHighlightedSubmissionId] = useState<string | null>(null);
   const [reactionsMap, setReactionsMap] = useState<Record<string, Record<string, number>>>({});
   const { toast } = useToast();
@@ -82,6 +82,8 @@ export default function Home() {
   const { trackEngagement, getPersonalizationLevel, getPersonalizationParams, totalEngagements } = useFeedPersonalization();
   const personalizationLevel = getPersonalizationLevel();
   const { trackStoryRead } = useStoryReadsContext();
+  const { displayMode: logoDisplayMode, isTransitioning: logoTransitioning, toggleExpanded: toggleLogo } = useLogoExperienceState();
+  const isLogoLetterMark = logoDisplayMode === "lettermark";
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
@@ -369,17 +371,27 @@ export default function Home() {
         >
           <div className="flex items-center justify-center px-4 py-3 border-b border-border/50">
             <button
-              onClick={() => setLogoExpanded(!logoExpanded)}
-              className="flex flex-col items-center gap-0.5 hover-elevate rounded-md px-3 py-1.5 cursor-pointer transition-all duration-200"
+              onClick={toggleLogo}
+              className={cn(
+                "flex flex-col items-center gap-0.5 hover-elevate rounded-md px-3 py-1.5 cursor-pointer transition-all duration-300",
+                logoTransitioning && "opacity-90"
+              )}
               data-testid="mobile-logo"
-              aria-expanded={logoExpanded}
-              aria-label={logoExpanded ? "Collapse brand info" : "Expand brand info"}
+              aria-expanded={!isLogoLetterMark}
+              aria-label={isLogoLetterMark ? "Expand to full logo" : "Collapse to letter mark"}
             >
-              <h1 className="text-xl font-bold tracking-tight text-foreground">Heard</h1>
+              <h1 
+                className={cn(
+                  "font-bold tracking-tight text-foreground transition-all duration-300",
+                  isLogoLetterMark ? "text-2xl" : "text-xl"
+                )}
+              >
+                {isLogoLetterMark ? "H" : "Heard"}
+              </h1>
               <div 
                 className={cn(
-                  "overflow-hidden transition-all duration-200 ease-out",
-                  logoExpanded ? "max-h-6 opacity-100" : "max-h-0 opacity-0"
+                  "overflow-hidden transition-all duration-300 ease-out",
+                  isLogoLetterMark ? "max-h-0 opacity-0" : "max-h-6 opacity-100"
                 )}
               >
                 <span className="text-xs text-muted-foreground">Your voice matters.</span>
