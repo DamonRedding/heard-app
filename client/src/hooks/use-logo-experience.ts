@@ -50,15 +50,11 @@ export function useLogoExperienceState(): LogoExperienceState {
   const getAutoMode = useCallback((): LogoDisplayMode => {
     if (isNewUser && !hasPassedInitialPhase) {
       return "full";
-    } else if (scrollPosition < SCROLL_THRESHOLD && !isEngagedUser) {
+    } else if (scrollPosition < SCROLL_THRESHOLD) {
       return "full";
-    } else if (isEngagedUser && scrollPosition >= SCROLL_THRESHOLD) {
-      return "lettermark";
-    } else if (isEngagedUser && hasPassedInitialPhase) {
-      return "lettermark";
     }
-    return "full";
-  }, [isNewUser, isEngagedUser, hasPassedInitialPhase, scrollPosition]);
+    return "lettermark";
+  }, [isNewUser, hasPassedInitialPhase, scrollPosition]);
 
   useEffect(() => {
     if (isHovering) {
