@@ -50,7 +50,7 @@ export function useLogoExperienceState(): LogoExperienceState {
   const getAutoMode = useCallback((): LogoDisplayMode => {
     if (isNewUser && !hasPassedInitialPhase) {
       return "full";
-    } else if (scrollPosition < SCROLL_THRESHOLD) {
+    } else if (scrollPosition >= SCROLL_THRESHOLD) {
       return "full";
     }
     return "lettermark";
