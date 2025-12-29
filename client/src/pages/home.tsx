@@ -82,8 +82,9 @@ export default function Home() {
   const { trackEngagement, getPersonalizationLevel, getPersonalizationParams, totalEngagements } = useFeedPersonalization();
   const personalizationLevel = getPersonalizationLevel();
   const { trackStoryRead } = useStoryReadsContext();
-  const { displayMode: logoDisplayMode, isTransitioning: logoTransitioning, toggleExpanded: toggleLogo } = useLogoExperienceState();
+  const { displayMode: logoDisplayMode, isTransitioning: logoTransitioning, setExpanded: setLogoExpanded } = useLogoExperienceState();
   const isLogoLetterMark = logoDisplayMode === "lettermark";
+  const toggleLogo = () => setLogoExpanded(isLogoLetterMark);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);

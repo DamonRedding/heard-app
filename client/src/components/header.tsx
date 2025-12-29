@@ -13,7 +13,7 @@ export function Header() {
   const [location] = useLocation();
   const isMobile = useIsMobile();
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
-  const { displayMode, isTransitioning, setHoverExpand } = useLogoExperienceState();
+  const { displayMode, isTransitioning, setExpanded } = useLogoExperienceState();
 
   if (isMobile) {
     return null;
@@ -29,8 +29,9 @@ export function Header() {
             <Link href="/" data-testid="link-home">
               <div 
                 className="flex items-center gap-2 hover-elevate rounded-md px-2 py-1.5 cursor-pointer"
-                onMouseEnter={() => isLetterMark && setHoverExpand(true)}
-                onMouseLeave={() => setHoverExpand(false)}
+                onMouseEnter={() => setExpanded(true)}
+                onMouseLeave={() => setExpanded(false)}
+                onClick={() => setExpanded(!isLetterMark ? false : true)}
               >
                 <div
                   className={cn(
