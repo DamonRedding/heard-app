@@ -3,14 +3,22 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { FeedbackButton } from "@/components/feedback-button";
 import { ChurchRatingModal } from "@/components/church-rating-modal";
+import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PenLine, Shield, Home, Star, Church, Search, Settings } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { PenLine, Shield, Home, Star, Church, Search, Settings, MoreHorizontal, MessageSquareText } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLogoExperienceState } from "@/hooks/use-logo-experience";
 import { cn } from "@/lib/utils";
 
 export function Header() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const { displayMode, isTransitioning, setExpanded } = useLogoExperienceState();
@@ -20,6 +28,7 @@ export function Header() {
   }
 
   const isLetterMark = displayMode === "lettermark";
+  const isSecondaryActive = location === "/settings" || location === "/admin";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -70,13 +79,13 @@ export function Header() {
           )}
         </Tooltip>
 
-        <nav className="flex items-center gap-2">
+        <nav className="flex items-center gap-1" role="navigation" aria-label="Main navigation">
           <Link href="/">
             <Button
               variant={location === "/" ? "secondary" : "ghost"}
               size="sm"
               className="gap-2"
-              data-testid="link-feed"
+              data-testid="nav-feed"
               onClick={(e) => {
                 if (location === "/") {
                   e.preventDefault();
@@ -91,10 +100,10 @@ export function Header() {
 
           <Link href="/churches">
             <Button
-              variant={location === "/churches" ? "secondary" : "ghost"}
+              variant={location === "/churches" || location.startsWith("/churches/") ? "secondary" : "ghost"}
               size="sm"
               className="gap-2"
-              data-testid="link-churches"
+              data-testid="nav-churches"
             >
               <Church className="h-4 w-4" />
               <span>Churches</span>
@@ -106,57 +115,81 @@ export function Header() {
               variant={location === "/search" ? "secondary" : "ghost"}
               size="sm"
               className="gap-2"
-              data-testid="link-search"
+              data-testid="nav-search"
             >
               <Search className="h-4 w-4" />
               <span>Search</span>
             </Button>
           </Link>
 
-          <Link href="/settings">
-            <Button
-              variant={location === "/settings" ? "secondary" : "ghost"}
-              size="sm"
-              className="gap-2"
-              data-testid="link-settings"
-            >
-              <Settings className="h-4 w-4" />
-              <span>Settings</span>
-            </Button>
-          </Link>
-          
-          <Link href="/submit">
-            <Button
-              variant={location === "/submit" ? "secondary" : "ghost"}
-              size="sm"
-              className="gap-2"
-              data-testid="link-submit"
-            >
-              <PenLine className="h-4 w-4" />
-              <span>Share</span>
-            </Button>
-          </Link>
+          <Separator orientation="vertical" className="mx-1 h-6" />
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            onClick={() => setRatingModalOpen(true)}
-            data-testid="button-rate-church"
-          >
-            <Star className="h-4 w-4" />
-            <span>Rate</span>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/submit">
+                <Button
+                  variant={location === "/submit" ? "default" : "outline"}
+                  size="sm"
+                  className="gap-2"
+                  data-testid="nav-share"
+                >
+                  <PenLine className="h-4 w-4" />
+                  <span>Share Story</span>
+                </Button>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>Share your anonymous church experience</TooltipContent>
+          </Tooltip>
 
-          <Link href="/admin">
-            <Button
-              variant={location === "/admin" ? "secondary" : "ghost"}
-              size="icon"
-              data-testid="link-admin"
-            >
-              <Shield className="h-4 w-4" />
-            </Button>
-          </Link>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => setRatingModalOpen(true)}
+                data-testid="nav-rate"
+              >
+                <Star className="h-4 w-4" />
+                <span>Rate</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Rate a church anonymously</TooltipContent>
+          </Tooltip>
+
+          <Separator orientation="vertical" className="mx-1 h-6" />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={isSecondaryActive ? "secondary" : "ghost"}
+                size="icon"
+                data-testid="nav-more"
+                aria-label="More options"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onClick={() => setLocation("/settings")}
+                className={cn(location === "/settings" && "bg-secondary")}
+                data-testid="nav-settings"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setLocation("/admin")}
+                className={cn(location === "/admin" && "bg-secondary")}
+                data-testid="nav-admin"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Admin
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <FeedbackButton />
         </nav>
