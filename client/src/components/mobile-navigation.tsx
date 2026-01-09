@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Home, Church, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,15 +18,47 @@ const navItems: MobileNavItem[] = [
   { icon: Settings, label: "Settings", href: "/settings", testId: "mobile-nav-settings" },
 ];
 
+function useScrollDirection() {
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const scrollThreshold = 10;
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollDiff = currentScrollY - lastScrollY.current;
+
+      if (currentScrollY < 50) {
+        setIsVisible(true);
+      } else if (scrollDiff > scrollThreshold) {
+        setIsVisible(false);
+      } else if (scrollDiff < -scrollThreshold) {
+        setIsVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  return isVisible;
+}
+
 export function MobileNavigation() {
   const [location] = useLocation();
   const isMobile = useIsMobile();
+  const isVisible = useScrollDirection();
 
   if (!isMobile) return null;
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t"
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t transition-transform duration-300 ease-out",
+        isVisible ? "translate-y-0" : "translate-y-full"
+      )}
       role="navigation"
       aria-label="Mobile navigation"
       data-testid="mobile-navigation"
