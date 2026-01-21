@@ -84,7 +84,7 @@ export default function Home() {
   const personalizationLevel = getPersonalizationLevel();
   const { trackStoryRead } = useStoryReadsContext();
   const { displayMode: logoDisplayMode, isTransitioning: logoTransitioning, setExpanded: setLogoExpanded } = useLogoExperienceState();
-  const { isVisible: isHeaderVisible, isAtTop } = useScrollDirection({ threshold: 8, topThreshold: 60 });
+  const { isAtTop } = useScrollDirection({ topThreshold: 60 });
   const isLogoLetterMark = logoDisplayMode === "lettermark";
   const toggleLogo = () => setLogoExpanded(isLogoLetterMark);
 
