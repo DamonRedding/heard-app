@@ -198,6 +198,28 @@ Preferred communication style: Simple, everyday language.
 - No file upload service (multer listed but not actively used)
 - Admin panel uses simple password authentication rather than full auth system
 
+## Recent Changes (January 2026)
+
+### Mobile Screen Real Estate Improvements
+Enhanced mobile feed visibility following industry best practices:
+
+**Scroll-Direction Visibility**:
+- Created reusable `useScrollDirection` hook at `client/src/hooks/use-scroll-direction.ts`
+- Mobile sticky header logo section collapses when scrolled past top threshold (60px)
+- Sort tabs (Hot/New) remain visible in sticky header during scroll
+- Mobile bottom navigation auto-hides on scroll down, shows on scroll up (already existed)
+
+**Compact Mobile Card Layout**:
+- Condensed metadata: shows only category badge + relative timestamp on mobile
+- Desktop retains full metadata (occurred timeframe, submitted timestamp with icons)
+- Reduced vertical spacing between cards on mobile (space-y-3 vs space-y-4)
+- Slightly reduced padding in CardHeader, CardContent, CardFooter on mobile
+
+**Performance Optimizations**:
+- Applied `content-visibility: auto` CSS property to submission cards
+- Uses `containIntrinsicSize` to maintain scroll stability for off-screen cards
+- Different intrinsic sizes for mobile (250px) vs desktop (350px)
+
 ## Recent Changes (December 2025)
 
 ### Post-Submission Flow - Single-Screen Email-First Design

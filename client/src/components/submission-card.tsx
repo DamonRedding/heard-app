@@ -204,39 +204,55 @@ export function SubmissionCard({
         "transition-shadow hover:shadow-lg",
         isHighlighted && "ring-2 ring-absolve ring-offset-4 ring-offset-background"
       )}
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: isMobile ? "0 250px" : "0 350px",
+      }}
       data-testid={`submission-card-${submission.id}`}
       data-highlighted={isHighlighted ? "true" : undefined}
     >
-      <CardHeader className="flex flex-col gap-2 pb-3 space-y-0">
-        <div className="flex flex-row items-center justify-between gap-4 flex-wrap">
-          <Badge
-            variant="outline"
-            className={cn("font-medium", getCategoryColor(submission.category))}
-            data-testid={`badge-category-${submission.id}`}
-          >
-            {getCategoryLabel(submission.category)}
-          </Badge>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span 
-              className="flex items-center gap-1"
-              data-testid={`text-timeframe-${submission.id}`}
+      <CardHeader className={cn("flex flex-col gap-2 space-y-0", isMobile ? "pb-2" : "pb-3")}>
+        <div className="flex flex-row items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={cn("font-medium", getCategoryColor(submission.category))}
+              data-testid={`badge-category-${submission.id}`}
             >
-              <Calendar className="h-3 w-3" />
-              <span>Occurred {getTimeframeLabel(submission.timeframe).toLowerCase()}</span>
-            </span>
-            <span className="text-muted-foreground/40">|</span>
-            <span 
-              className="flex items-center gap-1"
-              data-testid={`text-submitted-${submission.id}`}
-            >
-              <Clock className="h-3 w-3" />
-              <span>Submitted {formatDistanceToNow(new Date(submission.createdAt), { addSuffix: true })}</span>
-            </span>
+              {getCategoryLabel(submission.category)}
+            </Badge>
+            {isMobile && (
+              <span 
+                className="text-xs text-muted-foreground"
+                data-testid={`text-submitted-mobile-${submission.id}`}
+              >
+                {formatDistanceToNow(new Date(submission.createdAt), { addSuffix: true })}
+              </span>
+            )}
           </div>
+          {!isMobile && (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span 
+                className="flex items-center gap-1"
+                data-testid={`text-timeframe-${submission.id}`}
+              >
+                <Calendar className="h-3 w-3" />
+                <span>Occurred {getTimeframeLabel(submission.timeframe).toLowerCase()}</span>
+              </span>
+              <span className="text-muted-foreground/40">|</span>
+              <span 
+                className="flex items-center gap-1"
+                data-testid={`text-submitted-${submission.id}`}
+              >
+                <Clock className="h-3 w-3" />
+                <span>Submitted {formatDistanceToNow(new Date(submission.createdAt), { addSuffix: true })}</span>
+              </span>
+            </div>
+          )}
         </div>
         {submission.title && (
           <h3 
-            className="text-lg font-semibold leading-tight mt-1"
+            className={cn("font-semibold leading-tight mt-1", isMobile ? "text-base" : "text-lg")}
             data-testid={`text-title-${submission.id}`}
           >
             {submission.title}
@@ -244,7 +260,7 @@ export function SubmissionCard({
         )}
       </CardHeader>
 
-      <CardContent className="pb-4">
+      <CardContent className={cn("pb-4", isMobile && "pb-3")}>
         {shouldShowCrisisResources(submission.category) && <CrisisResourcesBanner />}
         <div 
           className={cn(
@@ -299,7 +315,7 @@ export function SubmissionCard({
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-col gap-4 pt-0">
+      <CardFooter className={cn("flex flex-col gap-4 pt-0", isMobile && "gap-3")}>
         {isMobile ? (
           <div className="flex flex-col gap-3 w-full">
             <div className="flex items-center justify-between">

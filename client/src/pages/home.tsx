@@ -17,6 +17,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useFeedPersonalization } from "@/hooks/use-feed-personalization";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useScrollDirection } from "@/hooks/use-scroll-direction";
 import { useLogoExperienceState } from "@/hooks/use-logo-experience";
 import { useStoryReadsContext } from "@/components/story-reads-provider";
 import type { Submission, Category, VoteType, FlagReason } from "@shared/schema";
@@ -83,6 +84,7 @@ export default function Home() {
   const personalizationLevel = getPersonalizationLevel();
   const { trackStoryRead } = useStoryReadsContext();
   const { displayMode: logoDisplayMode, isTransitioning: logoTransitioning, setExpanded: setLogoExpanded } = useLogoExperienceState();
+  const { isVisible: isHeaderVisible, isAtTop } = useScrollDirection({ threshold: 8, topThreshold: 60 });
   const isLogoLetterMark = logoDisplayMode === "lettermark";
   const toggleLogo = () => setLogoExpanded(isLogoLetterMark);
 
@@ -370,7 +372,12 @@ export default function Home() {
           className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
           data-testid="mobile-sticky-tabs"
         >
-          <div className="flex items-center justify-center px-4 py-3 border-b border-border/50">
+          <div 
+            className={cn(
+              "flex items-center justify-center px-4 border-b border-border/50 transition-all duration-300 overflow-hidden",
+              isAtTop ? "py-3 max-h-16 opacity-100" : "py-0 max-h-0 opacity-0 border-b-0"
+            )}
+          >
             <button
               onClick={toggleLogo}
               className={cn(
@@ -653,7 +660,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="space-y-4 sm:space-y-6">
+        <div className={cn("space-y-4 sm:space-y-6", isMobile && "space-y-3")}>
           {(() => {
             // Use allSubmissions if populated, otherwise fall back to data.submissions for immediate display
             const displaySubmissions = allSubmissions.length > 0 ? allSubmissions : (data?.submissions ?? []);

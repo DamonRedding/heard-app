@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Home, Church, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useScrollDirection } from "@/hooks/use-scroll-direction";
 
 interface MobileNavItem {
   icon: typeof Home;
@@ -18,38 +18,10 @@ const navItems: MobileNavItem[] = [
   { icon: Settings, label: "Settings", href: "/settings", testId: "mobile-nav-settings" },
 ];
 
-function useScrollDirection() {
-  const [isVisible, setIsVisible] = useState(true);
-  const lastScrollY = useRef(0);
-  const scrollThreshold = 10;
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      const scrollDiff = currentScrollY - lastScrollY.current;
-
-      if (currentScrollY < 50) {
-        setIsVisible(true);
-      } else if (scrollDiff > scrollThreshold) {
-        setIsVisible(false);
-      } else if (scrollDiff < -scrollThreshold) {
-        setIsVisible(true);
-      }
-
-      lastScrollY.current = currentScrollY;
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  return isVisible;
-}
-
 export function MobileNavigation() {
   const [location] = useLocation();
   const isMobile = useIsMobile();
-  const isVisible = useScrollDirection();
+  const { isVisible } = useScrollDirection();
 
   if (!isMobile) return null;
 
