@@ -4,3 +4,30 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# iOS / Capacitor
+ios/
+ios/App/Pods/
+ios/App/Podfile.lock
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Android / Capacitor
+android/
+android/.gradle/
+android/app/build/
+android/build/
+android/.idea/
+android/local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Capacitor
+.capacitor/
