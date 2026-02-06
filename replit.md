@@ -247,3 +247,34 @@ Ruthlessly streamlined the post-submission experience to maximize email capture:
 - email_skipped: User skipped email capture
 - post_submit_i_hear_you_tapped: User engaged with related story
 - post_submit_flow_completed: User finished flow
+
+## Capacitor (Native Mobile) Integration (February 2026)
+
+### Setup
+The project is configured with Capacitor to enable packaging as a native iOS and Android app for App Store / Google Play submission.
+
+**Key Files**:
+- `capacitor.config.ts` - Capacitor configuration (app ID: `app.heard.community`, web dir: `dist/public`)
+- `client/src/lib/capacitor.ts` - Platform detection utility and native plugin initialization
+- `scripts/cap-build.sh` - Build script for compiling web assets and syncing to native projects
+
+**Native Plugins Installed**:
+- `@capacitor/core`, `@capacitor/cli` - Core framework
+- `@capacitor/ios`, `@capacitor/android` - Platform targets
+- `@capacitor/status-bar` - Native status bar control
+- `@capacitor/splash-screen` - Native splash screen
+- `@capacitor/app` - App lifecycle and back button handling
+- `@capacitor/haptics` - Haptic feedback
+- `@capacitor/keyboard` - Keyboard event handling (adds `keyboard-visible` class to body)
+- `@capacitor/push-notifications` - Native push notifications (APNs/FCM)
+
+**Platform Detection**:
+- `isNative`, `isIOS`, `isAndroid`, `isWeb` exports from `client/src/lib/capacitor.ts`
+- HTML classes `capacitor`, `capacitor-ios`, `capacitor-android` added to `<html>` element when running natively
+- Safe area insets handled via CSS `env(safe-area-inset-*)` variables
+
+**Building for Native**:
+1. Run `bash scripts/cap-build.sh` to build web assets and sync
+2. `npx cap open ios` to open in Xcode (requires Mac)
+3. `npx cap open android` to open in Android Studio
+4. Build and submit from the native IDE
