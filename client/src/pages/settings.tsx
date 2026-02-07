@@ -11,7 +11,7 @@ export default function Settings() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen safe-area-inset-top">
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="flex items-center gap-4 mb-8">
           <Link href="/">

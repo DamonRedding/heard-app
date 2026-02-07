@@ -239,10 +239,10 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 safe-area-inset-top">
       {isMobile && (
-        <div 
-          className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
+        <div
+          className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b safe-area-inset-top"
           data-testid="search-sticky-header"
         >
           <div className="flex items-center justify-center px-4 py-3 border-b border-border/50">
@@ -403,7 +403,7 @@ export default function SearchPage() {
                 <TrendingUp className="h-4 w-4" />
                 Browse by Category
               </h2>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {CATEGORIES.map((cat) => (
                   <Card
                     key={cat.value}

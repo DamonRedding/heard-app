@@ -8,13 +8,13 @@ export function ShareFAB() {
   const isMobile = useIsMobile();
   const [location, setLocation] = useLocation();
 
-  // Detect if we're in the Find Churches flow
+  // Detect if we're on a church profile page (individual church, not list)
   const isChurchProfilePage = location.startsWith("/churches/") && location !== "/churches";
   const isChurchListPage = location === "/churches";
-  const isExploreFlow = isChurchProfilePage || isChurchListPage;
 
   // Hide FAB on mobile when not applicable, or when already on submit page
-  if (!isMobile || location === "/submit") return null;
+  // Also hide on church list page since it has its own "Rate a Church" button in empty state
+  if (!isMobile || location === "/submit" || isChurchListPage) return null;
 
   const handleClick = async () => {
     try {
@@ -22,8 +22,8 @@ export function ShareFAB() {
     } catch (error) {
       // Haptics not available on web
     }
-    if (isExploreFlow) {
-      // Dispatch custom event to trigger rating modal on churches pages
+    if (isChurchProfilePage) {
+      // Dispatch custom event to trigger rating modal on church profile page
       window.dispatchEvent(new CustomEvent("open-church-rating-modal"));
     } else {
       setLocation("/submit");
@@ -34,8 +34,6 @@ export function ShareFAB() {
   const getFabContent = () => {
     if (isChurchProfilePage) {
       return { icon: Star, label: "Rate This Church", testId: "fab-rate-church", ariaLabel: "Rate this church" };
-    } else if (isChurchListPage) {
-      return { icon: Star, label: "Rate a Church", testId: "fab-rate-church", ariaLabel: "Rate a church" };
     } else {
       return { icon: Plus, label: "Post Story", testId: "fab-share", ariaLabel: "Post your story" };
     }

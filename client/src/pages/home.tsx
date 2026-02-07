@@ -368,8 +368,8 @@ export default function Home() {
       </section>
 
       {isMobile && (
-        <div 
-          className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b"
+        <div
+          className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b safe-area-inset-top"
           data-testid="mobile-sticky-tabs"
         >
           <div 

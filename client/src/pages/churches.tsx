@@ -224,7 +224,7 @@ export default function Churches() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen safe-area-inset-top">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex items-center gap-4 mb-6">
           <Link href="/">
