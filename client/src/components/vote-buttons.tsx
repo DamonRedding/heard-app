@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { posthog } from "@/lib/posthog";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import type { VoteType } from "@shared/schema";
 
 interface VoteButtonsProps {
@@ -54,28 +55,34 @@ export function VoteButtons({
     }
   }, [submissionId]);
 
-  const handleVote = (voteType: VoteType) => {
+  const handleVote = async (voteType: VoteType) => {
     if (isVoting) return;
-    
+
+    try {
+      await Haptics.impact({ style: ImpactStyle.Medium });
+    } catch (error) {
+      // Haptics not available on web
+    }
+
     const newVote = currentVote === voteType ? null : voteType;
     const action = newVote === null ? 'removed' : (currentVote ? 'changed' : 'added');
-    
+
     posthog.capture('vote added', {
       submission_id: submissionId,
       vote_type: voteType,
       action: action,
       previous_vote: currentVote,
     });
-    
+
     setCurrentVote(newVote);
     setStoredVote(submissionId, newVote);
-    
+
     setAnimatingButton(voteType);
     setAnimatingCount(voteType);
-    
+
     setTimeout(() => setAnimatingButton(null), 150);
     setTimeout(() => setAnimatingCount(null), 300);
-    
+
     onVote(voteType);
   };
 
@@ -85,6 +92,7 @@ export function VoteButtons({
   return (
     <div className="flex items-center gap-2" data-testid={`vote-buttons-${submissionId}`}>
       <Button
+        id={`button-upvote-${submissionId}`}
         variant="outline"
         size="sm"
         onClick={() => handleVote("absolve")}
@@ -92,8 +100,8 @@ export function VoteButtons({
         className={cn(
           "gap-1.5 transition-all border",
           isMobile && "min-h-[44px] min-w-[60px] px-3",
-          currentVote === "absolve" 
-            ? "bg-upvote text-upvote-foreground border-upvote" 
+          currentVote === "absolve"
+            ? "bg-upvote text-upvote-foreground border-upvote"
             : "hover:bg-upvote/10 hover:text-upvote hover:border-upvote/50",
           animatingButton === "absolve" && "animate-vote-pop"
         )}

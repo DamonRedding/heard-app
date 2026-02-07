@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Home, Church, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useScrollDirection } from "@/hooks/use-scroll-direction";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
 interface MobileNavItem {
   icon: typeof Home;
@@ -21,16 +21,13 @@ const navItems: MobileNavItem[] = [
 export function MobileNavigation() {
   const [location] = useLocation();
   const isMobile = useIsMobile();
-  const { isVisible } = useScrollDirection();
 
   if (!isMobile) return null;
 
   return (
-    <nav 
-      className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t transition-transform duration-300 ease-out",
-        isVisible ? "translate-y-0" : "translate-y-full"
-      )}
+    <nav
+      id="mobile-navigation"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t"
       role="navigation"
       aria-label="Mobile navigation"
       data-testid="mobile-navigation"
@@ -39,14 +36,15 @@ export function MobileNavigation() {
           {navItems.map((item) => {
             const isActive = location === item.href;
             const Icon = item.icon;
-            
+
             return (
               <Link key={item.href} href={item.href}>
                 <button
+                  id={item.testId}
                   className={cn(
-                    "relative flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px] rounded-xl transition-all duration-200",
-                    isActive 
-                      ? "text-primary bg-primary/10" 
+                    "relative flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px] min-h-[44px] rounded-xl transition-all duration-200",
+                    isActive
+                      ? "text-primary bg-primary/10"
                       : "text-muted-foreground hover-elevate active-elevate-2"
                   )}
                   style={isActive ? {
@@ -54,7 +52,12 @@ export function MobileNavigation() {
                   } : undefined}
                   data-testid={item.testId}
                   aria-current={isActive ? "page" : undefined}
-                  onClick={(e) => {
+                  onClick={async (e) => {
+                    try {
+                      await Haptics.impact({ style: ImpactStyle.Light });
+                    } catch (error) {
+                      // Haptics not available on web
+                    }
                     if (isActive && item.href === "/") {
                       e.preventDefault();
                       window.scrollTo({ top: 0, behavior: "smooth" });

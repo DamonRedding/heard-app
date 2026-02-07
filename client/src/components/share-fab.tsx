@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
 import { Plus, Star } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
 export function ShareFAB() {
   const isMobile = useIsMobile();
@@ -15,7 +16,12 @@ export function ShareFAB() {
   // Hide FAB on mobile when not applicable, or when already on submit page
   if (!isMobile || location === "/submit") return null;
 
-  const handleClick = () => {
+  const handleClick = async () => {
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch (error) {
+      // Haptics not available on web
+    }
     if (isExploreFlow) {
       // Dispatch custom event to trigger rating modal on churches pages
       window.dispatchEvent(new CustomEvent("open-church-rating-modal"));
@@ -47,13 +53,14 @@ export function ShareFAB() {
   // - Bottom-center placement for hand-agnostic accessibility (inclusive for left/right-handed users)
   return createPortal(
     <button
+      id={fabContent.testId}
       onClick={handleClick}
       className="fixed z-[9999] flex items-center gap-2 h-12 px-4 rounded-full bg-primary text-primary-foreground font-medium shadow-lg hover-elevate active-elevate-2 border border-primary-border"
       data-testid={fabContent.testId}
       aria-label={fabContent.ariaLabel}
       style={{
         position: 'fixed',
-        bottom: '5rem',
+        bottom: '5.25rem',
         left: '50%',
         transform: 'translateX(-50%)',
       }}
