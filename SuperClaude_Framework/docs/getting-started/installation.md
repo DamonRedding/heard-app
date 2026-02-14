@@ -33,7 +33,7 @@
 | **🐍 pipx** | `pipx install SuperClaude && SuperClaude install` | Linux/macOS | **✅ Recommended** - Isolated environment |
 | **📦 pip** | `pip install SuperClaude && SuperClaude install` | All | Traditional Python setups |
 | **🌐 npm** | `npm install -g @bifrost_inc/superclaude && superclaude install` | All | Node.js developers |
-| **🔧 Dev** | `git clone ... && uv pip install -e ".[dev]"` | All | Contributors & developers |
+| **🔧 Dev** | `git clone ... && pip install -e ".[dev]"` | All | Contributors & developers |
 
 </div>
 
@@ -209,11 +209,8 @@ superclaude install
 git clone https://github.com/SuperClaude-Org/SuperClaude_Framework.git
 cd SuperClaude_Framework
 
-# Install uv if not present
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
 # Install in development mode
-uv pip install -e ".[dev]"
+pip install -e ".[dev]"
 
 # Test installation
 SuperClaude install --dry-run
@@ -226,7 +223,6 @@ SuperClaude install --dry-run
 - Latest features
 - Contribute to project
 - Full source access
-- Fast installation (uv)
 
 **📍 Best for:**
 - Contributors
@@ -470,24 +466,24 @@ brew install python3
 
 **First Week:**
 - [Quick Start Guide](quick-start.md)
-- [Commands Reference](../user-guide/commands.md)
+- [Commands Reference](../User-Guide/commands.md)
 - Try `/sc:brainstorm`
 
 </td>
 <td valign="top">
 
 **Week 2-3:**
-- [Behavioral Modes](../user-guide/modes.md)
-- [Agents Guide](../user-guide/agents.md)
-- [Examples Cookbook](../reference/examples-cookbook.md)
+- [Behavioral Modes](../User-Guide/modes.md)
+- [Agents Guide](../User-Guide/agents.md)
+- [Examples Cookbook](../Reference/examples-cookbook.md)
 
 </td>
 <td valign="top">
 
 **Advanced:**
-- [MCP Servers](../user-guide/mcp-servers.md)
-- [Technical Architecture](../developer-guide/technical-architecture.md)
-- [Contributing Code](../developer-guide/contributing-code.md)
+- [MCP Servers](../User-Guide/mcp-servers.md)
+- [Technical Architecture](../Developer-Guide/technical-architecture.md)
+- [Contributing Code](../Developer-Guide/contributing-code.md)
 
 </td>
 </tr>

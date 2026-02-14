@@ -1,4 +1,4 @@
-# SuperClaude Framework developer-guide Index
+# SuperClaude Framework Developer-Guide Index
 
 ## Document Navigation Guide
 

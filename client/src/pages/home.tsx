@@ -367,6 +367,10 @@ export default function Home() {
         <div
           className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b pt-safe"
           data-testid="mobile-sticky-tabs"
+          style={{
+            /* Extend background above for overscroll */
+            boxShadow: '0 -1000px 0 1000px hsl(var(--background) / 0.95)'
+          }}
         >
           <div className="flex items-center px-4 py-1.5">
             <div className="flex-1 flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort posts">

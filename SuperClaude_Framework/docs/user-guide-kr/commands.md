@@ -87,7 +87,7 @@ python3 -m SuperClaude install --list-components | grep mcp
 # 예상 동작: 사용 가능한 명령어 목록
 ```
 
-**테스트가 실패하면**: [설치 가이드](../getting-started/installation.md) 또는 [문제 해결](#troubleshooting) 확인
+**테스트가 실패하면**: [설치 가이드](../Getting-Started/installation.md) 또는 [문제 해결](#troubleshooting) 확인
 
 ### 📝 명령어 빠른 참조
 
@@ -148,7 +148,7 @@ python3 -m SuperClaude install --list-components | grep mcp
 - **계획 전략**: Planning(직접), Intent(먼저 명확화), Unified(협업)
 - **병렬 실행**: 기본 병렬 검색 및 추출
 - **증거 관리**: 관련성 점수가 있는 명확한 인용
-- **출력 표준**: 보고서가 `docs/research/[주제]_[타임스탬프].md`에 저장됨
+- **출력 표준**: 보고서가 `claudedocs/research_[주제]_[타임스탬프].md`에 저장됨
 
 ### `/sc:implement` - 기능 개발
 **목적**: 지능형 전문가 라우팅을 통한 풀스택 기능 구현
@@ -357,11 +357,11 @@ python3 -m SuperClaude install --list-components | grep mcp
 **빠른 수정:**
 - 세션 재설정: `/sc:load`로 다시 초기화
 - 상태 확인: `SuperClaude install --list-components`
-- 도움말 받기: [문제 해결 가이드](../reference/troubleshooting.md)
+- 도움말 받기: [문제 해결 가이드](../Reference/troubleshooting.md)
 
 ## 다음 단계
 
 - [플래그 가이드](flags.md) - 명령어 동작 제어
 - [에이전트 가이드](agents.md) - 전문가 활성화
-- [예제 모음](../reference/examples-cookbook.md) - 실제 사용 패턴
+- [예제 모음](../Reference/examples-cookbook.md) - 실제 사용 패턴
 
