@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="iPhone 17 Pro - iOS 26.0 - 36400BED-AFD9-4882-BA92-255D95215AF8" tests="11" failures="8" time="228.0">
+    <testcase id="Accessibility Feature Test" name="Accessibility Feature Test" classname="Accessibility Feature Test" time="26.0" status="ERROR">
+      <properties/>
+      <failure>Element not found: Id matching regex: button-back</failure>
+    </testcase>
+    <testcase id="Navigation Context Switching Test" name="Navigation Context Switching Test" classname="Navigation Context Switching Test" time="23.0" status="ERROR">
+      <properties/>
+      <failure>Assertion is false: "Rate a Church" is visible</failure>
+    </testcase>
+    <testcase id="Touch Target Size Validation (P0 - Critical)" name="Touch Target Size Validation (P0 - Critical)" classname="Touch Target Size Validation (P0 - Critical)" time="22.0" status="ERROR">
+      <properties/>
+      <failure>Assertion is false: id: button-upvote-.* is visible</failure>
+    </testcase>
+    <testcase id="Complete User Flow - Submit Story" name="Complete User Flow - Submit Story" classname="Complete User Flow - Submit Story" time="22.0" status="ERROR">
+      <properties/>
+      <failure>Assertion is false: "Category" is visible</failure>
+    </testcase>
+    <testcase id="FAB Positioning &amp; Collision Test (P0 - Critical)" name="FAB Positioning &amp; Collision Test (P0 - Critical)" classname="FAB Positioning &amp; Collision Test (P0 - Critical)" time="23.0" status="ERROR">
+      <properties/>
+      <failure>Element not found: Id matching regex: button-back</failure>
+    </testcase>
+    <testcase id="00-test-scroll" name="00-test-scroll" classname="00-test-scroll" time="5.0" status="SUCCESS">
+      <properties/>
+    </testcase>
+    <testcase id="Performance &amp; Animation Test" name="Performance &amp; Animation Test" classname="Performance &amp; Animation Test" time="44.0" status="ERROR">
+      <properties/>
+      <failure>Element not found: Id matching regex: button-upvote-.*</failure>
+    </testcase>
+    <testcase id="Complete User Flow - Browse → Vote" name="Complete User Flow - Browse → Vote" classname="Complete User Flow - Browse → Vote" time="22.0" status="ERROR">
+      <properties/>
+      <failure>Element not found: Id matching regex: button-upvote-.*</failure>
+    </testcase>
+    <testcase id="Navigation Visibility Test (P0 - Critical)" name="Navigation Visibility Test (P0 - Critical)" classname="Navigation Visibility Test (P0 - Critical)" time="8.0" status="SUCCESS">
+      <properties/>
+    </testcase>
+    <testcase id="Safe Area &amp; Device Variants Test" name="Safe Area &amp; Device Variants Test" classname="Safe Area &amp; Device Variants Test" time="30.0" status="ERROR">
+      <properties/>
+      <failure>Element not found: Id matching regex: textarea-content</failure>
+    </testcase>
+    <testcase id="00-minimal-test" name="00-minimal-test" classname="00-minimal-test" time="3.0" status="SUCCESS">
+      <properties/>
+    </testcase>
+  </testsuite>
+</testsuites>

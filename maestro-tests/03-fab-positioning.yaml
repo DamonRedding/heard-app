@@ -1,0 +1,88 @@
+appId: app.heard.community
+name: FAB Positioning & Collision Test (P0 - Critical)
+---
+# Test: FAB must have minimum 32px gap from navigation
+# Current: FAB bottom: 5rem (80px), Nav height: 4rem (64px)
+# Gap: 80px - 64px = 16px (TOO SMALL)
+# Required: ≥32px gap
+#
+# Location: client/src/components/share-fab.tsx:56
+# User Impact: Accidental taps, poor hand ergonomics
+
+- launchApp
+
+- assertVisible:
+    text: "Feed"
+
+# Verify FAB is visible
+- assertVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "fab-initial-position"
+
+# Test: Try tapping in the gap between FAB and navigation
+# This should NOT trigger either element accidentally
+- tapOn:
+    point: "50%,85%"  # Between FAB and nav
+
+- waitForAnimationToEnd
+
+# Should still be on Feed (not navigated away)
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "after-gap-tap"
+
+# Test FAB functionality
+- tapOn:
+    text: "Share Your Experience"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "submit-page"
+
+# Test back button
+- tapOn:
+    id: "button-back"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Share Your Experience"
+
+# Navigate to Churches to test context-aware FAB
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+# FAB should change to "Rate a Church"
+- assertVisible:
+    text: "Rate a Church"
+
+- assertNotVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "fab-churches-context"
+
+# Test FAB position relative to navigation on Churches page
+- tapOn:
+    point: "50%,85%"  # Gap test again
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Churches"
+
+- takeScreenshot: "churches-after-gap-tap"
+
+# Test scroll behavior with FAB
+- scroll
+# FAB should remain visible and properly positioned
+- assertVisible:
+    text: "Rate a Church"
+
+- takeScreenshot: "fab-after-scroll"

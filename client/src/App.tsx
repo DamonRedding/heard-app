@@ -38,9 +38,11 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <StoryReadsProvider>
-            <div className="min-h-screen bg-background text-foreground pb-16 md:pb-0">
-              <Header />
-              <Router />
+            <div className="min-h-screen bg-background text-foreground flex flex-col">
+              <div className="pt-safe flex-1 pb-16 md:pb-0">
+                <Header />
+                <Router />
+              </div>
               <MobileNavigation />
             </div>
             <ShareFAB />

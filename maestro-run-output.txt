@@ -1,0 +1,13 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/Users/damon/.maestro/lib/jansi-2.4.1.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+Waiting for flows to complete...
+[Failed] Accessibility Feature Test (19s) (Assertion is false: id: mobile-nav-feed is visible)
+[Failed] Navigation Context Switching Test (19s) (Assertion is false: id: mobile-navigation is visible)
+[Failed] Touch Target Size Validation (P0 - Critical) (26s) (Assertion is false: id: button-upvote-.* is visible)
+[Failed] Complete User Flow - Submit Story (20s) (Assertion is false: id: fab-share is visible)
+[Failed] FAB Positioning & Collision Test (P0 - Critical) (22s) (Assertion is false: id: fab-share is visible)
+[Passed] 00-test-scroll (6s)

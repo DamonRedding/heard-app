@@ -1,0 +1,118 @@
+appId: app.heard.community
+name: Complete User Flow - Submit Story
+---
+# Test: End-to-end flow for submitting a story
+# Includes: FAB tap, form navigation, field interaction
+# Expected: Clear navigation, accessible form controls
+# Measure: Back button size, form field touch targets
+
+- launchApp
+
+- assertVisible:
+    text: "Feed"
+
+- assertVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "01-fab-visible"
+
+# Tap FAB to open submit form
+- tapOn:
+    text: "Share Your Experience"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "02-submit-page"
+
+# Verify form elements are visible
+- assertVisible:
+    text: "Category"
+
+- assertVisible:
+    text: "When did this occur?"
+
+- assertVisible:
+    text: "Your story"
+
+- takeScreenshot: "03-form-fields"
+
+# Test category selection
+- tapOn:
+    text: "Leadership Issues"
+    optional: true
+
+# If dropdown exists, select a category
+- runFlow:
+    when:
+      visible: "Leadership Issues"
+    commands:
+      - tapOn: "Leadership Issues"
+      - waitForAnimationToEnd
+      - takeScreenshot: "04-category-selected"
+
+# Test timeframe selection
+- scroll
+- tapOn:
+    text: "Within the past year"
+    optional: true
+
+- runFlow:
+    when:
+      visible: "Within the past year"
+    commands:
+      - tapOn: "Within the past year"
+      - waitForAnimationToEnd
+      - takeScreenshot: "05-timeframe-selected"
+
+# Test story text input
+- scroll
+- tapOn:
+    id: "textarea-content"
+
+- inputText: "This is a test story for UX evaluation. Testing touch targets and form accessibility."
+
+- takeScreenshot: "06-story-entered"
+
+# Scroll to see optional fields
+- scroll
+- takeScreenshot: "07-optional-fields"
+
+# Test church search (if visible)
+- tapOn:
+    text: "Search for church"
+    optional: true
+
+- runFlow:
+    when:
+      visible: "Search for church"
+    commands:
+      - tapOn: "Search for church"
+      - waitForAnimationToEnd
+      - takeScreenshot: "08-church-search"
+      - tapOn:
+          id: "button-back"
+      - waitForAnimationToEnd
+
+# Do NOT actually submit (to avoid test data)
+# Instead, test back navigation
+
+- scroll
+# Test back button touch target
+- assertVisible:
+    id: "button-back"
+
+- tapOn:
+    id: "button-back"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Feed"
+
+- assertVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "09-back-to-feed"

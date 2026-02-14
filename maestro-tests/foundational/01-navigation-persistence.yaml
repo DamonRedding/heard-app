@@ -1,0 +1,72 @@
+appId: app.heard.community
+name: Navigation Persistence & Visibility Test
+---
+# Foundational UX Test: Navigation must always be visible
+# iOS HIG: Tab bars provide persistent navigation and should remain visible
+
+- launchApp
+
+# Initial state - verify navigation is visible
+- assertVisible:
+    text: "Feed"
+- assertVisible:
+    text: "Churches"
+- assertVisible:
+    text: "Search"
+- assertVisible:
+    text: "Settings"
+
+- takeScreenshot: "01-nav-initial"
+
+# Test 1: Navigation remains visible during scroll
+- scroll
+
+- assertVisible:
+    text: "Feed"
+- assertVisible:
+    text: "Churches"
+
+- takeScreenshot: "02-nav-after-scroll-down"
+
+# Test 2: Navigation visible after multiple scrolls
+- repeat:
+    times: 3
+    commands:
+      - scroll
+
+- assertVisible:
+    text: "Feed"
+- assertVisible:
+    text: "Settings"
+
+- takeScreenshot: "03-nav-after-multiple-scrolls"
+
+# Test 3: Navigation visible when scrolling up
+- scroll
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "04-nav-after-scroll-up"
+
+# Test 4: Navigation persists across page changes
+- tapOn:
+    text: "Churches"
+
+- assertVisible:
+    text: "Feed"
+- assertVisible:
+    text: "Churches"
+
+- takeScreenshot: "05-nav-on-churches"
+
+# Test 5: Return to Feed
+- tapOn:
+    text: "Feed"
+
+- assertVisible:
+    text: "Feed"
+- assertVisible:
+    text: "Churches"
+
+- takeScreenshot: "06-nav-back-on-feed"

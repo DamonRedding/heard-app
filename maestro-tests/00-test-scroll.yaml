@@ -1,0 +1,6 @@
+appId: app.heard.community
+---
+- launchApp
+- assertVisible: "Feed"
+- scroll
+- assertVisible: "Feed"

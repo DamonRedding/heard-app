@@ -1,0 +1,65 @@
+appId: app.heard.community
+name: Scroll Behavior & Performance Test
+---
+# Foundational UX Test: Smooth, predictable scrolling
+# iOS standard: 60fps, momentum scrolling, rubber-band effect
+
+- launchApp
+
+# Test 1: Basic scroll responsiveness
+- scroll
+
+- takeScreenshot: "01-after-short-scroll"
+
+# Test 2: Long scroll with momentum
+- scroll
+
+- takeScreenshot: "02-after-long-scroll"
+
+# Test 3: Rapid scroll gestures
+- repeat:
+    times: 5
+    commands:
+      - scroll
+
+- takeScreenshot: "03-after-rapid-scrolls"
+
+# Test 4: Scroll to top
+- scroll
+
+- takeScreenshot: "04-rubber-band-top"
+
+# Test 5: Horizontal scroll attempt (should not move)
+- swipe:
+    start: "80%, 50%"
+    end: "20%, 50%"
+    duration: 500
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "05-no-horizontal-scroll"
+
+# Test 6: Pull-to-refresh gesture
+- swipe:
+    start: "50%, 30%"
+    end: "50%, 70%"
+    duration: 1000
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "06-pull-to-refresh"
+
+# Test 7: Scroll while loading
+- tapOn:
+    text: "Churches"
+
+- scroll
+
+- takeScreenshot: "07-scroll-during-load"
+
+# Test 8: Return to Feed
+- tapOn:
+    text: "Feed"
+
+- waitForAnimationToEnd

@@ -1,0 +1,105 @@
+appId: app.heard.community
+name: Accessibility Feature Test
+---
+# Test: VoiceOver labels and Dynamic Type support
+# Expected: All elements have proper labels, text scales gracefully
+# Measure: Accessibility announcements, layout integrity with large text
+#
+# Note: This test requires VoiceOver to be enabled on the device
+# Run manually: Settings > Accessibility > VoiceOver > On
+
+- launchApp
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "01-default-text-size"
+
+# Test navigation labels
+- assertVisible:
+    text: "Feed"
+
+# Verify aria-labels exist (Maestro limitation: can't read aria-label directly)
+# Manual verification required:
+# - Feed button: aria-current="page"
+# - Churches button: aria-label expected
+# - Search button: aria-label expected
+# - Settings button: aria-label expected
+
+- takeScreenshot: "02-navigation-labels"
+
+# Scroll to find vote buttons
+- scroll
+
+# Test vote button accessibility labels
+# Expected:
+# - Upvote: aria-label="I understand this experience"
+# - Downvote: aria-label="This is not okay"
+
+- takeScreenshot: "03-vote-button-labels"
+
+# Test FAB accessibility
+- assertVisible:
+    text: "Share Your Experience"
+
+# Expected: aria-label="Post your story"
+
+- takeScreenshot: "04-fab-label"
+
+# Test with VoiceOver (manual verification)
+# 1. Enable VoiceOver
+# 2. Navigate through elements
+# 3. Verify all interactive elements are announced
+# 4. Verify focus order is logical (top to bottom, left to right)
+
+# Navigate to submit page to test form labels
+- tapOn:
+    text: "Share Your Experience"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "05-form-labels"
+
+# Test form field labels
+# Expected:
+# - All input fields have associated labels
+# - Required fields are marked
+# - Error states are announced
+
+- scroll
+
+- takeScreenshot: "06-form-fields-scrolled"
+
+# Return to feed
+- tapOn:
+    id: "button-back"
+
+- waitForAnimationToEnd
+
+# Test Dynamic Type support (requires manual device settings change)
+# 1. Open Settings > Display & Brightness > Text Size
+# 2. Increase text size to maximum
+# 3. Return to app
+# 4. Verify layout doesn't break
+# 5. Verify text is readable
+# 6. Verify buttons still tappable
+
+# For automated test, take baseline screenshots
+- takeScreenshot: "07-baseline-text-size"
+
+# Test keyboard navigation (if using external keyboard)
+# 1. Connect Bluetooth keyboard
+# 2. Press Tab to navigate through focusable elements
+# 3. Verify focus indicators are visible
+# 4. Verify focus order is logical
+# 5. Press Enter/Space to activate buttons
+
+# Test contrast ratios (manual verification)
+# - Text contrast: ≥4.5:1 for normal text
+# - UI element contrast: ≥3:1 for buttons, borders
+# - Focus indicators: visible and high contrast
+
+- takeScreenshot: "08-contrast-check"

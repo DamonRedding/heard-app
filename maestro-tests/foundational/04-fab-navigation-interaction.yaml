@@ -1,0 +1,88 @@
+appId: app.heard.community
+name: FAB and Navigation Interaction Test
+---
+# Foundational UX Test: FAB positioning and tap targets
+# iOS HIG: Minimum 44pt touch targets, proper spacing
+
+- launchApp
+
+# Test 1: FAB visibility and position
+- assertVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "01-fab-initial-position"
+
+# Test 2: Test gap between FAB and navigation
+# Try to tap in the dead zone - should not trigger anything
+- tapOn:
+    point: "50%, 87%"  # Between FAB and nav
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Feed"  # Should still be on Feed
+
+- takeScreenshot: "02-gap-tap-result"
+
+# Test 3: FAB remains visible during scroll
+- scroll
+
+- assertVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "03-fab-during-scroll"
+
+# Test 4: FAB tap works correctly
+- tapOn:
+    text: "Share Your Experience"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Share Your Experience"  # Page title
+
+- takeScreenshot: "04-submit-page"
+
+# Test 5: Navigation is hidden on submit page
+- assertNotVisible:
+    text: "Feed"
+
+- assertNotVisible:
+    text: "Churches"
+
+# Test 6: Back button functionality
+- pressKey: back
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Feed"
+
+- assertVisible:
+    text: "Share Your Experience"  # FAB
+
+- takeScreenshot: "05-back-to-feed"
+
+# Test 7: Context-aware FAB on Churches
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+# FAB text should change
+- assertVisible:
+    text: "Rate a Church"
+
+- assertNotVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "06-churches-fab"
+
+# Test 8: Churches FAB positioning
+- tapOn:
+    point: "50%, 87%"  # Gap test again
+
+- assertVisible:
+    text: "Churches"  # Should still be on Churches
+
+- takeScreenshot: "07-churches-gap-test"

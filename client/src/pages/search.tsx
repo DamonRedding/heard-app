@@ -239,10 +239,10 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="min-h-screen pb-20 safe-area-inset-top">
+    <div className="min-h-screen pb-20">
       {isMobile && (
         <div
-          className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b safe-area-inset-top"
+          className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b pt-safe"
           data-testid="search-sticky-header"
         >
           <div className="flex items-center justify-center px-4 py-3 border-b border-border/50">

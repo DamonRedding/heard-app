@@ -1,0 +1,95 @@
+appId: app.heard.community
+name: Header & Footer Anchoring Test
+---
+# Foundational UX Test: Headers and footers must remain anchored during scrolling
+# Validates that fixed position elements don't move with content
+
+- launchApp
+
+# Test 1: Initial state - capture header/footer positions
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "01-initial-positions"
+
+# Test 2: Scroll down - header/footer should stay in same position
+- scroll
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Feed"  # Navigation still visible
+- assertVisible:
+    text: "Churches"
+- assertVisible:
+    text: "Search"
+- assertVisible:
+    text: "Settings"
+
+- takeScreenshot: "02-after-scroll-down"
+
+# Test 3: Multiple scrolls - positions should remain fixed
+- repeat:
+    times: 5
+    commands:
+      - scroll
+      - waitForAnimationToEnd
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "03-after-multiple-scrolls"
+
+# Test 4: Scroll to top - verify no position shift
+- swipe:
+    start: "50%, 30%"
+    end: "50%, 80%"
+    duration: 1000
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "04-after-scroll-top"
+
+# Test 5: Navigate to different page - check anchoring persists
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+- scroll
+
+- assertVisible:
+    text: "Churches"  # Navigation still anchored
+
+- takeScreenshot: "05-churches-scrolled"
+
+# Test 6: FAB should also remain anchored during scroll
+- tapOn:
+    text: "Feed"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Share Your Experience"  # FAB
+
+- scroll
+
+- assertVisible:
+    text: "Share Your Experience"  # FAB still visible
+
+- takeScreenshot: "06-fab-anchored"
+
+# Test 7: Test content scrolls behind fixed elements
+# This validates that content moves while headers/footers don't
+- swipe:
+    start: "50%, 50%"
+    end: "50%, 20%"
+    duration: 500
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "07-content-behind-fixed"

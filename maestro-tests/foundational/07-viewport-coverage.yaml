@@ -1,0 +1,79 @@
+appId: app.heard.community
+name: Full Viewport Coverage Test
+---
+# Test to validate that content spans full screen without gaps
+# Checking for whitespace/black space at edges when scrolling
+
+- launchApp
+
+# Test 1: Initial load - check for gaps at top/bottom
+- takeScreenshot: "01-initial-viewport"
+
+# Test 2: Scroll to absolute top (overscroll/rubber band)
+- swipe:
+    start: "50%, 20%"
+    end: "50%, 90%"
+    duration: 1500
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "02-overscroll-top"
+
+# Test 3: Scroll to absolute bottom (overscroll)
+- repeat:
+    times: 10
+    commands:
+      - scroll
+
+- swipe:
+    start: "50%, 80%"
+    end: "50%, 10%"
+    duration: 1500
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "03-overscroll-bottom"
+
+# Test 4: Navigate to different pages to check consistency
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+# Overscroll on Churches page
+- swipe:
+    start: "50%, 20%"
+    end: "50%, 90%"
+    duration: 1500
+
+- takeScreenshot: "04-churches-overscroll"
+
+# Test 5: Settings page (often reveals layout issues)
+- tapOn:
+    text: "Settings"
+
+- waitForAnimationToEnd
+
+- swipe:
+    start: "50%, 20%"
+    end: "50%, 90%"
+    duration: 1500
+
+- takeScreenshot: "05-settings-viewport"
+
+# Test 6: Return to Feed and test extreme scroll
+- tapOn:
+    text: "Feed"
+
+- waitForAnimationToEnd
+
+# Pull down hard to expose any top gap
+- swipe:
+    start: "50%, 10%"
+    end: "50%, 95%"
+    duration: 2000
+
+- takeScreenshot: "06-extreme-pull-top"
+
+# Test 7: Final state
+- takeScreenshot: "07-final-state"

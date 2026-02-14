@@ -1,0 +1,126 @@
+appId: app.heard.community
+name: Safe Area & Device Variants Test
+---
+# Test: Content respects safe areas on different devices
+# Devices: iPhone 15 Pro Max (Dynamic Island), iPhone 13 mini (notch), iPhone SE (no notch)
+# Expected: Content not obscured by system UI elements
+# Measure: Home indicator clearance, notch/island clearance
+#
+# Note: Run this test separately on each device type
+# Current device: (will be detected at runtime)
+
+- launchApp
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "01-feed-safe-area"
+
+# Check bottom navigation safe area
+- assertVisible:
+    text: "Feed"
+
+# Navigation should have padding-bottom for home indicator
+# Expected: safe-area-inset-bottom class applied
+# Location: mobile-navigation.tsx:38
+
+- takeScreenshot: "02-nav-safe-area"
+
+# Check FAB safe area
+- assertVisible:
+    text: "Share Your Experience"
+
+# FAB position should account for home indicator
+# Current issue: Fixed bottom: 5rem without safe area consideration
+# Expected: Should use calc(5rem + env(safe-area-inset-bottom))
+
+- takeScreenshot: "03-fab-safe-area"
+
+# Scroll to bottom to verify content doesn't get hidden behind nav
+- scroll
+- scroll
+- takeScreenshot: "04-bottom-content-safe-area"
+
+# Check top safe area (notch/Dynamic Island)
+- scroll
+- takeScreenshot: "05-top-safe-area"
+
+# Navigate to different pages to test safe area consistency
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "06-churches-safe-area"
+
+- tapOn:
+    text: "Search"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "07-search-safe-area"
+
+- tapOn:
+    text: "Settings"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "08-settings-safe-area"
+
+# Test safe area with FAB open (submit page)
+- tapOn:
+    text: "Feed"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Share Your Experience"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "09-submit-safe-area"
+
+# Test safe area with keyboard open
+- tapOn:
+    id: "textarea-content"
+
+- inputText: "Testing safe area with keyboard"
+
+- takeScreenshot: "10-keyboard-safe-area"
+
+# Dismiss keyboard
+- tapOn:
+    point: "50%,10%"  # Tap on header area
+
+- waitForAnimationToEnd
+
+# Test safe area in landscape (if supported)
+# Note: Maestro doesn't support rotation commands directly
+# Manual test required:
+# 1. Rotate device to landscape
+# 2. Verify navigation is still accessible
+# 3. Verify FAB is properly positioned
+# 4. Verify content isn't obscured
+# 5. Verify safe areas on left/right edges
+
+- takeScreenshot: "11-final-safe-area-check"
+
+# Device-specific checks (manual verification):
+#
+# iPhone 15 Pro Max (Dynamic Island):
+# - Top content should not be obscured by Dynamic Island
+# - Dynamic Island should not overlap with any interactive elements
+# - Status bar height: 59pt with Dynamic Island
+#
+# iPhone 13 mini (Notch):
+# - Top content should not be obscured by notch
+# - Status bar height: 47pt with notch
+# - Verify content scrolls under status bar appropriately
+#
+# iPhone SE (No Notch):
+# - Standard status bar: 20pt
+# - Home button instead of gesture bar
+# - Navigation should account for bottom safe area if using gesture navigation

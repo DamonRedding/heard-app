@@ -174,7 +174,7 @@ export function MobileFilterSheet({
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t safe-area-inset-bottom">
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t pb-safe">
           <div className="flex gap-3">
             <SheetClose asChild>
               <Button variant="outline" className="flex-1" data-testid="button-cancel-filters">

@@ -1,0 +1,121 @@
+appId: app.heard.community
+name: Performance & Animation Test
+---
+# Test: Smooth scrolling and loading states
+# Expected: 60fps scrolling, functional pull-to-refresh, infinite scroll
+# Measure: Frame rate, loading indicators, content updates
+
+- launchApp
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "01-initial-load"
+
+# Test scroll performance
+- scroll
+# Monitor for dropped frames (manual observation required)
+# Expected: Smooth 60fps scrolling
+
+- takeScreenshot: "02-after-scroll"
+
+# Test pull-to-refresh
+- scroll
+- scroll
+- waitForAnimationToEnd
+
+# Should see loading indicator briefly
+# Then content should refresh
+
+- takeScreenshot: "03-after-refresh"
+
+# Test infinite scroll
+- scroll
+# Should see "Loading more..." indicator
+- assertVisible:
+    text: "Loading"
+    optional: true
+
+- waitForAnimationToEnd
+
+# New content should load
+- takeScreenshot: "04-after-infinite-scroll"
+
+# Continue scrolling to test pagination
+- scroll
+- takeScreenshot: "05-more-content"
+
+# Test scroll to specific content
+- scroll
+- takeScreenshot: "06-scrolled-to-story"
+
+# Test animation performance
+- tapOn:
+    id: "button-upvote-.*"
+
+- waitForAnimationToEnd
+
+# Vote animation should be smooth (150ms duration)
+- takeScreenshot: "07-vote-animation"
+
+# Test card expansion animation
+- tapOn:
+    text: "Read more"
+    optional: true
+
+- runFlow:
+    when:
+      visible: "Read more"
+    commands:
+      - tapOn: "Read more"
+      - waitForAnimationToEnd:
+          timeout: 500
+      - takeScreenshot: "08-expand-animation"
+
+# Test navigation transition performance
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+# Transition should be smooth
+- takeScreenshot: "09-nav-transition"
+
+# Test rapid interactions (stress test)
+- tapOn:
+    text: "Feed"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Search"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Feed"
+
+- waitForAnimationToEnd
+
+# Should handle rapid navigation gracefully
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "10-stress-test-complete"
+
+# Test memory performance (scroll through many items)
+- scroll
+# App should remain responsive
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "11-memory-test"
+
+# Scroll back to top
+- scroll
+- takeScreenshot: "12-back-to-top"

@@ -1,0 +1,57 @@
+appId: app.heard.community
+name: Navigation Visibility Test (P0 - Critical)
+---
+# Test: Navigation bar must remain visible during all scrolling
+# iOS HIG Requirement: Tab bars should remain visible during navigation
+#
+# Expected: Navigation stays visible at bottom
+# Current Bug: Navigation hides when scrolling down (translate-y-full)
+#
+# Location: client/src/components/mobile-navigation.tsx:32
+# Location: client/src/hooks/use-scroll-direction.ts:24
+
+- launchApp
+
+# Verify navigation is visible by checking all nav buttons
+- assertVisible:
+    text: "Feed"
+- assertVisible:
+    text: "Churches"
+- assertVisible:
+    text: "Search"
+- assertVisible:
+    text: "Settings"
+
+# Wait for content to load
+- waitForAnimationToEnd
+
+# Scroll down and check if navigation is still visible
+- scroll
+
+# CRITICAL: Navigation should still be visible after scroll
+- assertVisible:
+    text: "Feed"
+- assertVisible:
+    text: "Churches"
+
+- takeScreenshot: "nav-after-scroll-down"
+
+# Scroll up
+- scroll
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "nav-after-scroll-up"
+
+# Test multiple scroll cycles
+- scroll
+
+- scroll
+
+- assertVisible:
+    text: "Feed"
+- assertVisible:
+    text: "Settings"
+
+- takeScreenshot: "nav-final-state"

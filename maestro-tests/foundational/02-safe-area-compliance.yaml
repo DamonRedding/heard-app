@@ -1,0 +1,64 @@
+appId: app.heard.community
+name: Safe Area Compliance Test
+---
+# Foundational UX Test: Respect iOS safe areas
+# Tests proper spacing from screen edges and system UI
+
+- launchApp
+
+# Test 1: Bottom navigation respects safe area
+- assertVisible:
+    text: "Feed"
+
+# Visual inspection of navigation bar position
+- takeScreenshot: "01-nav-safe-area-bottom"
+
+# Test 2: Top content respects status bar
+- scroll
+
+- takeScreenshot: "02-content-safe-area-top"
+
+# Test 3: Navigate to different pages to verify consistency
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "03-churches-safe-areas"
+
+- tapOn:
+    text: "Search"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "04-search-safe-areas"
+
+- tapOn:
+    text: "Settings"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "05-settings-safe-areas"
+
+# Test 4: Check submit page (full screen)
+- tapOn:
+    text: "Feed"
+
+- waitForAnimationToEnd
+
+# Tap FAB if visible
+- tapOn:
+    text: "Share Your Experience"
+    optional: true
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "06-submit-safe-areas"
+
+# Test 5: Return and verify navigation still respects safe area
+- pressKey: back
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "07-final-safe-area-check"

@@ -1,0 +1,88 @@
+appId: app.heard.community
+name: Touch Target Size Validation
+---
+# Foundational UX Test: iOS minimum 44x44pt touch targets
+# All interactive elements must meet this requirement
+
+- launchApp
+
+# Test 1: Navigation button sizes
+# Visual verification - each nav item should be easily tappable
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Search"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Settings"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Feed"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "01-nav-buttons-tested"
+
+# Test 2: FAB touch target
+- assertVisible:
+    text: "Share Your Experience"
+
+# Tap on edge of FAB to test touch target size
+- tapOn:
+    text: "Share Your Experience"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Share Your Experience"  # Page title
+
+- takeScreenshot: "02-fab-touch-target"
+
+# Test 3: Form input touch targets
+# Test tapping on various form elements
+- tapOn:
+    point: "50%, 30%"  # Category area
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "03-form-touch-targets"
+
+# Test 4: Back button touch target
+- pressKey: back
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "04-back-button-worked"
+
+# Test 5: Settings page touch targets
+- tapOn:
+    text: "Settings"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "05-settings-touch-targets"
+
+# Tap on a settings item if visible
+- tapOn:
+    text: "Account"
+    optional: true
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "06-settings-item-tap"
+
+# Return to Feed
+- tapOn:
+    text: "Feed"
+
+- waitForAnimationToEnd

@@ -1,0 +1,127 @@
+appId: app.heard.community
+name: Navigation Context Switching Test
+---
+# Test: Navigation visibility and FAB context awareness
+# Expected: Navigation always visible, FAB changes based on page
+# Measure: Nav visibility across sections, FAB label changes
+
+- launchApp
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "01-nav-feed"
+
+# Verify Feed is active
+- assertVisible:
+    text: "Feed"
+
+- assertVisible:
+    text: "Share Your Experience"
+
+# Navigate to Churches
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Churches"
+
+- assertVisible:
+    text: "Feed"
+
+# FAB should change to "Rate a Church"
+- assertVisible:
+    text: "Rate a Church"
+
+- assertNotVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "02-nav-churches"
+
+# Navigate to Search
+- tapOn:
+    text: "Search"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Feed"
+
+# FAB should show "Post Story" on search page
+- assertVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "03-nav-search"
+
+# Navigate to Settings
+- tapOn:
+    text: "Settings"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Settings"
+
+- assertVisible:
+    text: "Feed"
+
+# No FAB on settings page
+- assertNotVisible:
+    text: "Share Your Experience"
+
+- assertNotVisible:
+    text: "Rate a Church"
+
+- takeScreenshot: "04-nav-settings"
+
+# Test navigation persistence after scroll
+- scroll
+# Navigation should still be visible (will fail due to bug)
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "05-settings-after-scroll"
+
+# Return to Feed
+- tapOn:
+    text: "Feed"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Feed"
+
+- assertVisible:
+    text: "Feed"
+
+- assertVisible:
+    text: "Share Your Experience"
+
+- takeScreenshot: "06-back-to-feed"
+
+# Test rapid navigation switching
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Search"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Feed"
+
+- waitForAnimationToEnd
+
+# Should handle rapid switches gracefully
+- assertVisible:
+    text: "Feed"
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "07-rapid-switch-final"

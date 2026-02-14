@@ -1,0 +1,79 @@
+appId: app.heard.community
+name: Touch Target Size Validation (P0 - Critical)
+---
+# Test: All interactive elements must be ≥44x44pt
+# iOS HIG Requirement: Minimum 44x44pt touch targets
+#
+# Components to test:
+# - Vote buttons (upvote/downvote) - PASS: min-h-[44px]
+# - "Read more" buttons - LIKELY FAIL: no explicit height
+# - "Me Too" button - PASS: min-h-[44px]
+# - Navigation buttons - VERIFY: py-2 might be insufficient
+# - FAB - PASS: h-12 (48px)
+
+- launchApp
+
+- assertVisible:
+    text: "Feed"
+
+# Wait for stories to load
+- waitForAnimationToEnd
+
+# Scroll to find a submission card
+- scroll
+- takeScreenshot: "story-visible"
+
+# Test vote button touch targets
+# Expected: ≥44x44pt (11pt = 44px on 1x screen)
+- assertVisible:
+    id: "button-upvote-.*"
+
+- assertVisible:
+    id: "button-downvote-.*"
+
+- takeScreenshot: "vote-buttons-annotated"
+
+# Test "Read more" button if truncated story exists
+- assertVisible:
+    text: "Read more"
+    optional: true
+
+# If "Read more" exists, measure it
+- runFlow:
+    when:
+      visible: "Read more"
+    commands:
+      - takeScreenshot: "read-more-button"
+      - tapOn: "Read more"
+      - assertVisible: "Show less"
+      - takeScreenshot: "show-less-button"
+
+# Test "Me Too" button
+- scroll
+- assertVisible:
+    text: "Me Too"
+
+- takeScreenshot: "metoo-button"
+
+# Test navigation button sizes
+- tapOn:
+    text: "Churches"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Churches"
+
+- takeScreenshot: "nav-churches"
+
+# Test FAB touch target
+- assertVisible:
+    text: "Rate a Church"
+
+- takeScreenshot: "fab-touch-target"
+
+# Return to feed
+- tapOn:
+    text: "Feed"
+
+- takeScreenshot: "final-state"

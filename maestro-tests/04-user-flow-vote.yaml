@@ -1,0 +1,91 @@
+appId: app.heard.community
+name: Complete User Flow - Browse → Vote
+---
+# Test: End-to-end user flow for browsing and voting
+# Includes: Navigation, story expansion, voting, visual feedback
+# Expected: Smooth interactions, proper state changes
+# Measure: Animation timing, haptic feedback (if implemented)
+
+- launchApp
+
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "01-landing"
+
+# Wait for stories to load
+- waitForAnimationToEnd
+
+# Scroll to find a story
+- scroll
+- takeScreenshot: "02-story-visible"
+
+# Expand story if truncated
+- tapOn:
+    text: "Read more"
+    optional: true
+
+- runFlow:
+    when:
+      visible: "Read more"
+    commands:
+      - tapOn: "Read more"
+      - waitForAnimationToEnd:
+          timeout: 500
+      - takeScreenshot: "03-story-expanded"
+      - assertVisible: "Show less"
+
+# Vote upvote (absolve)
+- tapOn:
+    id: "button-upvote-.*"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "04-voted-upvote"
+
+# Check for haptic feedback
+# Note: Maestro cannot directly detect haptics
+# Manual verification required
+
+# Vote downvote (condemn) - should toggle
+- tapOn:
+    id: "button-downvote-.*"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "05-voted-downvote"
+
+# Test "Me Too" button
+- scroll
+- tapOn:
+    text: "Me Too"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "06-metoo-clicked"
+
+# Test emoji reactions (if visible)
+- scroll
+- takeScreenshot: "07-reactions-visible"
+
+# Navigate to another story
+- scroll
+- takeScreenshot: "08-second-story"
+
+# Vote on second story
+- tapOn:
+    id: "button-upvote-.*"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "09-second-story-voted"
+
+# Scroll back to top
+- scroll
+- takeScreenshot: "10-back-to-top"
+
+# Verify navigation is visible (will fail due to bug)
+- assertVisible:
+    text: "Feed"
+
+- takeScreenshot: "11-nav-check-final"

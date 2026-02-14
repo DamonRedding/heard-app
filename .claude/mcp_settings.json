@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "maestro": {
+      "command": "/Users/damon/.maestro/bin/maestro",
+      "args": ["mcp"]
+    },
     "context7": {
       "command": "npx",
       "args": [
