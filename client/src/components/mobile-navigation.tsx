@@ -25,20 +25,13 @@ export function MobileNavigation() {
   if (!isMobile) return null;
 
   return (
-    <>
-      {/* Background extender for bottom overscroll */}
-      <div
-        className="fixed bottom-0 left-0 right-0 h-[1000px] bg-background -z-10"
-        style={{ transform: 'translateY(100%)' }}
-        aria-hidden="true"
-      />
-      <nav
-        id="mobile-navigation"
-        className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t"
-        role="navigation"
-        aria-label="Mobile navigation"
-        data-testid="mobile-navigation"
-      >
+    <nav
+      id="mobile-navigation"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t"
+      role="navigation"
+      aria-label="Mobile navigation"
+      data-testid="mobile-navigation"
+    >
           <div className="flex items-center justify-around h-16 px-2 pb-safe">
             {navItems.map((item) => {
             const isActive = location === item.href;
@@ -93,6 +86,5 @@ export function MobileNavigation() {
           })}
         </div>
     </nav>
-    </>
   );
 }

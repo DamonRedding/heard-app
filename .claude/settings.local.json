@@ -44,7 +44,16 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__query-docs",
       "Read(//Users/damon/.maestro/tests/2026-02-14_133302/**)",
-      "mcp__sequential-thinking__sequentialthinking"
+      "mcp__sequential-thinking__sequentialthinking",
+      "SlashCommand(/sc:troubleshoot iOS viewport overscroll issues - black/white gaps appearing at top and bottom during overscroll despite multiple fix attempts)",
+      "Bash(. ~/.nvm/nvm.sh)",
+      "Bash(export PATH=\"/Users/damon/.nvm/versions/node/v22.12.0/bin:$PATH\")",
+      "Bash(/Users/damon/.nvm/versions/node/v22.12.0/bin/node /Users/damon/.nvm/versions/node/v22.12.0/bin/npx cap sync ios)",
+      "Read(//Users/damon/.nvm/versions/node/**)",
+      "Bash(PATH=\"/Users/damon/.nvm/versions/node/v22.22.0/bin:$PATH\" node --version)",
+      "Bash(PATH=\"/Users/damon/.nvm/versions/node/v22.22.0/bin:$PATH\" npx cap sync ios)",
+      "Bash(tee:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

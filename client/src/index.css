@@ -203,9 +203,37 @@
     min-height: -webkit-fill-available;
     /* Match overscroll color to background */
     background-color: hsl(var(--background));
+    /* iOS overscroll background fix */
+    position: relative;
+  }
+
+  html::before {
+    content: '';
+    position: fixed;
+    top: -200vh;
+    left: 0;
+    right: 0;
+    height: 200vh;
+    background-color: hsl(var(--background));
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  html::after {
+    content: '';
+    position: fixed;
+    bottom: -200vh;
+    left: 0;
+    right: 0;
+    height: 200vh;
+    background-color: hsl(var(--background));
+    z-index: -1;
+    pointer-events: none;
   }
 
   html, body {
+    /* Note: overscroll-behavior-y doesn't work in Capacitor iOS WebView */
+    /* Bounce scrolling is prevented by pseudo-elements above */
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
   }
@@ -215,26 +243,8 @@
     min-height: 100vh;
     min-height: -webkit-fill-available;
     position: relative;
-  }
-
-  /* iOS specific overscroll coverage */
-  @supports (-webkit-touch-callout: none) {
-    body {
-      /* Match overscroll color to background */
-      background-color: hsl(var(--background));
-    }
-
-    /* Extend background above viewport for top overscroll */
-    body::before {
-      content: '';
-      position: fixed;
-      top: -1000px;
-      left: 0;
-      right: 0;
-      height: 1000px;
-      background-color: hsl(var(--background));
-      z-index: -1;
-    }
+    /* Background color for web browsers */
+    background-color: hsl(var(--background));
   }
 }
 

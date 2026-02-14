@@ -1,0 +1,31 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/Users/damon/.maestro/lib/jansi-2.4.1.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+Running on iPhone 17 Pro - iOS 26.0 - 36400BED-AFD9-4882-BA92-255D95215AF8
+ > Flow Full Viewport Coverage Test
+Launch app "app.heard.community"... COMPLETED
+Take screenshot 01-initial-viewport... COMPLETED
+Swipe from (50%, 20%) to (50%, 90%) in 1500 ms... COMPLETED
+Wait for animation to end... COMPLETED
+Take screenshot 02-overscroll-top...Repeat 10 times...
+Repeat 10 times...
+  Scroll vertically...Repeat 10 times... RUNNING
+Repeat 10 times... RUNNING
+Swipe from (50%, 80%) to (50%, 10%) in 1500 ms... COMPLETED
+Wait for animation to end... COMPLETED
+Take screenshot 03-overscroll-bottom... COMPLETED
+Tap on "Churches"... COMPLETED
+Wait for animation to end... COMPLETED
+Swipe from (50%, 20%) to (50%, 90%) in 1500 ms... COMPLETED
+Take screenshot 04-churches-overscroll... COMPLETED
+Tap on "Settings"... COMPLETED
+Wait for animation to end... COMPLETED
+Swipe from (50%, 20%) to (50%, 90%) in 1500 ms... COMPLETED
+Take screenshot 05-settings-viewport... COMPLETED
+Tap on "Feed"... COMPLETED
+Wait for animation to end... COMPLETED
+Swipe from (50%, 10%) to (50%, 95%) in 2000 ms... COMPLETED
+Take screenshot 06-extreme-pull-top... COMPLETED
+Take screenshot 07-final-state... COMPLETED
