@@ -53,7 +53,9 @@
       "Bash(PATH=\"/Users/damon/.nvm/versions/node/v22.22.0/bin:$PATH\" node --version)",
       "Bash(PATH=\"/Users/damon/.nvm/versions/node/v22.22.0/bin:$PATH\" npx cap sync ios)",
       "Bash(tee:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(export:*)",
+      "mcp__filesystem-with-morph__edit_file"
     ],
     "deny": [],
     "ask": []

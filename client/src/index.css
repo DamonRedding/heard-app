@@ -207,13 +207,14 @@
     position: relative;
   }
 
+  /* Extended background for iOS overscroll - covers curved corners */
   html::before {
     content: '';
     position: fixed;
-    top: -200vh;
-    left: 0;
-    right: 0;
-    height: 200vh;
+    top: -1000px;
+    left: -100px;
+    right: -100px;
+    height: 1100px;
     background-color: hsl(var(--background));
     z-index: -1;
     pointer-events: none;
@@ -222,13 +223,37 @@
   html::after {
     content: '';
     position: fixed;
-    bottom: -200vh;
-    left: 0;
-    right: 0;
-    height: 200vh;
+    bottom: -1000px;
+    left: -100px;
+    right: -100px;
+    height: 1100px;
     background-color: hsl(var(--background));
     z-index: -1;
     pointer-events: none;
+  }
+
+  /* iOS-specific overscroll fix for curved corners */
+  @supports (-webkit-touch-callout: none) {
+    html {
+      /* Extend the background beyond viewport bounds */
+      background-attachment: fixed;
+      background-size: 120% 120%;
+      background-position: center center;
+    }
+
+    html::before {
+      top: -2000px;
+      left: -200px;
+      right: -200px;
+      height: 2200px;
+    }
+
+    html::after {
+      bottom: -2000px;
+      left: -200px;
+      right: -200px;
+      height: 2200px;
+    }
   }
 
   html, body {
@@ -243,8 +268,12 @@
     min-height: 100vh;
     min-height: -webkit-fill-available;
     position: relative;
+    overflow-x: hidden;
+    overflow-y: auto;
     /* Background color for web browsers */
     background-color: hsl(var(--background));
+    /* Ensure body fills the entire viewport */
+    width: 100%;
   }
 }
 
