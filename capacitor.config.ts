@@ -8,8 +8,9 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
   },
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'never',
     preferredContentMode: 'mobile',
+    backgroundColor: '#F5F1E8', // Light mode background - matches --background
   },
   android: {
     allowMixedContent: false,

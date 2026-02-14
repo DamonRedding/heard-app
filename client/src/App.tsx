@@ -8,6 +8,7 @@ import { Header } from "@/components/header";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { ShareFAB } from "@/components/share-fab";
 import { StoryReadsProvider } from "@/components/story-reads-provider";
+import { useWebViewBackground } from "@/hooks/use-webview-background";
 import Home from "@/pages/home";
 import Submit from "@/pages/submit";
 import Churches from "@/pages/churches";
@@ -32,20 +33,30 @@ function Router() {
   );
 }
 
+function AppContent() {
+  useWebViewBackground();
+
+  return (
+    <>
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <div className="pt-safe flex-1 pb-16 md:pb-0">
+          <Header />
+          <Router />
+        </div>
+        <MobileNavigation />
+      </div>
+      <ShareFAB />
+    </>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="sanctuary-voice-theme">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <StoryReadsProvider>
-            <div className="min-h-screen bg-background text-foreground flex flex-col">
-              <div className="pt-safe flex-1 pb-16 md:pb-0">
-                <Header />
-                <Router />
-              </div>
-              <MobileNavigation />
-            </div>
-            <ShareFAB />
+            <AppContent />
           </StoryReadsProvider>
           <Toaster />
         </TooltipProvider>

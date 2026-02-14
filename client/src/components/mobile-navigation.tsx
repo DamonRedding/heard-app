@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Link, useLocation } from "wouter";
 import { Home, Church, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,12 +28,12 @@ export function MobileNavigation() {
   return (
     <nav
       id="mobile-navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t"
       role="navigation"
       aria-label="Mobile navigation"
       data-testid="mobile-navigation"
     >
-          <div className="flex items-center justify-around h-16 px-2 pb-safe">
+          <div className="flex items-center justify-around h-16 px-2" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
             {navItems.map((item) => {
             const isActive = location === item.href;
             const Icon = item.icon;

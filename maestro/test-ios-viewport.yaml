@@ -1,0 +1,70 @@
+appId: app.heard.community
+---
+# Test iOS Viewport Fix - Validate no gaps on overscroll
+
+- launchApp
+
+# Initial state
+- takeScreenshot: 01-initial-viewport
+
+# Test overscroll at top
+- swipe:
+    start: 50%, 30%
+    end: 50%, 80%
+    duration: 500
+
+- takeScreenshot: 02-overscroll-top
+
+# Reset to middle
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+    duration: 300
+
+# Test overscroll at bottom
+- swipe:
+    start: 50%, 70%
+    end: 50%, 20%
+    duration: 1000
+
+- takeScreenshot: 03-overscroll-bottom
+
+# Navigate to different screens to test consistency
+- tapOn:
+    text: "Churches"
+
+- takeScreenshot: 04-churches-viewport
+
+- swipe:
+    start: 50%, 30%
+    end: 50%, 80%
+    duration: 500
+
+- takeScreenshot: 05-churches-overscroll
+
+# Test settings screen
+- tapOn:
+    text: "Settings"
+
+- takeScreenshot: 06-settings-viewport
+
+# Extreme test - rapid scrolling
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 20%
+          duration: 200
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 80%
+          duration: 200
+
+- takeScreenshot: 07-after-rapid-scroll
+
+# Final validation
+- tapOn:
+    text: "Feed"
+
+- takeScreenshot: 08-final-state

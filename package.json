@@ -8,7 +8,9 @@
     "build": "tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "capacitor:sync:ios": "cap sync ios && node scripts/patch-ios-webview.js",
+    "postinstall": "node scripts/patch-ios-webview.js || true"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.2",
