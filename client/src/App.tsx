@@ -9,6 +9,7 @@ import { MobileNavigation } from "@/components/mobile-navigation";
 import { ShareFAB } from "@/components/share-fab";
 import { StoryReadsProvider } from "@/components/story-reads-provider";
 import { useWebViewBackground } from "@/hooks/use-webview-background";
+import { useKeyboard } from "@/hooks/use-keyboard";
 import Home from "@/pages/home";
 import Submit from "@/pages/submit";
 import Churches from "@/pages/churches";
@@ -35,6 +36,7 @@ function Router() {
 
 function AppContent() {
   useWebViewBackground();
+  useKeyboard();
 
   return (
     <>

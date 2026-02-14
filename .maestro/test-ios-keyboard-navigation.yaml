@@ -1,0 +1,108 @@
+appId: app.heard.community
+name: iOS Keyboard Navigation Test
+tags:
+  - ios
+  - keyboard
+  - navigation
+---
+# Test iOS keyboard doesn't push up bottom navigation
+# Configuration: Capacitor Keyboard plugin with resize: 'none'
+
+- launchApp
+- assertVisible:
+    id: "mobile-navigation"
+
+# Test 1: Search Screen Input
+# ============================
+- tapOn:
+    id: "mobile-nav-search"
+
+- takeScreenshot: "ios-keyboard-01-search-before"
+
+# Record initial navigation position
+- evalScript: |
+    const nav = document.getElementById('mobile-navigation');
+    const rect = nav.getBoundingClientRect();
+    output.navBottomBefore = rect.bottom;
+    output.navTopBefore = rect.top;
+
+# Focus search input to trigger keyboard
+- tapOn:
+    id: "search-input"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "ios-keyboard-02-search-keyboard-visible"
+
+# Verify navigation hasn't moved
+- evalScript: |
+    const nav = document.getElementById('mobile-navigation');
+    const rect = nav.getBoundingClientRect();
+    output.navBottomAfter = rect.bottom;
+    output.navTopAfter = rect.top;
+    // Navigation should remain at same position
+    assert(Math.abs(output.navBottomBefore - output.navBottomAfter) < 5,
+           'Navigation moved when keyboard appeared');
+
+# Type in search field
+- inputText: "test search"
+
+# Verify navigation still visible and in correct position
+- assertVisible:
+    id: "mobile-navigation"
+
+- takeScreenshot: "ios-keyboard-03-search-with-text"
+
+# Dismiss keyboard
+- tapOn:
+    point: "50%,20%" # Tap outside input area
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "ios-keyboard-04-search-keyboard-hidden"
+
+# Test 2: Settings Screen (if has inputs)
+# =======================================
+- tapOn:
+    id: "mobile-nav-settings"
+
+- takeScreenshot: "ios-keyboard-05-settings-screen"
+
+# Look for any input fields in settings
+- evalScript: |
+    const inputs = document.querySelectorAll('input, textarea');
+    output.hasInputs = inputs.length > 0;
+    if (inputs.length > 0) {
+      inputs[0].scrollIntoView();
+      inputs[0].focus();
+    }
+
+- conditional:
+    when:
+      js: output.hasInputs === true
+    then:
+      - waitForAnimationToEnd
+      - takeScreenshot: "ios-keyboard-06-settings-with-keyboard"
+      - assertVisible:
+          id: "mobile-navigation"
+
+# Test 3: Feed Screen
+# ===================
+- tapOn:
+    id: "mobile-nav-feed"
+
+- takeScreenshot: "ios-keyboard-07-feed-screen"
+
+# Final verification
+# ==================
+- evalScript: |
+    const nav = document.getElementById('mobile-navigation');
+    const styles = window.getComputedStyle(nav);
+    assert(styles.position === 'fixed', 'Navigation should be fixed positioned');
+    assert(styles.bottom === '0px', 'Navigation should be at bottom: 0');
+    output.success = true;
+
+- takeScreenshot: "ios-keyboard-08-final-state"
+
+# Summary assertion
+- assertTrue: ${output.success}

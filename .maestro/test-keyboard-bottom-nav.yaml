@@ -1,0 +1,43 @@
+appId: app.heard.community
+---
+# Test keyboard behavior with bottom navigation
+- launchApp
+
+# Navigate to search screen (has search input)
+- tapOn:
+    id: "mobile-nav-search"
+
+# Take screenshot before focusing text field
+- takeScreenshot: "01-before-keyboard"
+
+# Tap on search input to trigger keyboard
+- tapOn:
+    id: "search-input"
+
+# Small delay for keyboard animation
+- waitForAnimationToEnd
+
+# Take screenshot with keyboard visible
+- takeScreenshot: "02-with-keyboard-visible"
+
+# Check if bottom navigation is visible
+- assertVisible:
+    id: "mobile-navigation"
+
+# Input some text
+- inputText: "Test keyboard"
+
+# Take screenshot while typing
+- takeScreenshot: "03-while-typing"
+
+# Dismiss keyboard
+- hideKeyboard
+
+# Take screenshot after keyboard dismissed
+- takeScreenshot: "04-after-keyboard-dismissed"
+
+# Navigate to settings (might have other inputs)
+- tapOn:
+    id: "mobile-nav-settings"
+
+- takeScreenshot: "05-settings-screen"

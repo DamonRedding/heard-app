@@ -1,0 +1,37 @@
+appId: app.heard.community
+---
+# Verify keyboard doesn't push up bottom navigation after fix
+- launchApp
+
+# Test 1: Search screen
+- tapOn:
+    id: "mobile-nav-search"
+- takeScreenshot: "keyboard-fix-01-search-screen"
+
+- tapOn:
+    id: "search-input"
+- waitForAnimationToEnd
+- takeScreenshot: "keyboard-fix-02-search-with-keyboard"
+
+# Verify bottom nav position hasn't changed
+- assertVisible:
+    id: "mobile-navigation"
+    below:
+        id: "search-input"
+
+- inputText: "Test keyboard fix"
+- hideKeyboard
+- takeScreenshot: "keyboard-fix-03-after-typing"
+
+# Test 2: Settings screen (if it has inputs)
+- tapOn:
+    id: "mobile-nav-settings"
+- takeScreenshot: "keyboard-fix-04-settings-screen"
+
+# Test 3: Feed screen (compose if available)
+- tapOn:
+    id: "mobile-nav-feed"
+- takeScreenshot: "keyboard-fix-05-feed-screen"
+
+# Summary
+- takeScreenshot: "keyboard-fix-06-final-state"
