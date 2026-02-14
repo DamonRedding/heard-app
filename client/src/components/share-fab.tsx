@@ -58,7 +58,7 @@ export function ShareFAB() {
       aria-label={fabContent.ariaLabel}
       style={{
         position: 'fixed',
-        bottom: '5.25rem',
+        bottom: '4.5rem',
         left: '50%',
         transform: 'translateX(-50%)',
       }}

@@ -83,10 +83,6 @@ export default function Home() {
   const { trackEngagement, getPersonalizationLevel, getPersonalizationParams, totalEngagements } = useFeedPersonalization();
   const personalizationLevel = getPersonalizationLevel();
   const { trackStoryRead } = useStoryReadsContext();
-  const { displayMode: logoDisplayMode, isTransitioning: logoTransitioning, setExpanded: setLogoExpanded } = useLogoExperienceState();
-  const { isAtTop } = useScrollDirection({ topThreshold: 60 });
-  const isLogoLetterMark = logoDisplayMode === "lettermark";
-  const toggleLogo = () => setLogoExpanded(isLogoLetterMark);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
@@ -372,41 +368,7 @@ export default function Home() {
           className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b safe-area-inset-top"
           data-testid="mobile-sticky-tabs"
         >
-          <div 
-            className={cn(
-              "flex items-center justify-center px-4 border-b border-border/50 transition-all duration-300 overflow-hidden",
-              isAtTop ? "py-3 max-h-16 opacity-100" : "py-0 max-h-0 opacity-0 border-b-0"
-            )}
-          >
-            <button
-              onClick={toggleLogo}
-              className={cn(
-                "flex flex-col items-center gap-0.5 hover-elevate rounded-md px-3 py-1.5 cursor-pointer transition-all duration-300",
-                logoTransitioning && "opacity-90"
-              )}
-              data-testid="mobile-logo"
-              aria-expanded={!isLogoLetterMark}
-              aria-label={isLogoLetterMark ? "Expand to full logo" : "Collapse to letter mark"}
-            >
-              <h1 
-                className={cn(
-                  "font-bold tracking-tight text-foreground transition-all duration-300",
-                  isLogoLetterMark ? "text-2xl" : "text-xl"
-                )}
-              >
-                {isLogoLetterMark ? "H" : "Heard"}
-              </h1>
-              <div 
-                className={cn(
-                  "overflow-hidden transition-all duration-300 ease-out",
-                  isLogoLetterMark ? "max-h-0 opacity-0" : "max-h-6 opacity-100"
-                )}
-              >
-                <span className="text-xs text-muted-foreground">Your voice matters.</span>
-              </div>
-            </button>
-          </div>
-          <div className="flex items-center px-4 py-2">
+          <div className="flex items-center px-4 py-1.5">
             <div className="flex-1 flex items-center rounded-lg border bg-muted/30 p-0.5" role="tablist" aria-label="Sort posts">
               <Button
                 variant={sortType === "hot" ? "default" : "ghost"}
