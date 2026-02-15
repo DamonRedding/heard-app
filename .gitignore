@@ -30,4 +30,4 @@ android/local.properties
 *.dex
 
 # Capacitor
-.capacitor/
+.capacitor/.env

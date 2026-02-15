@@ -57,7 +57,15 @@
       "Bash(export:*)",
       "mcp__filesystem-with-morph__edit_file",
       "SlashCommand(/sc:troubleshoot:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(node:*)",
+      "Bash(npm run dev:*)",
+      "Bash(chmod:*)",
+      "Bash(npm run dev:client:*)",
+      "Bash(brew list:*)",
+      "Bash(nvm list:*)",
+      "Bash(nvm install:*)",
+      "SlashCommand(/sc:implement:*)"
     ],
     "deny": [],
     "ask": []

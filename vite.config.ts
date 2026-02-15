@@ -36,5 +36,13 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    // Add proxy configuration for API calls when using production API
+    proxy: process.env.VITE_USE_PRODUCTION_API === 'true' ? {
+      '/api': {
+        target: process.env.VITE_API_URL || 'https://your-heard-app.repl.co',
+        changeOrigin: true,
+        secure: true,
+      }
+    } : undefined,
   },
 });
