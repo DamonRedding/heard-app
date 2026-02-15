@@ -12,22 +12,19 @@ const productionAPIUrl = import.meta.env.VITE_API_URL || 'https://churchheard.co
 export const API_CONFIG = {
   // Base URL for API calls
   baseURL: (() => {
-    // In production build (on device), use relative URLs
-    if (isProduction) {
-      return '';
-    }
-
-    // In development with production API flag
-    if (isDevelopment && useProductionAPI) {
+    // CRITICAL FIX: Mobile apps need absolute URLs even in production
+    // Always use production URL when flag is set OR in production mode
+    if (useProductionAPI || isProduction) {
       return productionAPIUrl;
     }
 
-    // Default local development
+    // Default local development (relative URLs for local server)
     return '';
   })(),
 
   // Whether we're using a remote API
-  isRemoteAPI: isDevelopment && useProductionAPI,
+  // API is remote when using production API OR in production build
+  isRemoteAPI: useProductionAPI || isProduction,
 
   // API endpoints
   endpoints: {

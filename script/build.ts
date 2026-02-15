@@ -1,6 +1,10 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
 import { rm, readFile } from "fs/promises";
+import { config as loadEnv } from "dotenv";
+
+// Load environment variables from .env file
+loadEnv();
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times

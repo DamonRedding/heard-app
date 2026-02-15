@@ -4,9 +4,16 @@ const config: CapacitorConfig = {
   appId: 'app.heard.community',
   appName: 'Heard',
   webDir: 'dist/public',
+  // Server configuration removed for production builds
+  // The app will use the compiled assets from webDir
+  // For development with live reload, uncomment the server block below:
+  /*
   server: {
     androidScheme: 'https',
+    url: 'http://localhost:5173',
+    cleartext: true,
   },
+  */
   ios: {
     contentInset: 'never',
     preferredContentMode: 'mobile',
