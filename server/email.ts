@@ -105,7 +105,7 @@ export async function sendWelcomeEmail(email: string, trackingId?: string): Prom
 }
 
 export async function sendSubmissionNotificationEmail(
-  subscriberEmail: string, 
+  subscriberEmail: string,
   submissionTitle: string,
   category: string,
   trackingId?: string

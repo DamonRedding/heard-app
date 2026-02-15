@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.heard.community',
-  appName: 'Heard',
+  appName: 'ChurchHeard',
   webDir: 'dist/public',
   // Server configuration removed for production builds
   // The app will use the compiled assets from webDir
